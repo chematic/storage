@@ -1,13 +1,21 @@
-local Library = {}
+local Library = {
+    Registry = {},
+    Flags = {},
+    Connections = {},
+    ActiveDropdown = nil,
+    ConfigName = "Unleashed_Config"
+}
+
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Lighting = game:GetService("Lighting")
+local HttpService = game:GetService("HttpService")
 
 local existingWindows = {}
-local activeDropdown = nil
 
+-- [SÉCURITÉ & UTILITAIRES]
 local function SafeCallback(func, ...)
     if type(func) ~= "function" then return end
     local success, err = pcall(func, ...)
@@ -61,10 +69,34 @@ local function Ripple(obj)
     end)
 end
 
+-- [CONFIG SYSTEM]
+function Library:SaveConfig()
+    if not isfolder("UnleashedHub") then makefolder("UnleashedHub") end
+    local data = {}
+    for i, v in pairs(self.Flags) do
+        data[i] = v
+    end
+    writefile("UnleashedHub/" .. self.ConfigName .. ".json", HttpService:JSONEncode(data))
+end
+
+function Library:LoadConfig()
+    local path = "UnleashedHub/" .. self.ConfigName .. ".json"
+    if isfile(path) then
+        local data = HttpService:JSONDecode(readfile(path))
+        for i, v in pairs(data) do
+            if self.Registry[i] then
+                self.Registry[i]:Set(v)
+            end
+        end
+    end
+end
+
+-- [MAIN WINDOW]
 function Library:CreateWindow(cfg)
     if type(cfg) ~= "table" then cfg = {} end
     local title = type(cfg.Name) == "string" and cfg.Name or "UNLEASHED HUB"
     local accent = typeof(cfg.Accent) == "Color3" and cfg.Accent or Color3.fromRGB(255, 0, 75)
+    self.ConfigName = cfg.ConfigName or title
 
     if existingWindows[title] then
         existingWindows[title]:Destroy()
@@ -81,14 +113,9 @@ function Library:CreateWindow(cfg)
     Blur.Size = 0
     Tween(Blur, {Size = 15}, 0.5)
 
-    ScreenGui.AncestryChanged:Connect(function()
-        if not ScreenGui:IsDescendantOf(game) then
-            local t = Tween(Blur, {Size = 0}, 0.3)
-            t.Completed:Connect(function() Blur:Destroy() end)
-        end
-    end)
-
-    local Main = Instance.new("Frame")
+    -- [CORRECTION ERREUR GROUPTRANSPARENCY]
+    -- Main doit être un CanvasGroup pour supporter GroupTransparency
+    local Main = Instance.new("CanvasGroup")
     Main.Name = "Main"
     Main.Parent = ScreenGui
     Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
@@ -177,65 +204,49 @@ function Library:CreateWindow(cfg)
     PageContainer.BackgroundTransparency = 1
     PageContainer.ZIndex = 1
 
+    -- [DRAGGING SYSTEM]
     local dragging, dragInput, dragStart, startPos
     local targetPos = Main.Position
 
     Main.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not Library.ActiveDropdown then
             dragging = true
             dragStart = input.Position
             startPos = Main.Position
-            targetPos = startPos
         end
     end)
     
-    UserInputService.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-            if dragging then
-                local delta = input.Position - dragStart
-                targetPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-            end
+    table.insert(Library.Connections, UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            targetPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
-    end)
+    end))
     
-    UserInputService.InputEnded:Connect(function(input)
+    table.insert(Library.Connections, UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
-    end)
+    end))
 
-    local dragConnection
-    dragConnection = RunService.RenderStepped:Connect(function()
+    table.insert(Library.Connections, RunService.RenderStepped:Connect(function()
         if ScreenGui.Parent then
             Main.Position = Main.Position:Lerp(targetPos, 0.15)
-        else
-            dragConnection:Disconnect()
         end
-    end)
+    end))
 
-    UserInputService.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            if activeDropdown then
-                local isInside = false
-                local elements = ScreenGui:GetDescendants()
-                for _, v in pairs(elements) do
-                    if v == activeDropdown.Frame or v == activeDropdown.Button then
-                        local pos = UserInputService:GetMouseLocation()
-                        local absPos = v.AbsolutePosition
-                        local absSize = v.AbsoluteSize
-                        if pos.X >= absPos.X and pos.X <= absPos.X + absSize.X and pos.Y >= absPos.Y - 36 and pos.Y <= absPos.Y - 36 + absSize.Y then
-                            isInside = true
-                            break
-                        end
-                    end
-                end
-                if not isInside then
-                    activeDropdown.Close()
-                end
+    -- [UI MANAGER / DROPDOWN CLOSER]
+    table.insert(Library.Connections, UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and Library.ActiveDropdown then
+            local pos = UserInputService:GetMouseLocation()
+            local absPos = Library.ActiveDropdown.Frame.AbsolutePosition
+            local absSize = Library.ActiveDropdown.Frame.AbsoluteSize
+            
+            if not (pos.X >= absPos.X and pos.X <= absPos.X + absSize.X and pos.Y >= absPos.Y - 36 and pos.Y <= absPos.Y - 36 + absSize.Y) then
+                Library.ActiveDropdown.Close()
             end
         end
-    end)
+    end))
 
     local Tabs = {}
     local firstPage = true
@@ -294,8 +305,6 @@ function Library:CreateWindow(cfg)
         IndCorner.CornerRadius = UDim.new(1, 0)
         IndCorner.Parent = ActiveIndicator
 
-        if not firstPage then ApplyHover(TabBtn, Color3.fromRGB(20, 20, 20), Color3.fromRGB(25, 25, 25)) end
-
         TabBtn.MouseButton1Click:Connect(function()
             Ripple(TabBtn)
             for _, p in pairs(PageContainer:GetChildren()) do 
@@ -307,7 +316,6 @@ function Library:CreateWindow(cfg)
                     Tween(t, {TextColor3 = Color3.fromRGB(200, 200, 200)}, 0.2)
                     local ind = t:FindFirstChild("Frame")
                     if ind then Tween(ind, {BackgroundTransparency = 1}, 0.2) end
-                    ApplyHover(t, Color3.fromRGB(20, 20, 20), Color3.fromRGB(25, 25, 25))
                 end 
             end
             Page.Visible = true
@@ -318,17 +326,9 @@ function Library:CreateWindow(cfg)
 
         firstPage = false
         local Elements = {}
-        existingTabs[name] = Elements
 
-        local existingElements = {}
-
+        -- [COMPONENTS]
         function Elements:AddButton(text, callback)
-            text = type(text) == "string" and text or "Button"
-            if existingElements[text] then return end
-            existingElements[text] = true
-
-            local debounce = false
-
             local Btn = Instance.new("TextButton")
             Btn.Parent = Page
             Btn.Size = UDim2.new(1, -5, 0, 35)
@@ -341,46 +341,24 @@ function Library:CreateWindow(cfg)
             Btn.AutoButtonColor = false
             Btn.ZIndex = 2
             
-            local c = Instance.new("UICorner") 
-            c.CornerRadius = UDim.new(0, 6) 
-            c.Parent = Btn
-            
             local Stroke = Instance.new("UIStroke")
             Stroke.Parent = Btn
             Stroke.Color = Color3.fromRGB(40, 40, 40)
-            Stroke.Thickness = 1
-
+            
+            Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
             ApplyHover(Btn, Color3.fromRGB(25, 25, 25), Color3.fromRGB(32, 32, 32))
 
-            local Icon = Instance.new("ImageLabel")
-            Icon.Parent = Btn
-            Icon.Size = UDim2.new(0, 16, 0, 16)
-            Icon.Position = UDim2.new(1, -25, 0.5, -8)
-            Icon.BackgroundTransparency = 1
-            Icon.Image = "rbxassetid://6026663779"
-            Icon.ImageColor3 = Color3.fromRGB(200, 200, 200)
-            Icon.ZIndex = 2
-
             Btn.MouseButton1Click:Connect(function()
-                if debounce then return end
-                debounce = true
                 Ripple(Btn)
-                Tween(Icon, {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(1, -23, 0.5, -6)}, 0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
-                task.wait(0.1)
-                Tween(Icon, {Size = UDim2.new(0, 16, 0, 16), Position = UDim2.new(1, -25, 0.5, -8)}, 0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
                 SafeCallback(callback)
-                task.wait(0.2)
-                debounce = false
             end)
         end
 
-        function Elements:AddToggle(text, callback)
-            text = type(text) == "string" and text or "Toggle"
-            if existingElements[text] then return end
-            existingElements[text] = true
-
-            local debounce = false
-
+        function Elements:AddToggle(text, cfg, callback)
+            local toggleCfg = type(cfg) == "table" and cfg or {Default = false}
+            local flag = toggleCfg.Flag or text
+            local enabled = toggleCfg.Default or false
+            
             local Tgl = Instance.new("TextButton")
             Tgl.Parent = Page
             Tgl.Size = UDim2.new(1, -5, 0, 35)
@@ -391,46 +369,27 @@ function Library:CreateWindow(cfg)
             Tgl.Font = Enum.Font.Gotham
             Tgl.TextSize = 13
             Tgl.AutoButtonColor = false
-            Tgl.ZIndex = 2
             
-            local c = Instance.new("UICorner") 
-            c.CornerRadius = UDim.new(0, 6) 
-            c.Parent = Tgl
-
-            local Stroke = Instance.new("UIStroke")
-            Stroke.Parent = Tgl
+            Instance.new("UICorner", Tgl).CornerRadius = UDim.new(0, 6)
+            local Stroke = Instance.new("UIStroke", Tgl)
             Stroke.Color = Color3.fromRGB(40, 40, 40)
-            Stroke.Thickness = 1
 
-            ApplyHover(Tgl, Color3.fromRGB(25, 25, 25), Color3.fromRGB(32, 32, 32))
-            
             local Box = Instance.new("Frame")
             Box.Position = UDim2.new(1, -40, 0.5, -9)
             Box.Size = UDim2.new(0, 32, 0, 18)
             Box.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             Box.Parent = Tgl
-            Box.ZIndex = 2
-            local bc = Instance.new("UICorner") 
-            bc.CornerRadius = UDim.new(1, 0) 
-            bc.Parent = Box
+            Instance.new("UICorner", Box).CornerRadius = UDim.new(1, 0)
 
             local Circle = Instance.new("Frame")
             Circle.Parent = Box
             Circle.Size = UDim2.new(0, 14, 0, 14)
             Circle.Position = UDim2.new(0, 2, 0.5, -7)
             Circle.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-            Circle.ZIndex = 2
-            local cc = Instance.new("UICorner")
-            cc.CornerRadius = UDim.new(1, 0)
-            cc.Parent = Circle
+            Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
             
-            local enabled = false
-            Tgl.MouseButton1Click:Connect(function()
-                if debounce then return end
-                debounce = true
-                enabled = not enabled
-                Ripple(Tgl)
-                
+            local function Update()
+                Library.Flags[flag] = enabled
                 if enabled then
                     Tween(Box, {BackgroundColor3 = accent}, 0.2)
                     Tween(Circle, {Position = UDim2.new(1, -16, 0.5, -7), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}, 0.2)
@@ -438,35 +397,35 @@ function Library:CreateWindow(cfg)
                     Tween(Box, {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}, 0.2)
                     Tween(Circle, {Position = UDim2.new(0, 2, 0.5, -7), BackgroundColor3 = Color3.fromRGB(200, 200, 200)}, 0.2)
                 end
-                
                 SafeCallback(callback, enabled)
-                task.wait(0.2)
-                debounce = false
+            end
+
+            Tgl.MouseButton1Click:Connect(function()
+                enabled = not enabled
+                Ripple(Tgl)
+                Update()
             end)
+
+            local state = {
+                Set = function(_, v) enabled = v Update() end,
+                Get = function() return enabled end
+            }
+            Library.Registry[flag] = state
+            Update()
+            return state
         end
 
-        function Elements:AddSlider(text, min, max, default, callback)
-            text = type(text) == "string" and text or "Slider"
-            min = type(min) == "number" and min or 0
-            max = type(max) == "number" and max or 100
-            default = type(default) == "number" and default or min
-            default = math.clamp(default, min, max)
-            if existingElements[text] then return end
-            existingElements[text] = true
+        function Elements:AddSlider(text, cfg, callback)
+            local sCfg = type(cfg) == "table" and cfg or {Min = 0, Max = 100, Default = 50}
+            local min, max, default = sCfg.Min, sCfg.Max, sCfg.Default
+            local flag = sCfg.Flag or text
 
             local SldFrame = Instance.new("Frame")
             SldFrame.Parent = Page
             SldFrame.Size = UDim2.new(1, -5, 0, 50)
             SldFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-            SldFrame.ZIndex = 2
-            local c = Instance.new("UICorner") 
-            c.CornerRadius = UDim.new(0, 6) 
-            c.Parent = SldFrame
-            
-            local Stroke = Instance.new("UIStroke")
-            Stroke.Parent = SldFrame
-            Stroke.Color = Color3.fromRGB(40, 40, 40)
-            Stroke.Thickness = 1
+            Instance.new("UICorner", SldFrame).CornerRadius = UDim.new(0, 6)
+            Instance.new("UIStroke", SldFrame).Color = Color3.fromRGB(40, 40, 40)
 
             local Label = Instance.new("TextLabel")
             Label.Parent = SldFrame
@@ -478,307 +437,168 @@ function Library:CreateWindow(cfg)
             Label.Font = Enum.Font.Gotham
             Label.TextSize = 13
             Label.TextXAlignment = Enum.TextXAlignment.Left
-            Label.ZIndex = 2
-
-            local ValFrame = Instance.new("Frame")
-            ValFrame.Parent = SldFrame
-            ValFrame.Position = UDim2.new(1, -40, 0, 5)
-            ValFrame.Size = UDim2.new(0, 30, 0, 20)
-            ValFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-            ValFrame.ZIndex = 2
-            local vc = Instance.new("UICorner")
-            vc.CornerRadius = UDim.new(0, 4)
-            vc.Parent = ValFrame
 
             local ValLabel = Instance.new("TextLabel")
-            ValLabel.Parent = ValFrame
-            ValLabel.Size = UDim2.new(1, 0, 1, 0)
+            ValLabel.Parent = SldFrame
+            ValLabel.Position = UDim2.new(1, -40, 0, 5)
+            ValLabel.Size = UDim2.new(0, 30, 0, 20)
             ValLabel.Text = tostring(default)
-            ValLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            ValLabel.TextColor3 = accent
             ValLabel.BackgroundTransparency = 1
             ValLabel.Font = Enum.Font.GothamBold
-            ValLabel.TextSize = 11
-            ValLabel.ZIndex = 2
+            ValLabel.TextSize = 12
 
             local Bar = Instance.new("Frame")
             Bar.Position = UDim2.new(0, 10, 0, 32)
             Bar.Size = UDim2.new(1, -20, 0, 6)
             Bar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
             Bar.Parent = SldFrame
-            Bar.ZIndex = 2
-            local bc = Instance.new("UICorner")
-            bc.CornerRadius = UDim.new(1, 0)
-            bc.Parent = Bar
+            Instance.new("UICorner", Bar).CornerRadius = UDim.new(1, 0)
             
             local Fill = Instance.new("Frame")
-            Fill.Size = UDim2.new(math.clamp((default - min) / (max - min), 0, 1), 0, 1, 0)
             Fill.BackgroundColor3 = accent
             Fill.Parent = Bar
-            Fill.ZIndex = 2
-            local fc = Instance.new("UICorner") 
-            fc.CornerRadius = UDim.new(1, 0) 
-            fc.Parent = Fill
-            
-            local Knob = Instance.new("Frame")
-            Knob.Parent = Fill
-            Knob.Size = UDim2.new(0, 12, 0, 12)
-            Knob.Position = UDim2.new(1, -6, 0.5, -6)
-            Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            Knob.ZIndex = 3
-            local kc = Instance.new("UICorner")
-            kc.CornerRadius = UDim.new(1, 0)
-            kc.Parent = Knob
-            
-            local KnobStroke = Instance.new("UIStroke")
-            KnobStroke.Parent = Knob
-            KnobStroke.Color = Color3.fromRGB(20, 20, 20)
-            KnobStroke.Thickness = 1
+            Instance.new("UICorner", Fill).CornerRadius = UDim.new(1, 0)
 
-            local sliding = false
-            local function move(input)
-                local pos = math.clamp((input.Position.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
-                Tween(Fill, {Size = UDim2.new(pos, 0, 1, 0)}, 0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-                local val = math.floor(((max - min) * pos) + min)
+            local function Update(val)
+                val = math.clamp(val, min, max)
+                local percent = (val - min) / (max - min)
+                Fill.Size = UDim2.new(percent, 0, 1, 0)
                 ValLabel.Text = tostring(val)
+                Library.Flags[flag] = val
                 SafeCallback(callback, val)
             end
-            
-            SldFrame.InputBegan:Connect(function(i) 
-                if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then 
-                    sliding = true 
-                    Tween(Knob, {Size = UDim2.new(0, 16, 0, 16), Position = UDim2.new(1, -8, 0.5, -8)}, 0.1)
-                    move(i) 
-                end 
-            end)
-            UserInputService.InputChanged:Connect(function(i) 
-                if sliding and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then 
-                    move(i) 
-                end 
-            end)
-            UserInputService.InputEnded:Connect(function(i) 
-                if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then 
-                    sliding = false 
-                    Tween(Knob, {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(1, -6, 0.5, -6)}, 0.1)
-                end 
-            end)
-        end
 
-        function Elements:AddBind(text, default, callback)
-            text = type(text) == "string" and text or "Keybind"
-            if existingElements[text] then return end
-            existingElements[text] = true
-
-            local currentBind = typeof(default) == "EnumItem" and default or nil
-            local binding = false
-
-            local BindBtn = Instance.new("TextButton")
-            BindBtn.Parent = Page
-            BindBtn.Size = UDim2.new(1, -5, 0, 35)
-            BindBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-            BindBtn.Text = "  " .. text
-            BindBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
-            BindBtn.TextXAlignment = Enum.TextXAlignment.Left
-            BindBtn.Font = Enum.Font.Gotham
-            BindBtn.TextSize = 13
-            BindBtn.AutoButtonColor = false
-            BindBtn.ZIndex = 2
-            
-            local c = Instance.new("UICorner") 
-            c.CornerRadius = UDim.new(0, 6) 
-            c.Parent = BindBtn
-
-            local Stroke = Instance.new("UIStroke")
-            Stroke.Parent = BindBtn
-            Stroke.Color = Color3.fromRGB(40, 40, 40)
-            Stroke.Thickness = 1
-
-            ApplyHover(BindBtn, Color3.fromRGB(25, 25, 25), Color3.fromRGB(32, 32, 32))
-
-            local BindLabel = Instance.new("TextLabel")
-            BindLabel.Parent = BindBtn
-            BindLabel.Size = UDim2.new(0, 80, 0, 22)
-            BindLabel.Position = UDim2.new(1, -90, 0.5, -11)
-            BindLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-            BindLabel.Text = currentBind and currentBind.Name or "None"
-            BindLabel.TextColor3 = accent
-            BindLabel.Font = Enum.Font.GothamBold
-            BindLabel.TextSize = 11
-            BindLabel.ZIndex = 2
-            local lc = Instance.new("UICorner") 
-            lc.CornerRadius = UDim.new(0, 4) 
-            lc.Parent = BindLabel
-
-            BindBtn.MouseButton1Click:Connect(function()
-                Ripple(BindBtn)
-                binding = true
-                BindLabel.Text = "..."
-                Tween(BindLabel, {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}, 0.2)
-            end)
-
-            UserInputService.InputBegan:Connect(function(input)
-                if binding then
-                    if input.UserInputType == Enum.UserInputType.Keyboard then
-                        if input.KeyCode ~= Enum.KeyCode.Unknown then
-                            currentBind = input.KeyCode
-                            BindLabel.Text = currentBind.Name
-                            binding = false
-                            Tween(BindLabel, {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}, 0.2)
-                        end
-                    elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        binding = false
-                        BindLabel.Text = currentBind and currentBind.Name or "None"
-                        Tween(BindLabel, {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}, 0.2)
-                    end
-                else
-                    if currentBind and input.KeyCode == currentBind then
-                        SafeCallback(callback)
-                    end
+            local sliding = false
+            SldFrame.InputBegan:Connect(function(i)
+                if i.UserInputType == Enum.UserInputType.MouseButton1 then
+                    sliding = true
+                    local pos = math.clamp((i.Position.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
+                    Update(math.floor(((max - min) * pos) + min))
                 end
             end)
+
+            UserInputService.InputChanged:Connect(function(i)
+                if sliding and i.UserInputType == Enum.UserInputType.MouseMovement then
+                    local pos = math.clamp((i.Position.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
+                    Update(math.floor(((max - min) * pos) + min))
+                end
+            end)
+
+            UserInputService.InputEnded:Connect(function(i)
+                if i.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
+            end)
+
+            local state = {
+                Set = function(_, v) Update(v) end,
+                Get = function() return Library.Flags[flag] end
+            }
+            Library.Registry[flag] = state
+            Update(default)
+            return state
         end
 
-        function Elements:AddDropdown(text, list, callback)
-            text = type(text) == "string" and text or "Dropdown"
-            list = type(list) == "table" and list or {}
-            if existingElements[text] then return end
-            existingElements[text] = true
-
-            zIndexCounter = zIndexCounter - 1
-            local localZIndex = zIndexCounter
+        function Elements:AddDropdown(text, cfg, callback)
+            local dCfg = type(cfg) == "table" and cfg or {List = {}, Default = ""}
+            local list = dCfg.List
+            local flag = dCfg.Flag or text
 
             local DropContainer = Instance.new("Frame")
             DropContainer.Parent = Page
             DropContainer.Size = UDim2.new(1, -5, 0, 35)
             DropContainer.BackgroundTransparency = 1
-            DropContainer.ClipsDescendants = false
-            DropContainer.ZIndex = localZIndex
+            DropContainer.ZIndex = zIndexCounter
+            zIndexCounter = zIndexCounter - 1
 
             local Drop = Instance.new("TextButton")
             Drop.Parent = DropContainer
             Drop.Size = UDim2.new(1, 0, 0, 35)
             Drop.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-            Drop.Text = "  " .. text .. " : " .. tostring(list[1] or "None")
+            Drop.Text = "  " .. text .. " : " .. (dCfg.Default or "None")
             Drop.TextColor3 = Color3.fromRGB(220, 220, 220)
             Drop.TextXAlignment = Enum.TextXAlignment.Left
             Drop.Font = Enum.Font.Gotham
             Drop.TextSize = 13
             Drop.AutoButtonColor = false
-            Drop.ZIndex = localZIndex
             
-            local c = Instance.new("UICorner") 
-            c.CornerRadius = UDim.new(0, 6) 
-            c.Parent = Drop
-            
-            local Stroke = Instance.new("UIStroke")
-            Stroke.Parent = Drop
-            Stroke.Color = Color3.fromRGB(40, 40, 40)
-            Stroke.Thickness = 1
+            Instance.new("UICorner", Drop).CornerRadius = UDim.new(0, 6)
+            Instance.new("UIStroke", Drop).Color = Color3.fromRGB(40, 40, 40)
 
-            ApplyHover(Drop, Color3.fromRGB(25, 25, 25), Color3.fromRGB(32, 32, 32))
-
-            local Icon = Instance.new("ImageLabel")
-            Icon.Parent = Drop
-            Icon.Size = UDim2.new(0, 16, 0, 16)
-            Icon.Position = UDim2.new(1, -25, 0.5, -8)
-            Icon.BackgroundTransparency = 1
-            Icon.Image = "rbxassetid://6026668813"
-            Icon.ImageColor3 = Color3.fromRGB(200, 200, 200)
-            Icon.ZIndex = localZIndex
-
-            local open = false
             local DropFrame = Instance.new("ScrollingFrame")
             DropFrame.Parent = DropContainer
             DropFrame.Position = UDim2.new(0, 0, 0, 40)
             DropFrame.Size = UDim2.new(1, 0, 0, 0)
             DropFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-            DropFrame.ClipsDescendants = true
             DropFrame.Visible = false
-            DropFrame.ZIndex = localZIndex + 10
             DropFrame.BorderSizePixel = 0
             DropFrame.ScrollBarThickness = 2
-            DropFrame.ScrollBarImageColor3 = accent
             
-            local dc = Instance.new("UICorner") 
-            dc.CornerRadius = UDim.new(0, 6) 
-            dc.Parent = DropFrame
-            
-            local dStroke = Instance.new("UIStroke")
-            dStroke.Parent = DropFrame
-            dStroke.Color = accent
-            dStroke.Thickness = 1
-            dStroke.Transparency = 1
-            
-            local dlist = Instance.new("UIListLayout") 
-            dlist.Parent = DropFrame
-            dlist.SortOrder = Enum.SortOrder.LayoutOrder
-            
-            local function closeDrop()
-                open = false
-                Tween(Icon, {Rotation = 0}, 0.2)
-                Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 0)}, 0.2)
-                Tween(DropContainer, {Size = UDim2.new(1, -5, 0, 35)}, 0.2)
-                Tween(dStroke, {Transparency = 1}, 0.2)
-                task.delay(0.2, function()
-                    if not open then DropFrame.Visible = false end
-                end)
-                if activeDropdown and activeDropdown.Button == Drop then
-                    activeDropdown = nil
-                end
-            end
+            local dLayout = Instance.new("UIListLayout", DropFrame)
 
-            local function openDrop()
-                if activeDropdown and activeDropdown.Button ~= Drop then
-                    activeDropdown.Close()
-                end
-                open = true
-                DropFrame.Visible = true
-                local targetHeight = math.min(#list * 30, 120)
-                Tween(Icon, {Rotation = 180}, 0.2)
-                Tween(DropFrame, {Size = UDim2.new(1, 0, 0, targetHeight)}, 0.2)
-                Tween(DropContainer, {Size = UDim2.new(1, -5, 0, 35 + targetHeight + 5)}, 0.2)
-                Tween(dStroke, {Transparency = 0}, 0.2)
-                
-                activeDropdown = {Button = Drop, Frame = DropFrame, Close = closeDrop}
-            end
-
-            Drop.MouseButton1Click:Connect(function()
-                Ripple(Drop)
-                if open then closeDrop() else openDrop() end
-            end)
-
-            for _, item in ipairs(list) do
-                local strItem = tostring(item)
-                local ItemBtn = Instance.new("TextButton")
-                ItemBtn.Parent = DropFrame
-                ItemBtn.Size = UDim2.new(1, 0, 0, 30)
-                ItemBtn.BackgroundTransparency = 1
-                ItemBtn.Text = "  " .. strItem
-                ItemBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-                ItemBtn.TextXAlignment = Enum.TextXAlignment.Left
-                ItemBtn.Font = Enum.Font.Gotham
-                ItemBtn.TextSize = 12
-                ItemBtn.ZIndex = localZIndex + 11
-                ItemBtn.AutoButtonColor = false
-                
-                ApplyHover(ItemBtn, Color3.fromRGB(20, 20, 20), Color3.fromRGB(30, 30, 30))
-
-                ItemBtn.MouseButton1Click:Connect(function()
-                    Drop.Text = "  " .. text .. " : " .. strItem
-                    for _, v in pairs(DropFrame:GetChildren()) do
-                        if v:IsA("TextButton") then
-                            v.TextColor3 = Color3.fromRGB(150, 150, 150)
-                        end
+            local open = false
+            local function Toggle(state)
+                open = (state ~= nil) and state or not open
+                if open then
+                    if Library.ActiveDropdown and Library.ActiveDropdown ~= DropContainer then
+                        Library.ActiveDropdown.Close()
                     end
-                    Tween(ItemBtn, {TextColor3 = accent}, 0.1)
-                    closeDrop()
-                    SafeCallback(callback, item)
-                end)
+                    DropFrame.Visible = true
+                    Tween(DropFrame, {Size = UDim2.new(1, 0, 0, math.min(#list * 30, 120))}, 0.2)
+                    Tween(DropContainer, {Size = UDim2.new(1, -5, 0, 35 + math.min(#list * 30, 120) + 5)}, 0.2)
+                    Library.ActiveDropdown = {Frame = DropFrame, Close = function() Toggle(false) end}
+                else
+                    Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 0)}, 0.2)
+                    Tween(DropContainer, {Size = UDim2.new(1, -5, 0, 35)}, 0.2)
+                    task.delay(0.2, function() DropFrame.Visible = false end)
+                    Library.ActiveDropdown = nil
+                end
             end
-            DropFrame.CanvasSize = UDim2.new(0, 0, 0, #list * 30)
+
+            Drop.MouseButton1Click:Connect(function() Ripple(Drop) Toggle() end)
+
+            local function Populate()
+                for _, v in pairs(DropFrame:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+                for _, item in pairs(list) do
+                    local ItemBtn = Instance.new("TextButton")
+                    ItemBtn.Parent = DropFrame
+                    ItemBtn.Size = UDim2.new(1, 0, 0, 30)
+                    ItemBtn.BackgroundTransparency = 1
+                    ItemBtn.Text = "  " .. tostring(item)
+                    ItemBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+                    ItemBtn.TextXAlignment = Enum.TextXAlignment.Left
+                    ItemBtn.Font = Enum.Font.Gotham
+                    ItemBtn.TextSize = 12
+                    
+                    ItemBtn.MouseButton1Click:Connect(function()
+                        Drop.Text = "  " .. text .. " : " .. tostring(item)
+                        Library.Flags[flag] = item
+                        SafeCallback(callback, item)
+                        Toggle(false)
+                    end)
+                end
+                DropFrame.CanvasSize = UDim2.new(0, 0, 0, #list * 30)
+            end
+
+            Populate()
+            
+            local state = {
+                Refresh = function(_, newList) list = newList Populate() end,
+                Set = function(_, v) Drop.Text = "  " .. text .. " : " .. tostring(v) Library.Flags[flag] = v SafeCallback(callback, v) end
+            }
+            Library.Registry[flag] = state
+            return state
         end
 
         return Elements
     end
+
+    function Library:Destroy()
+        for _, conn in pairs(self.Connections) do conn:Disconnect() end
+        if ScreenGui then ScreenGui:Destroy() end
+        if Blur then Blur:Destroy() end
+        existingWindows[title] = nil
+    end
+
     return Tabs
 end
 

@@ -46,6 +46,7 @@ function Library:CreateWindow(cfg)
     Main.BorderSizePixel = 0
     Main.Position = UDim2.new(0.5, -275, 0.5, -175)
     Main.Size = UDim2.new(0, 550, 0, 350)
+    Main.ClipsDescendants = true
     
     local UICorner = Instance.new("UICorner")
     UICorner.CornerRadius = UDim.new(0, 8)
@@ -248,6 +249,56 @@ function Library:CreateWindow(cfg)
             UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end end)
         end
 
+        -- KEYBIND
+        function Elements:AddBind(text, default, callback)
+            local currentBind = default
+            local binding = false
+
+            local BindBtn = Instance.new("TextButton")
+            BindBtn.Parent = Page
+            BindBtn.Size = UDim2.new(1, -5, 0, 35)
+            BindBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            BindBtn.Text = "  " .. text
+            BindBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+            BindBtn.TextXAlignment = Enum.TextXAlignment.Left
+            BindBtn.Font = Enum.Font.Gotham
+            BindBtn.TextSize = 13
+            local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 6) c.Parent = BindBtn
+
+            local BindLabel = Instance.new("TextLabel")
+            BindLabel.Parent = BindBtn
+            BindLabel.Size = UDim2.new(0, 80, 0, 20)
+            BindLabel.Position = UDim2.new(1, -85, 0.5, -10)
+            BindLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+            BindLabel.Text = currentBind and currentBind.Name or "None"
+            BindLabel.TextColor3 = accent
+            BindLabel.Font = Enum.Font.GothamBold
+            BindLabel.TextSize = 11
+            local lc = Instance.new("UICorner") lc.CornerRadius = UDim.new(0, 4) lc.Parent = BindLabel
+
+            BindBtn.MouseButton1Click:Connect(function()
+                binding = true
+                BindLabel.Text = "..."
+            end)
+
+            UserInputService.InputBegan:Connect(function(input)
+                if binding then
+                    if input.UserInputType == Enum.UserInputType.Keyboard then
+                        currentBind = input.KeyCode
+                        BindLabel.Text = currentBind.Name
+                        binding = false
+                    elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        binding = false
+                        BindLabel.Text = currentBind and currentBind.Name or "None"
+                    end
+                else
+                    if input.KeyCode == currentBind then
+                        callback()
+                    end
+                end
+            end)
+        end
+
         -- DROPDOWN
         function Elements:AddDropdown(text, list, callback)
             local Drop = Instance.new("TextButton")
@@ -267,12 +318,17 @@ function Library:CreateWindow(cfg)
             DropFrame.Size = UDim2.new(1, -5, 0, 0)
             DropFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
             DropFrame.ClipsDescendants = true
+            DropFrame.Visible = false
             local dc = Instance.new("UICorner") dc.CornerRadius = UDim.new(0, 6) dc.Parent = DropFrame
             local dlist = Instance.new("UIListLayout") dlist.Parent = DropFrame
 
             Drop.MouseButton1Click:Connect(function()
                 open = not open
-                TweenService:Create(DropFrame, TweenInfo.new(0.3), {Size = open and UDim2.new(1, -5, 0, #list * 30) or UDim2.new(1, -5, 0, 0)}):Play()
+                DropFrame.Visible = true
+                local targetSize = open and UDim2.new(1, -5, 0, #list * 30) or UDim2.new(1, -5, 0, 0)
+                local t = TweenService:Create(DropFrame, TweenInfo.new(0.3), {Size = targetSize})
+                t:Play()
+                if not open then t.Completed:Wait() if not open then DropFrame.Visible = false end end
             end)
 
             for _, item in pairs(list) do
@@ -287,7 +343,7 @@ function Library:CreateWindow(cfg)
                 ItemBtn.MouseButton1Click:Connect(function()
                     Drop.Text = "  " .. text .. " : " .. item
                     open = false
-                    DropFrame.Size = UDim2.new(1, -5, 0, 0)
+                    TweenService:Create(DropFrame, TweenInfo.new(0.3), {Size = UDim2.new(1, -5, 0, 0)}):Play()
                     callback(item)
                 end)
             end

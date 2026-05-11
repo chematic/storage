@@ -6,6 +6,11 @@
       "has": [
         {
           "type": "header",
+          "key": "User-Agent",
+          "value": ".*Roblox.*"
+        },
+        {
+          "type": "header",
           "key": "key",
           "value": "azuontop"
         }

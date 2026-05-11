@@ -6,11 +6,6 @@
       "has": [
         {
           "type": "header",
-          "key": "User-Agent",
-          "value": ".*Roblox.*"
-        },
-        {
-          "type": "header",
           "key": "key",
           "value": "azuontop"
         }
@@ -18,8 +13,8 @@
       "destination": "https://raw.githubusercontent.com/chematic/storage/main/api/v1/ninjatycoonhub.luau"
     },
     {
-      "source": "/api/v1/ninja",
-      "destination": "/404"
+      "source": "/(.*)",
+      "destination": "/$1"
     }
   ]
 }

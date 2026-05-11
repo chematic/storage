@@ -11,14 +11,14 @@
         },
         {
           "type": "header",
-          "key": "KEY",
+          "key": "key",
           "value": "azuontop"
         }
       ],
-      "destination": "https://raw.githubusercontent.com/chematic/storage/refs/heads/main/api/v1/ninjatycoonhub.luau"
+      "destination": "https://raw.githubusercontent.com/chematic/storage/main/api/v1/ninjatycoonhub.luau"
     },
     {
-      "source": "/v1/ninja",
+      "source": "/api/v1/ninja",
       "destination": "/404"
     }
   ]

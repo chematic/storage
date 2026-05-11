@@ -354,3 +354,5 @@ function NinjaLib:CreateWindow(hubName, headEditionText)
 
     return Window
 end
+
+return NinjaLib

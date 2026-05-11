@@ -2,8 +2,24 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/v1/ninja",
+      "source": "/api/v1/ninja",
+      "has": [
+        {
+          "type": "header",
+          "key": "User-Agent",
+          "value": ".*Roblox.*"
+        },
+        {
+          "type": "header",
+          "key": "KEY",
+          "value": "azuontop"
+        }
+      ],
       "destination": "https://raw.githubusercontent.com/chematic/storage/main/api/v1/ninjatycoonhub.luau"
+    },
+    {
+      "source": "/v1/ninja",
+      "destination": "/404"
     }
   ]
 }

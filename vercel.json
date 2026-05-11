@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/v1/ninja",
+      "destination": "https://raw.githubusercontent.com/chematic/storage/main/api/v1/ninjatycoonhub.luau"
+    }
+  ]
+}

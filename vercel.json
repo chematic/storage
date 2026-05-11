@@ -2,7 +2,7 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/v1/ninja",
+      "source": "/ninja",
       "has": [
         {
           "type": "header",

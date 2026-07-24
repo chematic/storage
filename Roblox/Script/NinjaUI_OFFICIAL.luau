@@ -77,7 +77,7 @@ function UI:CreateWindow()
 
     local Title = Instance.new("TextLabel")
     Title.Parent = TopBar
-    Title.Text = "NINJA TYCOON V1 <font color='#FF004B'>BY @VHB7</font>"
+    Title.Text = "NINJA TYCOON V1.1 <font color='#FF004B'>BY @theuniqueleader</font>"
     Title.RichText = true
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.Size = UDim2.new(1, -80, 1, 0)

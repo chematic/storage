@@ -411,6 +411,42 @@ function UI:CreateWindow()
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
             end)
         end
+        
+        function Tab:CreateTextBox(config)
+            local TextBoxFrame = Instance.new("Frame")
+            TextBoxFrame.Size = UDim2.new(1, 0, 0, 38)
+            TextBoxFrame.BackgroundTransparency = 1
+            TextBoxFrame.Parent = Page
+
+            local Container = Instance.new("Frame")
+            Container.Size = UDim2.new(1, 0, 1, 0)
+            Container.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            Container.Parent = TextBoxFrame
+
+            local cCorner = Instance.new("UICorner")
+            cCorner.CornerRadius = UDim.new(0, 6)
+            cCorner.Parent = Container
+
+            local TextBox = Instance.new("TextBox")
+            TextBox.Parent = Container
+            TextBox.Size = UDim2.new(1, -20, 1, 0)
+            TextBox.Position = UDim2.new(0, 10, 0, 0)
+            TextBox.BackgroundTransparency = 1
+            TextBox.Text = config.Default or ""
+            TextBox.PlaceholderText = config.Name or "Enter text..."
+            TextBox.TextColor3 = Color3.fromRGB(200, 200, 200)
+            TextBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+            TextBox.Font = Enum.Font.Gotham
+            TextBox.TextSize = 13
+            TextBox.TextXAlignment = Enum.TextXAlignment.Left
+            TextBox.ClearTextOnFocus = false
+
+            TextBox.FocusLost:Connect(function()
+                if config.Callback then
+                    config.Callback(TextBox.Text)
+                end
+            end)
+        end
 
         return Tab
     end

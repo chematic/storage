@@ -1,18 +1,24 @@
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+
+local LocalPlayer = Players.LocalPlayer
 
 local UI = {}
 
 function UI:CreateWindow()
     local Window = {}
 
-    if CoreGui:FindFirstChild("NinjaHub") then
-        CoreGui:FindFirstChild("NinjaHub"):Destroy()
+    local guiName = LocalPlayer.UserId .. "_NinjaHub"
+
+    local existingGui = CoreGui:FindFirstChild(guiName)
+    if existingGui then
+        existingGui:Destroy()
     end
 
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "NinjaHub"
+    ScreenGui.Name = guiName
     ScreenGui.Parent = CoreGui
     ScreenGui.ResetOnSpawn = false
 

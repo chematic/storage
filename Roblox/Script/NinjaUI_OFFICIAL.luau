@@ -145,7 +145,7 @@ function UI:CreateWindow()
 
     local Title = Instance.new("TextLabel")
     Title.Parent = TopBar
-    Title.Text = "NINJA TYCOON V1.1.2 <font color='#FF004B'>BY @theuniqueleader</font>"
+    Title.Text = "NINJA TYCOON V1.1.3 <font color='#FF004B'>BY @theuniqueleader</font>"
     Title.RichText = true
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.Size = UDim2.new(1, -80, 1, 0)
@@ -271,6 +271,25 @@ function UI:CreateWindow()
             Page.Visible = true
             TweenService:Create(TabBtn, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundColor3 = Color3.fromRGB(255, 0, 75)}):Play()
         end)
+
+        function Tab:CreateLabel(text)
+            local LabelFrame = Instance.new("Frame")
+            LabelFrame.Size = UDim2.new(1, 0, 0, 28)
+            LabelFrame.BackgroundTransparency = 1
+            LabelFrame.Parent = Page
+
+            local Label = Instance.new("TextLabel")
+            Label.Parent = LabelFrame
+            Label.Size = UDim2.new(1, -10, 1, 0)
+            Label.Position = UDim2.new(0, 5, 0, 0)
+            Label.BackgroundTransparency = 1
+            Label.Text = text
+            Label.TextColor3 = Color3.fromRGB(180, 180, 180)
+            Label.Font = Enum.Font.Gotham
+            Label.TextSize = 12
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+            Label.TextWrapped = true
+        end
 
         function Tab:CreateToggle(config)
             local ToggleFrame = Instance.new("Frame")

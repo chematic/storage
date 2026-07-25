@@ -22,6 +22,68 @@ function UI:CreateWindow()
     ScreenGui.Parent = CoreGui
     ScreenGui.ResetOnSpawn = false
 
+    local NotifContainer = Instance.new("Frame")
+    NotifContainer.Name = "NotifContainer"
+    NotifContainer.Parent = ScreenGui
+    NotifContainer.BackgroundTransparency = 1
+    NotifContainer.Size = UDim2.new(1, 0, 0, 0)
+    NotifContainer.Position = UDim2.new(0, 0, 0, 30)
+    NotifContainer.ZIndex = 100
+
+    local NotifLayout = Instance.new("UIListLayout")
+    NotifLayout.Parent = NotifContainer
+    NotifLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    NotifLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    NotifLayout.Padding = UDim.new(0, 10)
+
+    function Window:Notify(text, duration)
+        duration = duration or 3
+        local NotifFrame = Instance.new("Frame")
+        NotifFrame.Size = UDim2.new(0, 300, 0, 40)
+        NotifFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+        NotifFrame.BorderSizePixel = 0
+        NotifFrame.BackgroundTransparency = 1
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = NotifFrame
+
+        local stroke = Instance.new("UIStroke")
+        stroke.Thickness = 1.5
+        stroke.Color = Color3.fromRGB(255, 0, 75)
+        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        stroke.Transparency = 1
+        stroke.Parent = NotifFrame
+
+        local NotifText = Instance.new("TextLabel")
+        NotifText.Parent = NotifFrame
+        NotifText.Size = UDim2.new(1, -20, 1, 0)
+        NotifText.Position = UDim2.new(0, 10, 0, 0)
+        NotifText.BackgroundTransparency = 1
+        NotifText.Text = text
+        NotifText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        NotifText.Font = Enum.Font.GothamBold
+        NotifText.TextSize = 13
+        NotifText.TextWrapped = true
+        NotifText.TextTransparency = 1
+
+        NotifFrame.Parent = NotifContainer
+
+        TweenService:Create(NotifFrame, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.3), {Transparency = 0}):Play()
+        TweenService:Create(NotifText, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
+
+        task.delay(duration, function()
+            TweenService:Create(NotifFrame, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+            TweenService:Create(stroke, TweenInfo.new(0.3), {Transparency = 1}):Play()
+            TweenService:Create(NotifText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+            task.wait(0.3)
+            if NotifFrame then
+                NotifFrame:Destroy()
+            end
+        end)
+    end
+
     local function MakeDraggable(topbarobject, object)
         local dragging = false
         local dragInput, mousePos, framePos
@@ -83,7 +145,7 @@ function UI:CreateWindow()
 
     local Title = Instance.new("TextLabel")
     Title.Parent = TopBar
-    Title.Text = "NINJA TYCOON V1.1 <font color='#FF004B'>BY @theuniqueleader</font>"
+    Title.Text = "NINJA TYCOON V1.1.2 <font color='#FF004B'>BY @theuniqueleader</font>"
     Title.RichText = true
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.Size = UDim2.new(1, -80, 1, 0)

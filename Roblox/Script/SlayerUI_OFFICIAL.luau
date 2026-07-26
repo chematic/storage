@@ -5,21 +5,18 @@ local Players = game:GetService("Players")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Thème de couleur : Bleu Électrique / Néon moderne
-local ACCENT_COLOR = Color3.fromRGB(0, 140, 255)
-local ACCENT_COLOR_BRIGHT = Color3.fromRGB(50, 180, 255)
-local DARK_BG = Color3.fromRGB(15, 15, 20)
-local SECONDARY_BG = Color3.fromRGB(22, 22, 28)
-local ELEMENT_BG = Color3.fromRGB(28, 28, 36)
-local TEXT_COLOR = Color3.fromRGB(220, 220, 230)
-local TEXT_DARK = Color3.fromRGB(130, 130, 145)
+-- Paramètres de design
+local NEON_BLUE = Color3.fromRGB(0, 195, 255)
+local GLOW_BLUE = Color3.fromRGB(100, 220, 255)
+local DARK_BG = Color3.fromRGB(15, 15, 15)
+local COMPONENT_BG = Color3.fromRGB(25, 25, 25)
+local HOVER_BG = Color3.fromRGB(35, 35, 35)
 
 local UI = {}
 
 function UI:CreateWindow()
     local Window = {}
-    local connections = {} -- Table pour stocker et nettoyer toutes les connexions (Anti-Memory Leak)
-
+    local connections = {}
     local guiName = LocalPlayer.UserId .. "_SlayerHub"
 
     local existingGui = CoreGui:FindFirstChild(guiName)
@@ -59,9 +56,12 @@ function UI:CreateWindow()
         duration = duration or 3
         local NotifFrame = Instance.new("Frame")
         NotifFrame.Size = UDim2.new(0, 300, 0, 40)
-        NotifFrame.BackgroundColor3 = SECONDARY_BG
+        NotifFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
         NotifFrame.BorderSizePixel = 0
         NotifFrame.BackgroundTransparency = 1
+        
+        local NotifScale = Instance.new("UIScale", NotifFrame)
+        NotifScale.Scale = 0.8
 
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(0, 8)
@@ -69,7 +69,7 @@ function UI:CreateWindow()
 
         local stroke = Instance.new("UIStroke")
         stroke.Thickness = 1.5
-        stroke.Color = ACCENT_COLOR
+        stroke.Color = NEON_BLUE
         stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
         stroke.Transparency = 1
         stroke.Parent = NotifFrame
@@ -80,7 +80,7 @@ function UI:CreateWindow()
         NotifText.Position = UDim2.new(0, 10, 0, 0)
         NotifText.BackgroundTransparency = 1
         NotifText.Text = text
-        NotifText.TextColor3 = TEXT_COLOR
+        NotifText.TextColor3 = Color3.fromRGB(255, 255, 255)
         NotifText.Font = Enum.Font.GothamBold
         NotifText.TextSize = 13
         NotifText.TextWrapped = true
@@ -88,25 +88,25 @@ function UI:CreateWindow()
 
         NotifFrame.Parent = NotifContainer
 
-        TweenService:Create(NotifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
-        TweenService:Create(stroke, TweenInfo.new(0.3), {Transparency = 0}):Play()
-        TweenService:Create(NotifText, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
+        -- Animation d'apparition Notif
+        TweenService:Create(NotifFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {BackgroundTransparency = 0.1}):Play()
+        TweenService:Create(NotifScale, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.4), {Transparency = 0}):Play()
+        TweenService:Create(NotifText, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
 
         task.delay(duration, function()
             if not NotifFrame or not NotifFrame.Parent then return end
+            TweenService:Create(NotifScale, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Scale = 0.8}):Play()
             TweenService:Create(NotifFrame, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
             TweenService:Create(stroke, TweenInfo.new(0.3), {Transparency = 1}):Play()
             TweenService:Create(NotifText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
             task.wait(0.3)
-            if NotifFrame then
-                NotifFrame:Destroy()
-            end
+            if NotifFrame then NotifFrame:Destroy() end
         end)
     end
 
     local function MakeDraggable(topbarobject, object)
-        local dragging = false
-        local dragInput, mousePos, framePos
+        local dragging, dragInput, mousePos, framePos
 
         table.insert(connections, topbarobject.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -139,50 +139,50 @@ function UI:CreateWindow()
         end))
     end
 
-    local Main = Instance.new("Frame")
+    -- CanvasGroup permet de gérer la transparence globale (Fade-In/Out propre)
+    local Main = Instance.new("CanvasGroup")
     Main.Name = "Main"
     Main.Parent = ScreenGui
     Main.BackgroundColor3 = DARK_BG
     Main.BorderSizePixel = 0
-    -- Animation d'ouverture initiale (Scale / Zoom out & Fade)
-    Main.Position = UDim2.new(0.5, -250, 0.5, -175)
-    Main.Size = UDim2.new(0, 0, 0, 0)
-    Main.ClipsDescendants = true
+    Main.Position = UDim2.new(0.5, -250, 0.5, -150)
+    Main.Size = UDim2.new(0, 500, 0, 350)
+    Main.GroupTransparency = 1 -- Début invisible pour l'animation
+    
+    local MainScale = Instance.new("UIScale", Main)
+    MainScale.Scale = 0.85
 
     local MainCorner = Instance.new("UICorner")
-    MainCorner.CornerRadius = UDim.new(0, 10)
+    MainCorner.CornerRadius = UDim.new(0, 8)
     MainCorner.Parent = Main
 
     local MainStroke = Instance.new("UIStroke")
     MainStroke.Thickness = 1.5
-    MainStroke.Color = ACCENT_COLOR
-    MainStroke.Transparency = 0.5
+    MainStroke.Color = Color3.fromRGB(40, 40, 40)
     MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     MainStroke.Parent = Main
 
-    -- Lancement de l'animation d'ouverture de la fenêtre principale
-    TweenService:Create(Main, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 500, 0, 350),
-        Position = UDim2.new(0.5, -250, 0.5, -175)
-    }):Play()
+    -- Animation d'ouverture (Pop-up smooth + Fade-in)
+    TweenService:Create(Main, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
+    TweenService:Create(MainScale, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()
 
     local TopBar = Instance.new("Frame")
     TopBar.Name = "TopBar"
     TopBar.Parent = Main
-    TopBar.BackgroundColor3 = SECONDARY_BG
+    TopBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     TopBar.Size = UDim2.new(1, 0, 0, 40)
     TopBar.BorderSizePixel = 0
     MakeDraggable(TopBar, Main)
 
     local TopCorner = Instance.new("UICorner")
-    TopCorner.CornerRadius = UDim.new(0, 10)
+    TopCorner.CornerRadius = UDim.new(0, 8)
     TopCorner.Parent = TopBar
 
     local Title = Instance.new("TextLabel")
     Title.Parent = TopBar
-    Title.Text = 'SLAYER TYCOON V1 <font color="#008CFF">BY @theuniqueleader</font>'
+    Title.Text = "SLAYER TYCOON V1 <font color='#00C3FF'>BY @theuniqueleader</font>"
     Title.RichText = true
-    Title.TextColor3 = TEXT_COLOR
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.Size = UDim2.new(1, -80, 1, 0)
     Title.Position = UDim2.new(0, 15, 0, 0)
     Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -196,27 +196,25 @@ function UI:CreateWindow()
     CloseBtn.Position = UDim2.new(1, -40, 0.5, -17)
     CloseBtn.BackgroundTransparency = 1
     CloseBtn.Text = "✕"
-    CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+    CloseBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
     CloseBtn.TextSize = 16
     CloseBtn.Font = Enum.Font.GothamBold
-
+    
+    -- Animations du bouton Close
     table.insert(connections, CloseBtn.MouseEnter:Connect(function()
-        TweenService:Create(CloseBtn, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 30, 30), Rotation = 90}):Play()
+        TweenService:Create(CloseBtn, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 50, 50), Rotation = 90, TextSize = 18}):Play()
     end))
     table.insert(connections, CloseBtn.MouseLeave:Connect(function()
-        TweenService:Create(CloseBtn, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 80, 80), Rotation = 0}):Play()
+        TweenService:Create(CloseBtn, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(150, 150, 150), Rotation = 0, TextSize = 16}):Play()
     end))
-
+    
     table.insert(connections, CloseBtn.MouseButton1Click:Connect(function()
-        -- Animation de fermeture fluide avant destruction
-        local tw1 = TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 0, 0, 0),
-            Position = UDim2.new(0.5, 0, 0.5, 0)
-        })
-        tw1:Play()
-        tw1.Completed:Connect(function()
-            ScreenGui:Destroy()
-        end)
+        -- Animation de fermeture propre avant Destroy()
+        TweenService:Create(MainScale, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Scale = 0.85}):Play()
+        local closeTween = TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {GroupTransparency = 1})
+        closeTween:Play()
+        closeTween.Completed:Wait()
+        ScreenGui:Destroy()
     end))
 
     local MinBtn = Instance.new("TextButton")
@@ -225,15 +223,15 @@ function UI:CreateWindow()
     MinBtn.Position = UDim2.new(1, -75, 0.5, -17)
     MinBtn.BackgroundTransparency = 1
     MinBtn.Text = "—"
-    MinBtn.TextColor3 = TEXT_DARK
-    MinBtn.TextSize = 14
+    MinBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+    MinBtn.TextSize = 16
     MinBtn.Font = Enum.Font.GothamBold
 
     table.insert(connections, MinBtn.MouseEnter:Connect(function()
-        TweenService:Create(MinBtn, TweenInfo.new(0.2), {TextColor3 = TEXT_COLOR}):Play()
+        TweenService:Create(MinBtn, TweenInfo.new(0.2), {TextColor3 = NEON_BLUE}):Play()
     end))
     table.insert(connections, MinBtn.MouseLeave:Connect(function()
-        TweenService:Create(MinBtn, TweenInfo.new(0.2), {TextColor3 = TEXT_DARK}):Play()
+        TweenService:Create(MinBtn, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(150, 150, 150)}):Play()
     end))
 
     local isMinimized = false
@@ -242,19 +240,24 @@ function UI:CreateWindow()
         isMinimized = not isMinimized
         if isMinimized then
             originalPos = Main.Position
-            TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(0, 10, 1, -50), Size = UDim2.new(0, 180, 0, 40)}):Play()
+            TweenService:Create(Main, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(0, 10, 1, -50), Size = UDim2.new(0, 200, 0, 40)}):Play()
         else
-            TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = originalPos, Size = UDim2.new(0, 500, 0, 350)}):Play()
+            TweenService:Create(Main, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = originalPos, Size = UDim2.new(0, 500, 0, 350)}):Play()
         end
     end))
 
     local TabBar = Instance.new("Frame")
     TabBar.Name = "TabBar"
     TabBar.Parent = Main
-    TabBar.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+    TabBar.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
     TabBar.Position = UDim2.new(0, 0, 0, 40)
     TabBar.Size = UDim2.new(0, 110, 1, -40)
     TabBar.BorderSizePixel = 0
+    
+    -- [[ CORRECTION ICI: Ajout du UICorner pour empêcher la TabBar de déborder en bas à gauche ]]
+    local TabBarCorner = Instance.new("UICorner")
+    TabBarCorner.CornerRadius = UDim.new(0, 8)
+    TabBarCorner.Parent = TabBar
 
     local TabListLayout = Instance.new("UIListLayout")
     TabListLayout.Parent = TabBar
@@ -276,6 +279,23 @@ function UI:CreateWindow()
     Window.TabBar = TabBar
     Window.TabCount = 0
 
+    -- Fonction pour générer un effet de Flash (clic)
+    local function CreateFlash(parent)
+        local flash = Instance.new("Frame")
+        flash.Size = UDim2.new(1, 0, 1, 0)
+        flash.BackgroundColor3 = NEON_BLUE
+        flash.BackgroundTransparency = 0.5
+        flash.BorderSizePixel = 0
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 6)
+        corner.Parent = flash
+        flash.Parent = parent
+
+        local t = TweenService:Create(flash, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
+        t:Play()
+        t.Completed:Connect(function() flash:Destroy() end)
+    end
+
     function Window:CreateTab(name)
         local Tab = {}
         Window.TabCount = Window.TabCount + 1
@@ -286,9 +306,10 @@ function UI:CreateWindow()
         Page.BackgroundTransparency = 1
         Page.Size = UDim2.new(1, 0, 1, 0)
         Page.ScrollBarThickness = 2
-        Page.ScrollBarImageColor3 = ACCENT_COLOR
+        Page.ScrollBarImageColor3 = NEON_BLUE
         Page.Visible = (Window.TabCount == 1)
         Page.CanvasSize = UDim2.new(0, 0, 0, 0)
+        Page.BorderSizePixel = 0
 
         local PageLayout = Instance.new("UIListLayout")
         PageLayout.Parent = Page
@@ -302,12 +323,14 @@ function UI:CreateWindow()
         TabBtn.Parent = Window.TabBar
         TabBtn.Size = UDim2.new(0, 100, 0, 32)
         
+        local TabScale = Instance.new("UIScale", TabBtn)
+        
         if Window.TabCount == 1 then
-            TabBtn.BackgroundColor3 = ACCENT_COLOR
+            TabBtn.BackgroundColor3 = NEON_BLUE
             TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         else
-            TabBtn.BackgroundColor3 = ELEMENT_BG
-            TabBtn.TextColor3 = TEXT_DARK
+            TabBtn.BackgroundColor3 = COMPONENT_BG
+            TabBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
         end
         
         TabBtn.BorderSizePixel = 0
@@ -319,30 +342,28 @@ function UI:CreateWindow()
         TabCorner.CornerRadius = UDim.new(0, 6)
         TabCorner.Parent = TabBtn
 
-        -- Effet Hover pour le bouton d'onglet
+        -- Hover Tabs
         table.insert(connections, TabBtn.MouseEnter:Connect(function()
-            if TabBtn.BackgroundColor3 ~= ACCENT_COLOR then
-                TweenService:Create(TabBtn, TweenInfo.new(0.2), {TextColor3 = TEXT_COLOR}):Play()
-            end
+            TweenService:Create(TabScale, TweenInfo.new(0.2, Enum.EasingStyle.Sine), {Scale = 1.04}):Play()
         end))
         table.insert(connections, TabBtn.MouseLeave:Connect(function()
-            if TabBtn.BackgroundColor3 ~= ACCENT_COLOR then
-                TweenService:Create(TabBtn, TweenInfo.new(0.2), {TextColor3 = TEXT_DARK}):Play()
-            end
+            TweenService:Create(TabScale, TweenInfo.new(0.2, Enum.EasingStyle.Sine), {Scale = 1}):Play()
         end))
 
         table.insert(connections, TabBtn.MouseButton1Click:Connect(function()
+            CreateFlash(TabBtn)
+            TweenService:Create(TabScale, TweenInfo.new(0.1, Enum.EasingStyle.Bounce), {Scale = 0.95}):Play()
+            task.wait(0.1)
+            TweenService:Create(TabScale, TweenInfo.new(0.2, Enum.EasingStyle.Bounce), {Scale = 1.04}):Play()
+
             for _, p in pairs(Window.Pages:GetChildren()) do p.Visible = false end
             for _, t in pairs(Window.TabBar:GetChildren()) do
                 if t:IsA("TextButton") then 
-                    TweenService:Create(t, TweenInfo.new(0.3), {TextColor3 = TEXT_DARK, BackgroundColor3 = ELEMENT_BG}):Play()
+                    TweenService:Create(t, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(150, 150, 150), BackgroundColor3 = COMPONENT_BG}):Play()
                 end
             end
             Page.Visible = true
-            -- Effet de scale rapide au clic de l'onglet
-            TweenService:Create(TabBtn, TweenInfo.new(0.1), {Size = UDim2.new(0, 95, 0, 30)}):Play()
-            task.wait(0.1)
-            TweenService:Create(TabBtn, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundColor3 = ACCENT_COLOR, Size = UDim2.new(0, 100, 0, 32)}):Play()
+            TweenService:Create(TabBtn, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundColor3 = NEON_BLUE}):Play()
         end))
 
         function Tab:CreateLabel(text)
@@ -357,7 +378,7 @@ function UI:CreateWindow()
             Label.Position = UDim2.new(0, 5, 0, 0)
             Label.BackgroundTransparency = 1
             Label.Text = text
-            Label.TextColor3 = TEXT_DARK
+            Label.TextColor3 = Color3.fromRGB(190, 190, 190)
             Label.Font = Enum.Font.Gotham
             Label.TextSize = 12
             Label.TextXAlignment = Enum.TextXAlignment.Left
@@ -372,14 +393,16 @@ function UI:CreateWindow()
 
             local TextBtn = Instance.new("TextButton")
             TextBtn.Parent = ToggleFrame
-            TextBtn.BackgroundColor3 = ELEMENT_BG
+            TextBtn.BackgroundColor3 = COMPONENT_BG
             TextBtn.Size = UDim2.new(1, 0, 1, 0)
-            TextBtn.Text = "    " .. config.Name
-            TextBtn.TextColor3 = TEXT_COLOR
+            TextBtn.Text = "   " .. config.Name
+            TextBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
             TextBtn.Font = Enum.Font.Gotham
             TextBtn.TextSize = 13
             TextBtn.TextXAlignment = Enum.TextXAlignment.Left
             TextBtn.BorderSizePixel = 0
+
+            local BtnScale = Instance.new("UIScale", TextBtn)
 
             local btnCorner = Instance.new("UICorner")
             btnCorner.CornerRadius = UDim.new(0, 6)
@@ -387,9 +410,9 @@ function UI:CreateWindow()
 
             local StatusContainer = Instance.new("Frame")
             StatusContainer.Parent = TextBtn
-            StatusContainer.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+            StatusContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             StatusContainer.Position = UDim2.new(1, -45, 0.5, -10)
-            StatusContainer.Size = UDim2.new(0, 35, 0, 20)
+            StatusContainer.Size = UDim2.new(0, 36, 0, 20)
             StatusContainer.BorderSizePixel = 0
 
             local statusCorner = Instance.new("UICorner")
@@ -398,7 +421,7 @@ function UI:CreateWindow()
 
             local StatusCircle = Instance.new("Frame")
             StatusCircle.Parent = StatusContainer
-            StatusCircle.BackgroundColor3 = TEXT_DARK
+            StatusCircle.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
             StatusCircle.Position = UDim2.new(0, 2, 0.5, -8)
             StatusCircle.Size = UDim2.new(0, 16, 0, 16)
             StatusCircle.BorderSizePixel = 0
@@ -406,21 +429,46 @@ function UI:CreateWindow()
             local circleCorner = Instance.new("UICorner")
             circleCorner.CornerRadius = UDim.new(1, 0)
             circleCorner.Parent = StatusCircle
+            
+            -- UIStroke pour le glow de l'activation
+            local ToggleGlow = Instance.new("UIStroke", StatusContainer)
+            ToggleGlow.Color = GLOW_BLUE
+            ToggleGlow.Thickness = 2
+            ToggleGlow.Transparency = 1
 
             local enabled = false
+
+            -- Hover toggle background
+            table.insert(connections, TextBtn.MouseEnter:Connect(function()
+                TweenService:Create(TextBtn, TweenInfo.new(0.2), {BackgroundColor3 = HOVER_BG}):Play()
+            end))
+            table.insert(connections, TextBtn.MouseLeave:Connect(function()
+                TweenService:Create(TextBtn, TweenInfo.new(0.2), {BackgroundColor3 = COMPONENT_BG}):Play()
+            end))
 
             local function SetState(state)
                 enabled = state
                 if enabled then
-                    TweenService:Create(StatusCircle, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(1, -18, 0.5, -8), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-                    TweenService:Create(StatusContainer, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {BackgroundColor3 = ACCENT_COLOR}):Play()
+                    -- Animation on: Cercle vers la droite, couleurs néon, et effet glow (explosion)
+                    TweenService:Create(StatusCircle, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(1, -18, 0.5, -8), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+                    TweenService:Create(StatusContainer, TweenInfo.new(0.3), {BackgroundColor3 = NEON_BLUE}):Play()
+                    
+                    -- Petite explosion/glow
+                    ToggleGlow.Transparency = 0
+                    TweenService:Create(ToggleGlow, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Transparency = 1}):Play()
                 else
-                    TweenService:Create(StatusCircle, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(0, 2, 0.5, -8), BackgroundColor3 = TEXT_DARK}):Play()
-                    TweenService:Create(StatusContainer, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(45, 45, 55)}):Play()
+                    -- Animation off: Retour à gauche
+                    TweenService:Create(StatusCircle, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(0, 2, 0.5, -8), BackgroundColor3 = Color3.fromRGB(150, 150, 150)}):Play()
+                    TweenService:Create(StatusContainer, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
                 end
             end
 
+            table.insert(connections, TextBtn.MouseButton1Down:Connect(function()
+                TweenService:Create(BtnScale, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {Scale = 0.97}):Play()
+            end))
+            
             table.insert(connections, TextBtn.MouseButton1Click:Connect(function()
+                TweenService:Create(BtnScale, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()
                 enabled = not enabled
                 SetState(enabled)
                 if config.Callback then config.Callback(enabled, SetState) end
@@ -436,7 +484,7 @@ function UI:CreateWindow()
 
             local Container = Instance.new("Frame")
             Container.Size = UDim2.new(1, 0, 1, 0)
-            Container.BackgroundColor3 = ELEMENT_BG
+            Container.BackgroundColor3 = COMPONENT_BG
             Container.Parent = BindFrame
 
             local cCorner = Instance.new("UICorner")
@@ -447,19 +495,19 @@ function UI:CreateWindow()
             Label.Parent = Container
             Label.Size = UDim2.new(1, -100, 1, 0)
             Label.BackgroundTransparency = 1
-            Label.Text = "    " .. config.Name
-            Label.TextColor3 = TEXT_COLOR
+            Label.Text = "   " .. config.Name
+            Label.TextColor3 = Color3.fromRGB(200, 200, 200)
             Label.Font = Enum.Font.Gotham
             Label.TextSize = 13
             Label.TextXAlignment = Enum.TextXAlignment.Left
 
             local BindBtn = Instance.new("TextButton")
             BindBtn.Parent = Container
-            BindBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+            BindBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             BindBtn.Size = UDim2.new(0, 80, 0, 24)
             BindBtn.Position = UDim2.new(1, -90, 0.5, -12)
             BindBtn.Text = config.Default and tostring(config.Default.Name or config.Default) or "NONE"
-            BindBtn.TextColor3 = TEXT_COLOR
+            BindBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
             BindBtn.Font = Enum.Font.GothamBold
             BindBtn.TextSize = 11
             BindBtn.BorderSizePixel = 0
@@ -468,17 +516,28 @@ function UI:CreateWindow()
             bCorner.CornerRadius = UDim.new(0, 4)
             bCorner.Parent = BindBtn
 
+            -- Hover Effect
+            table.insert(connections, Container.MouseEnter:Connect(function()
+                TweenService:Create(Container, TweenInfo.new(0.2), {BackgroundColor3 = HOVER_BG}):Play()
+            end))
+            table.insert(connections, Container.MouseLeave:Connect(function()
+                TweenService:Create(Container, TweenInfo.new(0.2), {BackgroundColor3 = COMPONENT_BG}):Play()
+            end))
+
             table.insert(connections, BindBtn.MouseButton1Click:Connect(function()
                 BindBtn.Text = "..."
+                TweenService:Create(BindBtn, TweenInfo.new(0.2), {BackgroundColor3 = NEON_BLUE}):Play()
+                
                 if config.BindTable then config.BindTable.IsBinding = true end
                 local conn
                 conn = UserInputService.InputBegan:Connect(function(i)
-                    if i.UserInputType == Enum.UserInputType.Keyboard or i.UserInputType == Enum.UserInputType.MouseButton2 or i.UserInputType == Enum.UserInputType.MouseButton3 or i.UserInputType == Enum.UserInputType.MouseButton4 or i.UserInputType == Enum.UserInputType.MouseButton5 then
+                    if i.UserInputType == Enum.UserInputType.Keyboard or i.UserInputType.Name:find("MouseButton") then
                         local key = (i.UserInputType == Enum.UserInputType.Keyboard and i.KeyCode or i.UserInputType)
                         if config.BindTable and config.KeyIndex then
                             config.BindTable[config.KeyIndex] = key
                         end
                         BindBtn.Text = tostring(key.Name or key)
+                        TweenService:Create(BindBtn, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
                         if config.BindTable then config.BindTable.IsBinding = false end
                         conn:Disconnect()
                     end
@@ -490,33 +549,37 @@ function UI:CreateWindow()
         function Tab:CreateButton(config)
             local TextBtn = Instance.new("TextButton")
             TextBtn.Parent = Page
-            TextBtn.BackgroundColor3 = ELEMENT_BG
+            TextBtn.BackgroundColor3 = COMPONENT_BG
             TextBtn.Size = UDim2.new(1, 0, 0, 38)
             TextBtn.Text = config.Name
-            TextBtn.TextColor3 = TEXT_COLOR
+            TextBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
             TextBtn.Font = Enum.Font.GothamBold
             TextBtn.TextSize = 13
             TextBtn.BorderSizePixel = 0
 
+            local btnScale = Instance.new("UIScale", TextBtn)
+
             local btnCorner = Instance.new("UICorner")
             btnCorner.CornerRadius = UDim.new(0, 6)
             btnCorner.Parent = TextBtn
-
-            -- Effets Hover & Scale professionnels
+            
+            -- Hover Animation
             table.insert(connections, TextBtn.MouseEnter:Connect(function()
-                TweenService:Create(TextBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35, 35, 45)}):Play()
+                TweenService:Create(TextBtn, TweenInfo.new(0.2), {BackgroundColor3 = HOVER_BG}):Play()
+                TweenService:Create(btnScale, TweenInfo.new(0.2, Enum.EasingStyle.Sine), {Scale = 1.01}):Play()
             end))
             table.insert(connections, TextBtn.MouseLeave:Connect(function()
-                TweenService:Create(TextBtn, TweenInfo.new(0.2), {BackgroundColor3 = ELEMENT_BG}):Play()
+                TweenService:Create(TextBtn, TweenInfo.new(0.2), {BackgroundColor3 = COMPONENT_BG}):Play()
+                TweenService:Create(btnScale, TweenInfo.new(0.2, Enum.EasingStyle.Sine), {Scale = 1}):Play()
             end))
 
             table.insert(connections, TextBtn.MouseButton1Down:Connect(function()
-                TweenService:Create(TextBtn, TweenInfo.new(0.1), {BackgroundColor3 = ACCENT_COLOR, Size = UDim2.new(1, -4, 0, 35)}):Play()
+                TweenService:Create(btnScale, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {Scale = 0.96}):Play()
             end))
-            table.insert(connections, TextBtn.MouseButton1Up:Connect(function()
-                TweenService:Create(TextBtn, TweenInfo.new(0.1), {BackgroundColor3 = ELEMENT_BG, Size = UDim2.new(1, 0, 0, 38)}):Play()
-            end))
+
             table.insert(connections, TextBtn.MouseButton1Click:Connect(function()
+                CreateFlash(TextBtn)
+                TweenService:Create(btnScale, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1.01}):Play()
                 if config.Callback then config.Callback() end
             end))
         end
@@ -524,7 +587,7 @@ function UI:CreateWindow()
         function Tab:CreateSlider(config)
             local SliderFrame = Instance.new("Frame")
             SliderFrame.Size = UDim2.new(1, 0, 0, 50)
-            SliderFrame.BackgroundColor3 = ELEMENT_BG
+            SliderFrame.BackgroundColor3 = COMPONENT_BG
             SliderFrame.Parent = Page
 
             local sCorner = Instance.new("UICorner")
@@ -533,8 +596,8 @@ function UI:CreateWindow()
 
             local Label = Instance.new("TextLabel")
             Label.Parent = SliderFrame
-            Label.Text = "    " .. config.Name .. " : " .. config.Default
-            Label.TextColor3 = TEXT_COLOR
+            Label.Text = "   " .. config.Name .. " : " .. config.Default
+            Label.TextColor3 = Color3.fromRGB(200, 200, 200)
             Label.Size = UDim2.new(1, 0, 0, 25)
             Label.BackgroundTransparency = 1
             Label.Font = Enum.Font.Gotham
@@ -543,7 +606,7 @@ function UI:CreateWindow()
 
             local SliderBack = Instance.new("Frame")
             SliderBack.Parent = SliderFrame
-            SliderBack.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+            SliderBack.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
             SliderBack.Position = UDim2.new(0, 10, 0, 30)
             SliderBack.Size = UDim2.new(1, -20, 0, 6)
             SliderBack.BorderSizePixel = 0
@@ -554,20 +617,30 @@ function UI:CreateWindow()
 
             local SliderFill = Instance.new("Frame")
             SliderFill.Parent = SliderBack
-            SliderFill.BackgroundColor3 = ACCENT_COLOR
+            SliderFill.BackgroundColor3 = NEON_BLUE
             SliderFill.Size = UDim2.new(math.clamp((config.Default - config.Min) / (config.Max - config.Min), 0, 1), 0, 1, 0)
             SliderFill.BorderSizePixel = 0
 
             local sfCorner = Instance.new("UICorner")
             sfCorner.CornerRadius = UDim.new(1, 0)
             sfCorner.Parent = SliderFill
+            
+            -- Hover effect background
+            table.insert(connections, SliderFrame.MouseEnter:Connect(function()
+                TweenService:Create(SliderFrame, TweenInfo.new(0.2), {BackgroundColor3 = HOVER_BG}):Play()
+            end))
+            table.insert(connections, SliderFrame.MouseLeave:Connect(function()
+                TweenService:Create(SliderFrame, TweenInfo.new(0.2), {BackgroundColor3 = COMPONENT_BG}):Play()
+            end))
 
             local sliding = false
             local function update(input)
                 local pos = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
-                TweenService:Create(SliderFill, TweenInfo.new(0.05), {Size = UDim2.new(pos, 0, 1, 0)}):Play()
+                -- Utilisation d'un tween pour la jauge
+                TweenService:Create(SliderFill, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(pos, 0, 1, 0)}):Play()
+                
                 local val = math.floor(((config.Max - config.Min) * pos) + config.Min)
-                Label.Text = "    " .. config.Name .. " : " .. val
+                Label.Text = "   " .. config.Name .. " : " .. val
                 if config.Callback then config.Callback(val) end
             end
 
@@ -599,12 +672,19 @@ function UI:CreateWindow()
 
             local Container = Instance.new("Frame")
             Container.Size = UDim2.new(1, 0, 1, 0)
-            Container.BackgroundColor3 = ELEMENT_BG
+            Container.BackgroundColor3 = COMPONENT_BG
             Container.Parent = TextBoxFrame
 
             local cCorner = Instance.new("UICorner")
             cCorner.CornerRadius = UDim.new(0, 6)
             cCorner.Parent = Container
+            
+            -- UIStroke pour effet focus
+            local BoxStroke = Instance.new("UIStroke", Container)
+            BoxStroke.Color = NEON_BLUE
+            BoxStroke.Thickness = 1.5
+            BoxStroke.Transparency = 1
+            BoxStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
             local TextBox = Instance.new("TextBox")
             TextBox.Parent = Container
@@ -613,14 +693,21 @@ function UI:CreateWindow()
             TextBox.BackgroundTransparency = 1
             TextBox.Text = config.Default or ""
             TextBox.PlaceholderText = config.Name or "Enter text..."
-            TextBox.TextColor3 = TEXT_COLOR
-            TextBox.PlaceholderColor3 = TEXT_DARK
+            TextBox.TextColor3 = Color3.fromRGB(200, 200, 200)
+            TextBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
             TextBox.Font = Enum.Font.Gotham
             TextBox.TextSize = 13
             TextBox.TextXAlignment = Enum.TextXAlignment.Left
             TextBox.ClearTextOnFocus = false
 
+            table.insert(connections, TextBox.Focused:Connect(function()
+                TweenService:Create(BoxStroke, TweenInfo.new(0.3), {Transparency = 0}):Play()
+                TweenService:Create(Container, TweenInfo.new(0.3), {BackgroundColor3 = HOVER_BG}):Play()
+            end))
+
             table.insert(connections, TextBox.FocusLost:Connect(function()
+                TweenService:Create(BoxStroke, TweenInfo.new(0.3), {Transparency = 1}):Play()
+                TweenService:Create(Container, TweenInfo.new(0.3), {BackgroundColor3 = COMPONENT_BG}):Play()
                 if config.Callback then
                     config.Callback(TextBox.Text)
                 end

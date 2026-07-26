@@ -8,7 +8,6 @@ local LocalPlayer = Players.LocalPlayer
 
 local UI = {}
 
--- Icon IDs
 local ICONS = {
     Close = 82404346839314,
     Minimize = 85022922514331,
@@ -16,107 +15,114 @@ local ICONS = {
     Default = 136443043095009
 }
 
--- Premium animation presets
 local TWEEN_CONFIGS = {
     Instant = TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
     Fast = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
     Normal = TweenInfo.new(0.3, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
     Smooth = TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-    Slow = TweenInfo.new(0.8, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut),
-    ExtraSmooth = TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-    WindowOpen = TweenInfo.new(0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 }
 
--- Theme system with presets
 local THEMES = {
     Dark = {
         Primary = Color3.fromRGB(30, 144, 255),
-        PrimaryLight = Color3.fromRGB(100, 180, 255),
         Secondary = Color3.fromRGB(10, 100, 200),
-        SecondaryLight = Color3.fromRGB(40, 130, 230),
         Background = Color3.fromRGB(12, 12, 12),
         Surface = Color3.fromRGB(20, 20, 20),
-        SurfaceLight = Color3.fromRGB(30, 30, 30),
         Text = Color3.fromRGB(255, 255, 255),
         TextSecondary = Color3.fromRGB(180, 180, 180),
-        Accent = Color3.fromRGB(100, 200, 255),
-        Success = Color3.fromRGB(76, 175, 80),
-        Warning = Color3.fromRGB(255, 152, 0),
-        Error = Color3.fromRGB(244, 67, 54),
-        CornerRadius = 16,
-        StrokeThickness = 1.5
     },
     Light = {
         Primary = Color3.fromRGB(59, 130, 246),
-        PrimaryLight = Color3.fromRGB(96, 165, 250),
         Secondary = Color3.fromRGB(37, 99, 235),
-        SecondaryLight = Color3.fromRGB(66, 133, 244),
         Background = Color3.fromRGB(245, 245, 245),
         Surface = Color3.fromRGB(255, 255, 255),
-        SurfaceLight = Color3.fromRGB(240, 240, 240),
         Text = Color3.fromRGB(30, 30, 30),
         TextSecondary = Color3.fromRGB(100, 100, 100),
-        Accent = Color3.fromRGB(96, 165, 250),
-        Success = Color3.fromRGB(34, 197, 94),
-        Warning = Color3.fromRGB(251, 146, 60),
-        Error = Color3.fromRGB(239, 68, 68),
-        CornerRadius = 16,
-        StrokeThickness = 1.5
     },
     Blue = {
         Primary = Color3.fromRGB(59, 130, 246),
-        PrimaryLight = Color3.fromRGB(96, 165, 250),
         Secondary = Color3.fromRGB(37, 99, 235),
-        SecondaryLight = Color3.fromRGB(66, 133, 244),
         Background = Color3.fromRGB(15, 23, 42),
         Surface = Color3.fromRGB(30, 41, 59),
-        SurfaceLight = Color3.fromRGB(51, 65, 85),
         Text = Color3.fromRGB(248, 250, 252),
         TextSecondary = Color3.fromRGB(203, 213, 225),
-        Accent = Color3.fromRGB(96, 165, 250),
-        Success = Color3.fromRGB(34, 197, 94),
-        Warning = Color3.fromRGB(251, 146, 60),
-        Error = Color3.fromRGB(239, 68, 68),
-        CornerRadius = 16,
-        StrokeThickness = 1.5
     },
     Purple = {
         Primary = Color3.fromRGB(168, 85, 247),
-        PrimaryLight = Color3.fromRGB(196, 121, 254),
         Secondary = Color3.fromRGB(147, 51, 234),
-        SecondaryLight = Color3.fromRGB(168, 85, 247),
         Background = Color3.fromRGB(17, 7, 27),
         Surface = Color3.fromRGB(32, 14, 48),
-        SurfaceLight = Color3.fromRGB(59, 27, 83),
         Text = Color3.fromRGB(250, 245, 255),
         TextSecondary = Color3.fromRGB(216, 180, 254),
-        Accent = Color3.fromRGB(196, 121, 254),
-        Success = Color3.fromRGB(34, 197, 94),
-        Warning = Color3.fromRGB(251, 146, 60),
-        Error = Color3.fromRGB(239, 68, 68),
-        CornerRadius = 16,
-        StrokeThickness = 1.5
     },
     Red = {
         Primary = Color3.fromRGB(239, 68, 68),
-        PrimaryLight = Color3.fromRGB(252, 91, 91),
         Secondary = Color3.fromRGB(220, 38, 38),
-        SecondaryLight = Color3.fromRGB(239, 68, 68),
         Background = Color3.fromRGB(20, 8, 8),
         Surface = Color3.fromRGB(37, 14, 14),
-        SurfaceLight = Color3.fromRGB(65, 25, 25),
         Text = Color3.fromRGB(254, 242, 242),
         TextSecondary = Color3.fromRGB(252, 165, 165),
-        Accent = Color3.fromRGB(252, 91, 91),
-        Success = Color3.fromRGB(34, 197, 94),
-        Warning = Color3.fromRGB(251, 146, 60),
-        Error = Color3.fromRGB(239, 68, 68),
-        CornerRadius = 16,
-        StrokeThickness = 1.5
     }
 }
 
--- Utility functions
+-- THEME MANAGER - Applique les changements réels aux objets UI
+local ThemeManager = {}
+ThemeManager.__index = ThemeManager
+
+function ThemeManager.new()
+    local self = setmetatable({}, ThemeManager)
+    self.elements = {}
+    return self
+end
+
+function ThemeManager:Register(obj, elementType, config)
+    if not self.elements[elementType] then
+        self.elements[elementType] = {}
+    end
+    table.insert(self.elements[elementType], {obj = obj, config = config})
+end
+
+function ThemeManager:Apply(theme)
+    -- Update backgrounds
+    for _, item in pairs(self.elements.background or {}) do
+        local obj = item.obj
+        if obj and obj.Parent then
+            obj.BackgroundColor3 = theme[item.config.key]
+        end
+    end
+
+    -- Update text
+    for _, item in pairs(self.elements.text or {}) do
+        local obj = item.obj
+        if obj and obj.Parent then
+            obj.TextColor3 = theme[item.config.key]
+        end
+    end
+
+    -- Update strokes
+    for _, item in pairs(self.elements.stroke or {}) do
+        local obj = item.obj
+        if obj and obj.Parent then
+            obj.Color = theme[item.config.key]
+        end
+    end
+
+    -- Update gradients
+    for _, item in pairs(self.elements.gradient or {}) do
+        local obj = item.obj
+        if obj and obj.Parent then
+            obj.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, theme[item.config.key1]),
+                ColorSequenceKeypoint.new(1, theme[item.config.key2])
+            })
+        end
+    end
+end
+
+function ThemeManager:Cleanup()
+    self.elements = {}
+end
+
 local function CreateGradient(parent, color1, color2, rotation)
     rotation = rotation or 0
     local gradient = Instance.new("UIGradient")
@@ -129,19 +135,10 @@ local function CreateGradient(parent, color1, color2, rotation)
     return gradient
 end
 
-local function GetResolutionScale()
-    local screenSize = LocalPlayer:GetMouse().Icon or "rbxasset://textures/Cursor.png"
-    local vpSize = LocalPlayer.PlayerGui.AbsoluteSize
-    if vpSize.X <= 400 then return 0.8 end
-    if vpSize.X <= 600 then return 0.9 end
-    return 1
-end
-
--- Create window with premium UI
 function UI:CreateWindow(config)
     config = config or {}
     local Window = {}
-    
+
     local guiName = LocalPlayer.UserId .. "_SlayerHub"
     local existingGui = CoreGui:FindFirstChild(guiName)
     if existingGui then
@@ -153,14 +150,16 @@ function UI:CreateWindow(config)
     ScreenGui.Parent = CoreGui
     ScreenGui.ResetOnSpawn = false
 
-    -- Initialize theme
     local currentThemeName = config.Theme or "Dark"
     local Theme = table.clone(THEMES[currentThemeName])
+    
     Window.Theme = Theme
-    Window.Tweens = {}
+    Window.ThemeName = currentThemeName
     Window.Connections = {}
+    Window.ThemeManager = ThemeManager.new()
+    Window.Elements = {}
 
-    -- Notification container
+    -- Notification system
     local NotifContainer = Instance.new("Frame")
     NotifContainer.Name = "NotifContainer"
     NotifContainer.Parent = ScreenGui
@@ -178,28 +177,17 @@ function UI:CreateWindow(config)
     function Window:Notify(text, duration, notifType)
         duration = duration or 3
         notifType = notifType or "normal"
-        
-        local notifColor = Theme.Primary
-        if notifType == "success" then notifColor = Theme.Success
-        elseif notifType == "warning" then notifColor = Theme.Warning
-        elseif notifType == "error" then notifColor = Theme.Error end
-        
+
         local NotifFrame = Instance.new("Frame")
         NotifFrame.Size = UDim2.new(0, 320, 0, 50)
         NotifFrame.BackgroundColor3 = Theme.Background
         NotifFrame.BorderSizePixel = 0
         NotifFrame.BackgroundTransparency = 0.95
+        NotifFrame.Parent = NotifContainer
 
         local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, Theme.CornerRadius)
+        corner.CornerRadius = UDim.new(0, 16)
         corner.Parent = NotifFrame
-
-        local stroke = Instance.new("UIStroke")
-        stroke.Thickness = Theme.StrokeThickness
-        stroke.Color = notifColor
-        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        stroke.Transparency = 0.3
-        stroke.Parent = NotifFrame
 
         local NotifText = Instance.new("TextLabel")
         NotifText.Parent = NotifFrame
@@ -210,183 +198,133 @@ function UI:CreateWindow(config)
         NotifText.TextColor3 = Theme.Text
         NotifText.Font = Enum.Font.GothamBold
         NotifText.TextSize = 13
-        NotifText.TextWrapped = true
-        NotifText.TextTransparency = 0.3
 
-        NotifFrame.Parent = NotifContainer
-
-        local tweens = {
-            TweenService:Create(NotifFrame, TWEEN_CONFIGS.Fast, {BackgroundTransparency = 0.1}),
-            TweenService:Create(stroke, TWEEN_CONFIGS.Fast, {Transparency = 0}),
-            TweenService:Create(NotifText, TWEEN_CONFIGS.Fast, {TextTransparency = 0})
-        }
-        
-        for _, tween in pairs(tweens) do tween:Play() end
-
-        task.delay(duration, function()
-            local outTweens = {
-                TweenService:Create(NotifFrame, TWEEN_CONFIGS.Fast, {BackgroundTransparency = 1}),
-                TweenService:Create(stroke, TWEEN_CONFIGS.Fast, {Transparency = 1}),
-                TweenService:Create(NotifText, TWEEN_CONFIGS.Fast, {TextTransparency = 1})
-            }
-            for _, tween in pairs(outTweens) do tween:Play() end
-            
-            task.wait(0.15)
-            if NotifFrame then NotifFrame:Destroy() end
-        end)
+        TweenService:Create(NotifFrame, TWEEN_CONFIGS.Fast, {BackgroundTransparency = 0.1}):Play()
+        task.wait(duration)
+        TweenService:Create(NotifFrame, TWEEN_CONFIGS.Fast, {BackgroundTransparency = 1}):Play()
+        task.wait(0.15)
+        NotifFrame:Destroy()
     end
 
-    -- Smooth drag system with inertia
-    local function MakeDraggable(topbarobject, object)
+    -- DRAG SYSTEM
+    local function MakeDraggable(topbar, object)
         local dragging = false
         local dragStart = Vector2.new()
         local frameStart = UDim2.new()
-        local velocity = Vector2.new()
-        local lastPos = Vector2.new()
-        
-        local dragConnection, updateConnection, endConnection
-        
-        topbarobject.InputBegan:Connect(function(input)
-            if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not dragging then
+
+        local inputChangedConn
+        local inputEndedConn
+
+        local inputBeganConn = topbar.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 dragging = true
                 dragStart = input.Position
                 frameStart = object.Position
-                lastPos = input.Position
-                
-                -- Kill existing velocity
-                if updateConnection then updateConnection:Disconnect() end
-                
-                updateConnection = UserInputService.InputChanged:Connect(function(moveInput)
-                    if dragging and (moveInput.UserInputType == Enum.UserInputType.MouseMovement or moveInput.UserInputType == Enum.UserInputType.Touch) then
-                        local delta = moveInput.Position - dragStart
-                        velocity = moveInput.Position - lastPos
-                        lastPos = moveInput.Position
-                        
-                        object.Position = UDim2.new(
-                            frameStart.X.Scale, 
-                            math.clamp(frameStart.X.Offset + delta.X, -object.AbsoluteSize.X + 50, ScreenGui.AbsoluteSize.X - 50),
-                            frameStart.Y.Scale, 
-                            math.clamp(frameStart.Y.Offset + delta.Y, 0, ScreenGui.AbsoluteSize.Y - 50)
-                        )
-                    end
-                end)
             end
         end)
-        
-        topbarobject.InputEnded:Connect(function(input)
+
+        inputChangedConn = UserInputService.InputChanged:Connect(function(input)
+            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                local delta = input.Position - dragStart
+                object.Position = UDim2.new(frameStart.X.Scale, frameStart.X.Offset + delta.X, frameStart.Y.Scale, frameStart.Y.Offset + delta.Y)
+            end
+        end)
+
+        inputEndedConn = UserInputService.InputEnded:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 dragging = false
-                if updateConnection then updateConnection:Disconnect() end
-                
-                -- Apply inertia
-                local inertiaVelocity = velocity * 0.5
-                if math.abs(inertiaVelocity.X) > 0.1 or math.abs(inertiaVelocity.Y) > 0.1 then
-                    for i = 1, 10 do
-                        inertiaVelocity = inertiaVelocity * 0.85
-                        local newPos = UDim2.new(
-                            object.Position.X.Scale,
-                            math.clamp(object.Position.X.Offset + inertiaVelocity.X, -object.AbsoluteSize.X + 50, ScreenGui.AbsoluteSize.X - 50),
-                            object.Position.Y.Scale,
-                            math.clamp(object.Position.Y.Offset + inertiaVelocity.Y, 0, ScreenGui.AbsoluteSize.Y - 50)
-                        )
-                        task.wait(0.01)
-                        if not dragging then
-                            object.Position = newPos
-                        end
-                    end
-                end
             end
         end)
-        
-        table.insert(Window.Connections, {updateConnection, endConnection})
+
+        table.insert(Window.Connections, inputBeganConn)
+        table.insert(Window.Connections, inputChangedConn)
+        table.insert(Window.Connections, inputEndedConn)
     end
 
-    -- Resize system (Windows-like)
-    local function MakeResizable(mainFrame, minSize, maxSize)
+    -- RESIZE SYSTEM - FIXÉ
+    local function MakeResizable(mainFrame)
         local resizing = false
         local resizeDir = ""
         local dragStart = Vector2.new()
         local frameSizeStart = Vector2.new()
         local framePos = UDim2.new()
-        
-        local function CreateResizeHandle(name, cursorPos, sizeFunc)
+
+        local function CreateResizeHandle(corner_pos)
             local handle = Instance.new("Frame")
-            handle.Name = name
+            handle.Name = "ResizeHandle_" .. corner_pos
             handle.Parent = mainFrame
             handle.BackgroundTransparency = 1
             handle.ZIndex = 15
-            handle.Size = UDim2.new(0, 10, 0, 10)
-            handle.Position = sizeFunc()
-            
-            handle.MouseEnter:Connect(function()
-                if cursorPos == "corner_tl" or cursorPos == "corner_br" then
-                    handle.Cursor = "ResizeNWSE"
-                elseif cursorPos == "corner_tr" or cursorPos == "corner_bl" then
-                    handle.Cursor = "ResizeNESW"
-                elseif cursorPos:find("top") or cursorPos:find("bottom") then
-                    handle.Cursor = "ResizeNS"
-                else
-                    handle.Cursor = "ResizeEW"
-                end
-            end)
-            
-            handle.InputBegan:Connect(function(input)
+            handle.Size = UDim2.new(0, 12, 0, 12)
+
+            if corner_pos == "TL" then
+                handle.Position = UDim2.new(0, -6, 0, -6)
+                handle.Cursor = "ResizeNWSE"
+            elseif corner_pos == "TR" then
+                handle.Position = UDim2.new(1, -6, 0, -6)
+                handle.Cursor = "ResizeNESW"
+            elseif corner_pos == "BL" then
+                handle.Position = UDim2.new(0, -6, 1, -6)
+                handle.Cursor = "ResizeNESW"
+            elseif corner_pos == "BR" then
+                handle.Position = UDim2.new(1, -6, 1, -6)
+                handle.Cursor = "ResizeNWSE"
+            end
+
+            local handleInputBeganConn = handle.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     resizing = true
-                    resizeDir = cursorPos
+                    resizeDir = corner_pos
                     dragStart = input.Position
                     frameSizeStart = Vector2.new(mainFrame.AbsoluteSize.X, mainFrame.AbsoluteSize.Y)
                     framePos = mainFrame.Position
                 end
             end)
+
+            table.insert(Window.Connections, handleInputBeganConn)
         end
-        
-        -- Create all resize handles
-        CreateResizeHandle("TL", "corner_tl", function() return UDim2.new(0, -5, 0, -5) end)
-        CreateResizeHandle("TR", "corner_tr", function() return UDim2.new(1, -5, 0, -5) end)
-        CreateResizeHandle("BL", "corner_bl", function() return UDim2.new(0, -5, 1, -5) end)
-        CreateResizeHandle("BR", "corner_br", function() return UDim2.new(1, -5, 1, -5) end)
-        CreateResizeHandle("Top", "top", function() return UDim2.new(0.5, -25, 0, -5) end)
-        CreateResizeHandle("Bottom", "bottom", function() return UDim2.new(0.5, -25, 1, -5) end)
-        CreateResizeHandle("Left", "left", function() return UDim2.new(0, -5, 0.5, -25) end)
-        CreateResizeHandle("Right", "right", function() return UDim2.new(1, -5, 0.5, -25) end)
-        
-        UserInputService.InputChanged:Connect(function(input)
+
+        CreateResizeHandle("TL")
+        CreateResizeHandle("TR")
+        CreateResizeHandle("BL")
+        CreateResizeHandle("BR")
+
+        local moveConnInput = UserInputService.InputChanged:Connect(function(input)
             if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                 local delta = input.Position - dragStart
                 local newSize = Vector2.new(frameSizeStart.X, frameSizeStart.Y)
                 local newPos = framePos
-                
-                -- Calculate new size and position based on resize direction
-                if resizeDir:find("right") then
-                    newSize = Vector2.new(math.clamp(frameSizeStart.X + delta.X, minSize.X, maxSize.X), newSize.Y)
-                end
-                if resizeDir:find("left") then
-                    newSize = Vector2.new(math.clamp(frameSizeStart.X - delta.X, minSize.X, maxSize.X), newSize.Y)
+
+                if resizeDir == "BR" then
+                    newSize = Vector2.new(math.clamp(frameSizeStart.X + delta.X, 300, 800), math.clamp(frameSizeStart.Y + delta.Y, 200, 700))
+                elseif resizeDir == "BL" then
+                    newSize = Vector2.new(math.clamp(frameSizeStart.X - delta.X, 300, 800), math.clamp(frameSizeStart.Y + delta.Y, 200, 700))
                     newPos = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset)
-                end
-                if resizeDir:find("bottom") then
-                    newSize = Vector2.new(newSize.X, math.clamp(frameSizeStart.Y + delta.Y, minSize.Y, maxSize.Y))
-                end
-                if resizeDir:find("top") then
-                    newSize = Vector2.new(newSize.X, math.clamp(frameSizeStart.Y - delta.Y, minSize.Y, maxSize.Y))
+                elseif resizeDir == "TR" then
+                    newSize = Vector2.new(math.clamp(frameSizeStart.X + delta.X, 300, 800), math.clamp(frameSizeStart.Y - delta.Y, 200, 700))
                     newPos = UDim2.new(framePos.X.Scale, framePos.X.Offset, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+                elseif resizeDir == "TL" then
+                    newSize = Vector2.new(math.clamp(frameSizeStart.X - delta.X, 300, 800), math.clamp(frameSizeStart.Y - delta.Y, 200, 700))
+                    newPos = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
                 end
-                
+
                 mainFrame.Size = UDim2.new(0, newSize.X, 0, newSize.Y)
                 mainFrame.Position = newPos
             end
         end)
-        
-        UserInputService.InputEnded:Connect(function(input)
+
+        local endConn = UserInputService.InputEnded:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 then
                 resizing = false
                 resizeDir = ""
             end
         end)
+
+        table.insert(Window.Connections, moveConnInput)
+        table.insert(Window.Connections, endConn)
     end
 
-    -- Main window frame with animation
+    -- MAIN WINDOW
     local Main = Instance.new("Frame")
     Main.Name = "Main"
     Main.Parent = ScreenGui
@@ -397,27 +335,20 @@ function UI:CreateWindow(config)
     Main.ClipsDescendants = true
 
     local MainCorner = Instance.new("UICorner")
-    MainCorner.CornerRadius = UDim.new(0, Theme.CornerRadius)
+    MainCorner.CornerRadius = UDim.new(0, 16)
     MainCorner.Parent = Main
 
-    CreateGradient(Main, Color3.fromRGB(15, 15, 15), Color3.fromRGB(25, 25, 25), 45)
-
     local MainStroke = Instance.new("UIStroke")
-    MainStroke.Thickness = Theme.StrokeThickness
+    MainStroke.Thickness = 1.5
     MainStroke.Color = Theme.Secondary
     MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     MainStroke.Transparency = 0.5
     MainStroke.Parent = Main
 
-    -- Window open animation
-    Main.Size = UDim2.new(0, 0, 0, 0)
-    Main.Position = UDim2.new(0.5, 0, 0.5, 0)
-    TweenService:Create(Main, TWEEN_CONFIGS.WindowOpen, {
-        Size = UDim2.new(0, 500, 0, 350),
-        Position = UDim2.new(0.5, -250, 0.5, -175)
-    }):Play()
+    Window.ThemeManager:Register(Main, "background", {key = "Background"})
+    Window.ThemeManager:Register(MainStroke, "stroke", {key = "Secondary"})
 
-    -- Top bar
+    -- TOPBAR
     local TopBar = Instance.new("Frame")
     TopBar.Name = "TopBar"
     TopBar.Parent = Main
@@ -426,16 +357,15 @@ function UI:CreateWindow(config)
     TopBar.BorderSizePixel = 0
     MakeDraggable(TopBar, Main)
 
-    CreateGradient(TopBar, Theme.Secondary, Color3.fromRGB(20, 120, 220), 0)
-
     local TopCorner = Instance.new("UICorner")
-    TopCorner.CornerRadius = UDim.new(0, Theme.CornerRadius)
+    TopCorner.CornerRadius = UDim.new(0, 16)
     TopCorner.Parent = TopBar
+
+    Window.ThemeManager:Register(TopBar, "background", {key = "Secondary"})
 
     local Title = Instance.new("TextLabel")
     Title.Parent = TopBar
-    Title.Text = "SLAYER TYCOON V2 <font color='#64B4FF'>PREMIUM UI</font>"
-    Title.RichText = true
+    Title.Text = "SLAYER TYCOON V2 FIXED"
     Title.TextColor3 = Theme.Text
     Title.Size = UDim2.new(1, -100, 1, 0)
     Title.Position = UDim2.new(0, 15, 0, 0)
@@ -444,7 +374,9 @@ function UI:CreateWindow(config)
     Title.Font = Enum.Font.GothamBold
     Title.TextSize = 15
 
-    -- Close button
+    Window.ThemeManager:Register(Title, "text", {key = "Text"})
+
+    -- CLOSE BUTTON
     local CloseBtn = Instance.new("ImageButton")
     CloseBtn.Parent = TopBar
     CloseBtn.Size = UDim2.new(0, 35, 0, 35)
@@ -454,26 +386,12 @@ function UI:CreateWindow(config)
     CloseBtn.ImageColor3 = Color3.fromRGB(255, 80, 80)
     CloseBtn.ScaleType = Enum.ScaleType.Fit
 
-    CloseBtn.MouseEnter:Connect(function()
-        TweenService:Create(CloseBtn, TWEEN_CONFIGS.Fast, {ImageColor3 = Color3.fromRGB(255, 120, 120)}):Play()
+    local closeClickConn = CloseBtn.MouseButton1Click:Connect(function()
+        Window:Destroy()
     end)
+    table.insert(Window.Connections, closeClickConn)
 
-    CloseBtn.MouseLeave:Connect(function()
-        TweenService:Create(CloseBtn, TWEEN_CONFIGS.Fast, {ImageColor3 = Color3.fromRGB(255, 80, 80)}):Play()
-    end)
-
-    CloseBtn.MouseButton1Click:Connect(function()
-        -- Close animation
-        TweenService:Create(Main, TWEEN_CONFIGS.Fast, {
-            Size = UDim2.new(0, 0, 0, 0),
-            Position = UDim2.new(0.5, 0, 0.5, 0),
-            BackgroundTransparency = 1
-        }):Play()
-        task.wait(0.15)
-        ScreenGui:Destroy()
-    end)
-
-    -- Minimize button
+    -- MINIMIZE BUTTON
     local MinBtn = Instance.new("ImageButton")
     MinBtn.Parent = TopBar
     MinBtn.Size = UDim2.new(0, 35, 0, 35)
@@ -483,36 +401,37 @@ function UI:CreateWindow(config)
     MinBtn.ImageColor3 = Theme.TextSecondary
     MinBtn.ScaleType = Enum.ScaleType.Fit
 
-    MinBtn.MouseEnter:Connect(function()
-        TweenService:Create(MinBtn, TWEEN_CONFIGS.Fast, {ImageColor3 = Theme.Text}):Play()
-    end)
-
-    MinBtn.MouseLeave:Connect(function()
-        TweenService:Create(MinBtn, TWEEN_CONFIGS.Fast, {ImageColor3 = Theme.TextSecondary}):Play()
-    end)
+    Window.ThemeManager:Register(MinBtn, "text", {key = "TextSecondary"})
 
     local isMinimized = false
     local originalSize = Main.Size
     local originalPos = Main.Position
-    
-    MinBtn.MouseButton1Click:Connect(function()
+
+    local minClickConn = MinBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
         if isMinimized then
             originalSize = Main.Size
             originalPos = Main.Position
-            TweenService:Create(Main, TWEEN_CONFIGS.ExtraSmooth, {
-                Position = UDim2.new(0, 10, 1, -50),
-                Size = UDim2.new(0, 220, 0, 45)
-            }):Play()
+            TweenService:Create(Main, TWEEN_CONFIGS.Normal, {Size = UDim2.new(0, 220, 0, 45)}):Play()
+            TopBar.Parent = Main
+            for _, child in pairs(Main:GetChildren()) do
+                if child:IsA("ScrollingFrame") or (child:IsA("Frame") and child.Name == "TabBar") then
+                    child.Visible = false
+                end
+            end
         else
-            TweenService:Create(Main, TWEEN_CONFIGS.ExtraSmooth, {
-                Position = originalPos,
-                Size = originalSize
-            }):Play()
+            TopBar.Parent = Main
+            for _, child in pairs(Main:GetChildren()) do
+                if child:IsA("ScrollingFrame") or (child:IsA("Frame") and child.Name == "TabBar") then
+                    child.Visible = true
+                end
+            end
+            TweenService:Create(Main, TWEEN_CONFIGS.Normal, {Size = originalSize}):Play()
         end
     end)
+    table.insert(Window.Connections, minClickConn)
 
-    -- Tab bar
+    -- TABBAR
     local TabBar = Instance.new("Frame")
     TabBar.Name = "TabBar"
     TabBar.Parent = Main
@@ -523,10 +442,10 @@ function UI:CreateWindow(config)
     TabBar.ClipsDescendants = true
 
     local TabBarCorner = Instance.new("UICorner")
-    TabBarCorner.CornerRadius = UDim.new(0, Theme.CornerRadius)
+    TabBarCorner.CornerRadius = UDim.new(0, 16)
     TabBarCorner.Parent = TabBar
 
-    CreateGradient(TabBar, Color3.fromRGB(22, 22, 22), Color3.fromRGB(28, 28, 28), 90)
+    Window.ThemeManager:Register(TabBar, "background", {key = "Surface"})
 
     local TabListLayout = Instance.new("UIListLayout")
     TabListLayout.Parent = TabBar
@@ -539,6 +458,7 @@ function UI:CreateWindow(config)
     TabPadding.PaddingTop = UDim.new(0, 10)
     TabPadding.PaddingBottom = UDim.new(0, 10)
 
+    -- PAGES
     local Pages = Instance.new("Frame")
     Pages.Name = "Pages"
     Pages.Parent = Main
@@ -552,8 +472,7 @@ function UI:CreateWindow(config)
     Window.TabCount = 0
     Window.Main = Main
 
-    -- Add resize functionality
-    MakeResizable(Main, Vector2.new(300, 200), Vector2.new(800, 700))
+    MakeResizable(Main)
 
     function Window:CreateTab(name, customIcon)
         local Tab = {}
@@ -569,18 +488,17 @@ function UI:CreateWindow(config)
         Page.ScrollBarImageColor3 = Theme.Primary
         Page.Visible = (Window.TabCount == 1)
         Page.CanvasSize = UDim2.new(0, 0, 0, 0)
-        Page.Position = UDim2.new(1, 0, 0, 0)
+        Page.Position = UDim2.new(Window.TabCount == 1 and 0 or 1, 0, 0, 0)
 
         local PageLayout = Instance.new("UIListLayout")
         PageLayout.Parent = Page
         PageLayout.Padding = UDim.new(0, 10)
         PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        
-        local pageConnection = PageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+
+        local layoutConn = PageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             Page.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y + 20)
         end)
-        
-        table.insert(Window.Connections, {pageConnection})
+        table.insert(Window.Connections, layoutConn)
 
         local iconToUse = customIcon
         if customIcon == nil then
@@ -591,40 +509,25 @@ function UI:CreateWindow(config)
             iconToUse = customIcon or ICONS.Default
         end
 
-        -- Tab button with enhanced design
+        -- TAB BUTTON
         local TabBtn = Instance.new("TextButton")
         TabBtn.Name = name .. "Tab"
         TabBtn.Parent = Window.TabBar
         TabBtn.Size = UDim2.new(0, 100, 0, 36)
-        
-        if Window.TabCount == 1 then
-            TabBtn.BackgroundColor3 = Theme.Primary
-            TabBtn.TextColor3 = Theme.Text
-        else
-            TabBtn.BackgroundColor3 = Theme.Surface
-            TabBtn.TextColor3 = Theme.TextSecondary
-        end
-        
+        TabBtn.BackgroundColor3 = Window.TabCount == 1 and Theme.Primary or Theme.Surface
+        TabBtn.TextColor3 = Window.TabCount == 1 and Theme.Text or Theme.TextSecondary
         TabBtn.BorderSizePixel = 0
         TabBtn.Text = ""
         TabBtn.Font = Enum.Font.GothamBold
         TabBtn.TextSize = 12
+        TabBtn.AutoButtonColor = false
 
         local TabCorner = Instance.new("UICorner")
         TabCorner.CornerRadius = UDim.new(0, 8)
         TabCorner.Parent = TabBtn
 
-        local TabStroke = Instance.new("UIStroke")
-        TabStroke.Thickness = 1
-        TabStroke.Color = Theme.Primary
-        TabStroke.Transparency = Window.TabCount == 1 and 0 or 0.7
-        TabStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        TabStroke.Parent = TabBtn
+        Window.ThemeManager:Register(TabBtn, "background", {key = Window.TabCount == 1 and "Primary" or "Surface"})
 
-        CreateGradient(TabBtn, Window.TabCount == 1 and Theme.Primary or Theme.Surface, 
-                      Window.TabCount == 1 and Theme.PrimaryLight or Color3.fromRGB(35, 35, 35), 0)
-
-        -- Tab content container
         local TabContent = Instance.new("Frame")
         TabContent.Parent = TabBtn
         TabContent.BackgroundTransparency = 1
@@ -657,10 +560,10 @@ function UI:CreateWindow(config)
         TabLabel.TextSize = 12
         TabLabel.TextXAlignment = Enum.TextXAlignment.Center
 
-        -- Tab click handler with slide animation
-        TabBtn.MouseButton1Click:Connect(function()
-            for _, p in pairs(Window.Pages:GetChildren()) do 
+        local tabClickConn = TabBtn.MouseButton1Click:Connect(function()
+            for _, p in pairs(Window.Pages:GetChildren()) do
                 if p:IsA("ScrollingFrame") then
+                    p.Position = UDim2.new(1, 0, 0, 0)
                     local outTween = TweenService:Create(p, TWEEN_CONFIGS.Normal, {Position = UDim2.new(-1, 0, 0, 0)})
                     outTween:Play()
                     outTween.Completed:Connect(function()
@@ -668,53 +571,29 @@ function UI:CreateWindow(config)
                     end)
                 end
             end
-            
+
             for _, t in pairs(Window.TabBar:GetChildren()) do
                 if t:IsA("TextButton") then
                     TweenService:Create(t, TWEEN_CONFIGS.Fast, {TextColor3 = Theme.TextSecondary, BackgroundColor3 = Theme.Surface}):Play()
-                    local stroke = t:FindFirstChild("UIStroke")
-                    if stroke then
-                        TweenService:Create(stroke, TWEEN_CONFIGS.Fast, {Transparency = 0.7}):Play()
-                    end
                 end
             end
-            
+
+            Page.Position = UDim2.new(1, 0, 0, 0)
             Page.Visible = true
             local inTween = TweenService:Create(Page, TWEEN_CONFIGS.Normal, {Position = UDim2.new(0, 0, 0, 0)})
             inTween:Play()
-            
+
             TweenService:Create(TabBtn, TWEEN_CONFIGS.Fast, {TextColor3 = Theme.Text, BackgroundColor3 = Theme.Primary}):Play()
-            local stroke = TabBtn:FindFirstChild("UIStroke")
-            if stroke then
-                TweenService:Create(stroke, TWEEN_CONFIGS.Fast, {Transparency = 0}):Play()
-            end
         end)
+        table.insert(Window.Connections, tabClickConn)
 
-        -- Tab hover effects
-        TabBtn.MouseEnter:Connect(function()
-            if not Page.Visible then
-                TweenService:Create(TabBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Color3.new(
-                    math.min(Theme.Surface.R + 0.05, 1),
-                    math.min(Theme.Surface.G + 0.05, 1),
-                    math.min(Theme.Surface.B + 0.05, 1)
-                )}):Play()
-            end
-        end)
-
-        TabBtn.MouseLeave:Connect(function()
-            if not Page.Visible then
-                TweenService:Create(TabBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Surface}):Play()
-            end
-        end)
-
-        -- Tab elements
         function Tab:CreateLabel(text)
             local LabelFrame = Instance.new("Frame")
             LabelFrame.Size = UDim2.new(1, 0, 0, 30)
             LabelFrame.BackgroundTransparency = 1
             LabelFrame.Parent = Page
-            LabelFrame.LayoutOrder = self._LayoutOrder
-            self._LayoutOrder = self._LayoutOrder + 1
+            LabelFrame.LayoutOrder = Tab._LayoutOrder
+            Tab._LayoutOrder = Tab._LayoutOrder + 1
 
             local Label = Instance.new("TextLabel")
             Label.Parent = LabelFrame
@@ -727,6 +606,40 @@ function UI:CreateWindow(config)
             Label.TextSize = 12
             Label.TextXAlignment = Enum.TextXAlignment.Left
             Label.TextWrapped = true
+
+            Window.ThemeManager:Register(Label, "text", {key = "TextSecondary"})
+        end
+
+        function Tab:CreateButton(config)
+            local ButtonFrame = Instance.new("Frame")
+            ButtonFrame.Size = UDim2.new(1, 0, 0, 42)
+            ButtonFrame.BackgroundTransparency = 1
+            ButtonFrame.Parent = Page
+            ButtonFrame.LayoutOrder = Tab._LayoutOrder
+            Tab._LayoutOrder = Tab._LayoutOrder + 1
+
+            local TextBtn = Instance.new("TextButton")
+            TextBtn.Parent = ButtonFrame
+            TextBtn.BackgroundColor3 = Theme.Secondary
+            TextBtn.Size = UDim2.new(1, 0, 1, 0)
+            TextBtn.Text = config.Name
+            TextBtn.TextColor3 = Theme.Text
+            TextBtn.Font = Enum.Font.GothamBold
+            TextBtn.TextSize = 13
+            TextBtn.BorderSizePixel = 0
+            TextBtn.AutoButtonColor = false
+
+            local btnCorner = Instance.new("UICorner")
+            btnCorner.CornerRadius = UDim.new(0, 8)
+            btnCorner.Parent = TextBtn
+
+            Window.ThemeManager:Register(TextBtn, "background", {key = "Secondary"})
+            Window.ThemeManager:Register(TextBtn, "text", {key = "Text"})
+
+            local btnClickConn = TextBtn.MouseButton1Click:Connect(function()
+                if config.Callback then config.Callback() end
+            end)
+            table.insert(Window.Connections, btnClickConn)
         end
 
         function Tab:CreateToggle(config)
@@ -734,8 +647,8 @@ function UI:CreateWindow(config)
             ToggleFrame.Size = UDim2.new(1, 0, 0, 42)
             ToggleFrame.BackgroundTransparency = 1
             ToggleFrame.Parent = Page
-            ToggleFrame.LayoutOrder = self._LayoutOrder
-            self._LayoutOrder = self._LayoutOrder + 1
+            ToggleFrame.LayoutOrder = Tab._LayoutOrder
+            Tab._LayoutOrder = Tab._LayoutOrder + 1
 
             local TextBtn = Instance.new("TextButton")
             TextBtn.Parent = ToggleFrame
@@ -753,7 +666,8 @@ function UI:CreateWindow(config)
             btnCorner.CornerRadius = UDim.new(0, 8)
             btnCorner.Parent = TextBtn
 
-            CreateGradient(TextBtn, Color3.fromRGB(22, 22, 22), Color3.fromRGB(28, 28, 28), 0)
+            Window.ThemeManager:Register(TextBtn, "background", {key = "Surface"})
+            Window.ThemeManager:Register(TextBtn, "text", {key = "TextSecondary"})
 
             local StatusContainer = Instance.new("Frame")
             StatusContainer.Parent = TextBtn
@@ -761,6 +675,8 @@ function UI:CreateWindow(config)
             StatusContainer.Position = UDim2.new(1, -50, 0.5, -11)
             StatusContainer.Size = UDim2.new(0, 40, 0, 22)
             StatusContainer.BorderSizePixel = 0
+
+            Window.ThemeManager:Register(StatusContainer, "background", {key = "Secondary"})
 
             local statusCorner = Instance.new("UICorner")
             statusCorner.CornerRadius = UDim.new(1, 0)
@@ -773,6 +689,8 @@ function UI:CreateWindow(config)
             StatusCircle.Size = UDim2.new(0, 16, 0, 16)
             StatusCircle.BorderSizePixel = 0
 
+            Window.ThemeManager:Register(StatusCircle, "background", {key = "TextSecondary"})
+
             local circleCorner = Instance.new("UICorner")
             circleCorner.CornerRadius = UDim.new(1, 0)
             circleCorner.Parent = StatusCircle
@@ -782,77 +700,24 @@ function UI:CreateWindow(config)
             local function SetState(state)
                 enabled = state
                 if enabled then
-                    TweenService:Create(StatusCircle, TWEEN_CONFIGS.Fast, {Position = UDim2.new(1, -18, 0.5, -8), BackgroundColor3 = Theme.Accent}):Play()
+                    TweenService:Create(StatusCircle, TWEEN_CONFIGS.Fast, {Position = UDim2.new(1, -18, 0.5, -8)}):Play()
                     TweenService:Create(StatusContainer, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Primary}):Play()
                 else
-                    TweenService:Create(StatusCircle, TWEEN_CONFIGS.Fast, {Position = UDim2.new(0, 2, 0.5, -8), BackgroundColor3 = Theme.TextSecondary}):Play()
+                    TweenService:Create(StatusCircle, TWEEN_CONFIGS.Fast, {Position = UDim2.new(0, 2, 0.5, -8)}):Play()
                     TweenService:Create(StatusContainer, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Secondary}):Play()
                 end
             end
 
             if enabled then SetState(true) end
 
-            TextBtn.MouseButton1Click:Connect(function()
+            local toggleClickConn = TextBtn.MouseButton1Click:Connect(function()
                 enabled = not enabled
                 SetState(enabled)
                 if config.Callback then config.Callback(enabled, SetState) end
             end)
-
-            TextBtn.MouseEnter:Connect(function()
-                TweenService:Create(TextBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
-            end)
-
-            TextBtn.MouseLeave:Connect(function()
-                TweenService:Create(TextBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Surface}):Play()
-            end)
+            table.insert(Window.Connections, toggleClickConn)
 
             return SetState
-        end
-
-        function Tab:CreateButton(config)
-            local ButtonFrame = Instance.new("Frame")
-            ButtonFrame.Size = UDim2.new(1, 0, 0, 42)
-            ButtonFrame.BackgroundTransparency = 1
-            ButtonFrame.Parent = Page
-            ButtonFrame.LayoutOrder = self._LayoutOrder or 0
-            self._LayoutOrder = (self._LayoutOrder or 0) + 1
-
-            local TextBtn = Instance.new("TextButton")
-            TextBtn.Parent = ButtonFrame
-            TextBtn.BackgroundColor3 = Theme.Secondary
-            TextBtn.Size = UDim2.new(1, 0, 1, 0)
-            TextBtn.Text = config.Name
-            TextBtn.TextColor3 = Theme.Text
-            TextBtn.Font = Enum.Font.GothamBold
-            TextBtn.TextSize = 13
-            TextBtn.BorderSizePixel = 0
-            TextBtn.AutoButtonColor = false
-
-            local btnCorner = Instance.new("UICorner")
-            btnCorner.CornerRadius = UDim.new(0, 8)
-            btnCorner.Parent = TextBtn
-
-            CreateGradient(TextBtn, Theme.Secondary, Color3.fromRGB(30, 120, 220), 0)
-
-            TextBtn.MouseButton1Down:Connect(function()
-                TweenService:Create(TextBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Primary}):Play()
-            end)
-            
-            TextBtn.MouseButton1Up:Connect(function()
-                TweenService:Create(TextBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Secondary}):Play()
-            end)
-            
-            TextBtn.MouseEnter:Connect(function()
-                TweenService:Create(TextBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Color3.fromRGB(20, 120, 220)}):Play()
-            end)
-
-            TextBtn.MouseLeave:Connect(function()
-                TweenService:Create(TextBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Secondary}):Play()
-            end)
-            
-            TextBtn.MouseButton1Click:Connect(function()
-                if config.Callback then config.Callback() end
-            end)
         end
 
         function Tab:CreateSlider(config)
@@ -861,14 +726,14 @@ function UI:CreateWindow(config)
             SliderFrame.BackgroundColor3 = Theme.Surface
             SliderFrame.Parent = Page
             SliderFrame.BorderSizePixel = 0
-            SliderFrame.LayoutOrder = self._LayoutOrder or 0
-            self._LayoutOrder = (self._LayoutOrder or 0) + 1
+            SliderFrame.LayoutOrder = Tab._LayoutOrder
+            Tab._LayoutOrder = Tab._LayoutOrder + 1
+
+            Window.ThemeManager:Register(SliderFrame, "background", {key = "Surface"})
 
             local sCorner = Instance.new("UICorner")
             sCorner.CornerRadius = UDim.new(0, 8)
             sCorner.Parent = SliderFrame
-
-            CreateGradient(SliderFrame, Color3.fromRGB(22, 22, 22), Color3.fromRGB(28, 28, 28), 0)
 
             local Label = Instance.new("TextLabel")
             Label.Parent = SliderFrame
@@ -880,12 +745,16 @@ function UI:CreateWindow(config)
             Label.TextSize = 12
             Label.TextXAlignment = Enum.TextXAlignment.Left
 
+            Window.ThemeManager:Register(Label, "text", {key = "TextSecondary"})
+
             local SliderBack = Instance.new("Frame")
             SliderBack.Parent = SliderFrame
             SliderBack.BackgroundColor3 = Theme.Secondary
             SliderBack.Position = UDim2.new(0, 10, 0, 35)
             SliderBack.Size = UDim2.new(1, -20, 0, 10)
             SliderBack.BorderSizePixel = 0
+
+            Window.ThemeManager:Register(SliderBack, "background", {key = "Secondary"})
 
             local sbCorner = Instance.new("UICorner")
             sbCorner.CornerRadius = UDim.new(1, 0)
@@ -897,26 +766,26 @@ function UI:CreateWindow(config)
             SliderFill.Size = UDim2.new((config.Default - config.Min) / (config.Max - config.Min), 0, 1, 0)
             SliderFill.BorderSizePixel = 0
 
+            Window.ThemeManager:Register(SliderFill, "background", {key = "Primary"})
+
             local sfCorner = Instance.new("UICorner")
             sfCorner.CornerRadius = UDim.new(1, 0)
             sfCorner.Parent = SliderFill
 
-            CreateGradient(SliderFill, Theme.Primary, Theme.PrimaryLight, 0)
-
-            -- SLIDER BALL - ISOLATED STATE
             local SliderBall = Instance.new("Frame")
             SliderBall.Parent = SliderBack
-            SliderBall.BackgroundColor3 = Theme.Accent
+            SliderBall.BackgroundColor3 = Theme.Primary
             SliderBall.Size = UDim2.new(0, 18, 0, 18)
             SliderBall.Position = UDim2.new((config.Default - config.Min) / (config.Max - config.Min), -9, 0.5, -9)
             SliderBall.BorderSizePixel = 0
             SliderBall.ZIndex = 10
 
+            Window.ThemeManager:Register(SliderBall, "background", {key = "Primary"})
+
             local ballCorner = Instance.new("UICorner")
             ballCorner.CornerRadius = UDim.new(1, 0)
             ballCorner.Parent = SliderBall
 
-            -- LOCAL SLIDER STATE - EACH SLIDER HAS ITS OWN STATE
             local sliderState = {
                 sliding = false,
                 currentValue = config.Default,
@@ -932,8 +801,7 @@ function UI:CreateWindow(config)
                 Label.Text = "   " .. config.Name .. " : " .. val
                 if config.Callback then config.Callback(val) end
             end
-            
-            -- INPUT BEGAN - START SLIDING
+
             local beganConn = SliderBack.InputBegan:Connect(function(input)
                 if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not sliderState.sliding then
                     sliderState.sliding = true
@@ -942,16 +810,16 @@ function UI:CreateWindow(config)
                 end
             end)
             table.insert(sliderState.connections, beganConn)
+            table.insert(Window.Connections, beganConn)
 
-            -- INPUT CHANGED - UPDATE WHILE SLIDING
             local changedConn = UserInputService.InputChanged:Connect(function(input)
                 if sliderState.sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                     update(input.Position)
                 end
             end)
             table.insert(sliderState.connections, changedConn)
+            table.insert(Window.Connections, changedConn)
 
-            -- INPUT ENDED - STOP SLIDING
             local endedConn = UserInputService.InputEnded:Connect(function(input)
                 if sliderState.sliding and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
                     sliderState.sliding = false
@@ -959,15 +827,16 @@ function UI:CreateWindow(config)
                 end
             end)
             table.insert(sliderState.connections, endedConn)
+            table.insert(Window.Connections, endedConn)
 
-            -- CLEANUP
-            SliderFrame.AncestryChanged:Connect(function(child, parent)
+            local cleanupConn = SliderFrame.AncestryChanged:Connect(function(child, parent)
                 if parent == nil then
                     for _, conn in pairs(sliderState.connections) do
                         if conn then conn:Disconnect() end
                     end
                 end
             end)
+            table.insert(Window.Connections, cleanupConn)
         end
 
         function Tab:CreateDropdown(config)
@@ -975,8 +844,8 @@ function UI:CreateWindow(config)
             DropdownFrame.Size = UDim2.new(1, 0, 0, 42)
             DropdownFrame.BackgroundTransparency = 1
             DropdownFrame.Parent = Page
-            DropdownFrame.LayoutOrder = self._LayoutOrder or 0
-            self._LayoutOrder = (self._LayoutOrder or 0) + 1
+            DropdownFrame.LayoutOrder = Tab._LayoutOrder
+            Tab._LayoutOrder = Tab._LayoutOrder + 1
             DropdownFrame.ZIndex = 10
 
             local MainBtn = Instance.new("TextButton")
@@ -991,14 +860,15 @@ function UI:CreateWindow(config)
             MainBtn.BorderSizePixel = 0
             MainBtn.AutoButtonColor = false
 
+            Window.ThemeManager:Register(MainBtn, "background", {key = "Surface"})
+            Window.ThemeManager:Register(MainBtn, "text", {key = "TextSecondary"})
+
             local btnCorner = Instance.new("UICorner")
             btnCorner.CornerRadius = UDim.new(0, 8)
             btnCorner.Parent = MainBtn
 
-            CreateGradient(MainBtn, Color3.fromRGB(22, 22, 22), Color3.fromRGB(28, 28, 28), 0)
-
             local isOpen = false
-            local DropdownMenu = Instance.new("Frame")
+            local DropdownMenu = Instance.new("ScrollingFrame")
             DropdownMenu.Parent = DropdownFrame
             DropdownMenu.BackgroundColor3 = Theme.Surface
             DropdownMenu.Position = UDim2.new(0, 0, 0, 42)
@@ -1006,6 +876,10 @@ function UI:CreateWindow(config)
             DropdownMenu.BorderSizePixel = 0
             DropdownMenu.ClipsDescendants = true
             DropdownMenu.ZIndex = 50
+            DropdownMenu.ScrollBarThickness = 2
+            DropdownMenu.CanvasSize = UDim2.new(1, 0, 0, #config.Items * 32)
+
+            Window.ThemeManager:Register(DropdownMenu, "background", {key = "Surface"})
 
             local menuCorner = Instance.new("UICorner")
             menuCorner.CornerRadius = UDim.new(0, 8)
@@ -1022,15 +896,16 @@ function UI:CreateWindow(config)
             MenuPadding.PaddingTop = UDim.new(0, 3)
             MenuPadding.PaddingBottom = UDim.new(0, 3)
 
-            MainBtn.MouseButton1Click:Connect(function()
+            local dropdownClickConn = MainBtn.MouseButton1Click:Connect(function()
                 isOpen = not isOpen
                 if isOpen then
-                    local itemHeight = 32 * #config.Items + 12
+                    local itemHeight = math.min(32 * #config.Items + 12, 150)
                     TweenService:Create(DropdownMenu, TWEEN_CONFIGS.Normal, {Size = UDim2.new(1, 0, 0, itemHeight)}):Play()
                 else
                     TweenService:Create(DropdownMenu, TWEEN_CONFIGS.Normal, {Size = UDim2.new(1, 0, 0, 0)}):Play()
                 end
             end)
+            table.insert(Window.Connections, dropdownClickConn)
 
             for _, item in pairs(config.Items) do
                 local ItemBtn = Instance.new("TextButton")
@@ -1044,107 +919,45 @@ function UI:CreateWindow(config)
                 ItemBtn.BorderSizePixel = 0
                 ItemBtn.AutoButtonColor = false
 
+                Window.ThemeManager:Register(ItemBtn, "background", {key = "Secondary"})
+                Window.ThemeManager:Register(ItemBtn, "text", {key = "TextSecondary"})
+
                 local itemCorner = Instance.new("UICorner")
                 itemCorner.CornerRadius = UDim.new(0, 6)
                 itemCorner.Parent = ItemBtn
 
-                ItemBtn.MouseEnter:Connect(function()
-                    TweenService:Create(ItemBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Primary}):Play()
-                end)
-
-                ItemBtn.MouseLeave:Connect(function()
-                    TweenService:Create(ItemBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Secondary}):Play()
-                end)
-
-                ItemBtn.MouseButton1Click:Connect(function()
+                local itemClickConn = ItemBtn.MouseButton1Click:Connect(function()
                     MainBtn.Text = "   " .. config.Name .. " : " .. item
                     isOpen = false
                     TweenService:Create(DropdownMenu, TWEEN_CONFIGS.Normal, {Size = UDim2.new(1, 0, 0, 0)}):Play()
                     if config.Callback then config.Callback(item) end
                 end)
+                table.insert(Window.Connections, itemClickConn)
             end
-        end
-
-        function Tab:CreateProgressBar(config)
-            local ProgressFrame = Instance.new("Frame")
-            ProgressFrame.Size = UDim2.new(1, 0, 0, 50)
-            ProgressFrame.BackgroundColor3 = Theme.Surface
-            ProgressFrame.Parent = Page
-            ProgressFrame.BorderSizePixel = 0
-            ProgressFrame.LayoutOrder = self._LayoutOrder or 0
-            self._LayoutOrder = (self._LayoutOrder or 0) + 1
-
-            local pCorner = Instance.new("UICorner")
-            pCorner.CornerRadius = UDim.new(0, 8)
-            pCorner.Parent = ProgressFrame
-
-            CreateGradient(ProgressFrame, Color3.fromRGB(22, 22, 22), Color3.fromRGB(28, 28, 28), 0)
-
-            local Label = Instance.new("TextLabel")
-            Label.Parent = ProgressFrame
-            Label.Size = UDim2.new(1, 0, 0, 20)
-            Label.Position = UDim2.new(0, 0, 0, 5)
-            Label.BackgroundTransparency = 1
-            Label.Text = config.Name .. " : 0%"
-            Label.TextColor3 = Theme.TextSecondary
-            Label.Font = Enum.Font.Gotham
-            Label.TextSize = 12
-
-            local ProgressBack = Instance.new("Frame")
-            ProgressBack.Parent = ProgressFrame
-            ProgressBack.BackgroundColor3 = Theme.Secondary
-            ProgressBack.Position = UDim2.new(0, 10, 0, 27)
-            ProgressBack.Size = UDim2.new(1, -20, 0, 15)
-            ProgressBack.BorderSizePixel = 0
-
-            local pbCorner = Instance.new("UICorner")
-            pbCorner.CornerRadius = UDim.new(1, 0)
-            pbCorner.Parent = ProgressBack
-
-            local ProgressFill = Instance.new("Frame")
-            ProgressFill.Parent = ProgressBack
-            ProgressFill.BackgroundColor3 = Theme.Primary
-            ProgressFill.Size = UDim2.new(0, 0, 1, 0)
-            ProgressFill.BorderSizePixel = 0
-
-            local pfCorner = Instance.new("UICorner")
-            pfCorner.CornerRadius = UDim.new(1, 0)
-            pfCorner.Parent = ProgressFill
-
-            CreateGradient(ProgressFill, Theme.Primary, Theme.PrimaryLight, 0)
-
-            local function SetProgress(value)
-                local clampedValue = math.clamp(value, 0, 100)
-                TweenService:Create(ProgressFill, TWEEN_CONFIGS.Normal, {Size = UDim2.new(clampedValue / 100, 0, 1, 0)}):Play()
-                Label.Text = config.Name .. " : " .. math.floor(clampedValue) .. "%"
-            end
-
-            return SetProgress
         end
 
         return Tab
     end
 
-    -- Auto-create Settings tab
+    -- AUTO CREATE SETTINGS TAB AVEC THÈME SWITCHER
     local SettingsTab = Window:CreateTab("Settings", ICONS.Settings)
 
-    SettingsTab:CreateLabel("── THEME ──")
+    SettingsTab:CreateLabel("── THEMES ──")
 
-    local themeButtons = {}
     for themeName, _ in pairs(THEMES) do
-        table.insert(themeButtons, {Name = themeName, Callback = function()
-            local newTheme = THEMES[themeName]
-            for k, v in pairs(newTheme) do
-                Theme[k] = v
+        SettingsTab:CreateButton({
+            Name = themeName,
+            Callback = function()
+                Window:SetTheme(themeName)
             end
-            Window:Notify("Theme changed to " .. themeName, 2, "success")
-        end})
+        })
     end
 
+    SettingsTab:CreateLabel("")
     SettingsTab:CreateLabel("── WINDOW ──")
 
     SettingsTab:CreateSlider({
-        Name = "Window Width",
+        Name = "Width",
         Min = 300,
         Max = 800,
         Default = 500,
@@ -1155,7 +968,7 @@ function UI:CreateWindow(config)
     })
 
     SettingsTab:CreateSlider({
-        Name = "Window Height",
+        Name = "Height",
         Min = 200,
         Max = 700,
         Default = 350,
@@ -1164,17 +977,29 @@ function UI:CreateWindow(config)
         end
     })
 
-    SettingsTab:CreateLabel("── ADVANCED ──")
-
-    SettingsTab:CreateSlider({
-        Name = "UI Transparency",
-        Min = 0,
-        Max = 50,
-        Default = 0,
-        Callback = function(value)
-            Main.BackgroundTransparency = value / 100
+    -- THEME CHANGER FUNCTION
+    function Window:SetTheme(themeName)
+        if not THEMES[themeName] then return end
+        local newTheme = THEMES[themeName]
+        for k, v in pairs(newTheme) do
+            Theme[k] = v
         end
-    })
+        Window.ThemeName = themeName
+        Window.ThemeManager:Apply(Theme)
+        self:Notify("Theme: " .. themeName, 2, "success")
+    end
+
+    -- CLEANUP FUNCTION
+    function Window:Destroy()
+        for _, conn in pairs(self.Connections) do
+            if conn and conn.Connected then
+                conn:Disconnect()
+            end
+        end
+        self.Connections = {}
+        self.ThemeManager:Cleanup()
+        ScreenGui:Destroy()
+    end
 
     return Window
 end

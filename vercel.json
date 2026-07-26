@@ -8,6 +8,10 @@
     {
       "source": "/slayer",
       "destination": "/api/slayer"
+    },
+    {
+      "source": "/timer",
+      "destination": "/api/timer"
     }
   ]
 }

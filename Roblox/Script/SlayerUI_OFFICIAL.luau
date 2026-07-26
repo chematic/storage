@@ -506,7 +506,9 @@ function UI:CreateWindow()
             BindBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             BindBtn.Size = UDim2.new(0, 80, 0, 24)
             BindBtn.Position = UDim2.new(1, -90, 0.5, -12)
-            BindBtn.Text = config.Default and tostring(config.Default.Name or config.Default) or "NONE"
+            
+            local currentKey = config.Default
+            BindBtn.Text = currentKey and tostring(currentKey.Name or currentKey) or "NONE"
             BindBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
             BindBtn.Font = Enum.Font.GothamBold
             BindBtn.TextSize = 11
@@ -524,6 +526,16 @@ function UI:CreateWindow()
                 TweenService:Create(Container, TweenInfo.new(0.2), {BackgroundColor3 = COMPONENT_BG}):Play()
             end))
 
+            -- [CORRECTION] Écouteur global pour déclencher le Callback lorsque la touche est pressée
+            table.insert(connections, UserInputService.InputBegan:Connect(function(input, gameProcessed)
+                if gameProcessed then return end
+                if currentKey and (input.KeyCode == currentKey or input.UserInputType == currentKey) then
+                    if config.Callback then
+                        config.Callback()
+                    end
+                end
+            end))
+
             table.insert(connections, BindBtn.MouseButton1Click:Connect(function()
                 BindBtn.Text = "..."
                 TweenService:Create(BindBtn, TweenInfo.new(0.2), {BackgroundColor3 = NEON_BLUE}):Play()
@@ -533,6 +545,7 @@ function UI:CreateWindow()
                 conn = UserInputService.InputBegan:Connect(function(i)
                     if i.UserInputType == Enum.UserInputType.Keyboard or i.UserInputType.Name:find("MouseButton") then
                         local key = (i.UserInputType == Enum.UserInputType.Keyboard and i.KeyCode or i.UserInputType)
+                        currentKey = key -- Met à jour la touche active
                         if config.BindTable and config.KeyIndex then
                             config.BindTable[config.KeyIndex] = key
                         end

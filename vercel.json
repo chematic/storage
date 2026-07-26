@@ -4,6 +4,10 @@
     {
       "source": "/ninja",
       "destination": "/api/ninja"
+    },
+    {
+      "source": "/slayer",
+      "destination": "/api/slayer"
     }
   ]
 }

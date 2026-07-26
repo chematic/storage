@@ -195,7 +195,7 @@ function UI:CreateWindow()
     CloseBtn.Size = UDim2.new(0, 35, 0, 35)
     CloseBtn.Position = UDim2.new(1, -40, 0.5, -17)
     CloseBtn.BackgroundTransparency = 1
-    CloseBtn.Text = "✕"
+    CloseBtn.Text = "X"
     CloseBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
     CloseBtn.TextSize = 16
     CloseBtn.Font = Enum.Font.GothamBold
@@ -222,7 +222,7 @@ function UI:CreateWindow()
     MinBtn.Size = UDim2.new(0, 35, 0, 35)
     MinBtn.Position = UDim2.new(1, -75, 0.5, -17)
     MinBtn.BackgroundTransparency = 1
-    MinBtn.Text = "—"
+    MinBtn.Text = "‒"
     MinBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
     MinBtn.TextSize = 16
     MinBtn.Font = Enum.Font.GothamBold

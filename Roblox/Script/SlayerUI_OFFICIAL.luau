@@ -7,13 +7,48 @@ local LocalPlayer = Players.LocalPlayer
 
 local UI = {}
 
+-- Icon IDs
+local ICONS = {
+    Close = 82404346839314,
+    Minimize = 85022922514331,
+    Settings = 7059346373,
+    Default = 136443043095009
+}
+
 -- Animation presets for performance
 local TWEEN_CONFIGS = {
+    Instant = TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
     Fast = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
     Normal = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
     Smooth = TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-    Slow = TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut)
+    Slow = TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut),
+    ExtraSmooth = TweenInfo.new(0.7, Enum.EasingStyle.Cubic, Enum.EasingDirection.InOut)
 }
+
+-- Utility function to create gradients
+local function CreateGradient(parent, color1, color2, rotation)
+    rotation = rotation or 0
+    
+    local gradient = Instance.new("UIGradient")
+    gradient.Parent = parent
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, color1),
+        ColorSequenceKeypoint.new(1, color2)
+    })
+    gradient.Rotation = rotation
+    return gradient
+end
+
+-- Utility function to add glow effect
+local function AddGlow(frame, color, size)
+    size = size or 15
+    local shadow = Instance.new("ShadowObject")
+    shadow.Adornee = frame
+    shadow.Transparency = 0.7
+    shadow.Color3 = color
+    shadow.Radius = size
+    return shadow
+end
 
 function UI:CreateWindow()
     local Window = {}
@@ -30,18 +65,21 @@ function UI:CreateWindow()
     ScreenGui.Parent = CoreGui
     ScreenGui.ResetOnSpawn = false
 
-    -- Theme configuration
+    -- Enhanced theme with gradients and modern colors
     local Theme = {
-        Primary = Color3.fromRGB(30, 144, 255),      -- Bright Blue
-        Secondary = Color3.fromRGB(10, 100, 200),    -- Dark Blue
-        Background = Color3.fromRGB(12, 12, 12),     -- Deep Black
-        Surface = Color3.fromRGB(20, 20, 20),        -- Dark Gray
-        Text = Color3.fromRGB(255, 255, 255),        -- White
-        TextSecondary = Color3.fromRGB(180, 180, 180), -- Light Gray
-        Accent = Color3.fromRGB(100, 200, 255),      -- Light Blue
-        Success = Color3.fromRGB(76, 175, 80),       -- Green
-        Warning = Color3.fromRGB(255, 152, 0),       -- Orange
-        Error = Color3.fromRGB(244, 67, 54),         -- Red
+        Primary = Color3.fromRGB(30, 144, 255),
+        PrimaryLight = Color3.fromRGB(100, 180, 255),
+        Secondary = Color3.fromRGB(10, 100, 200),
+        SecondaryLight = Color3.fromRGB(40, 130, 230),
+        Background = Color3.fromRGB(12, 12, 12),
+        Surface = Color3.fromRGB(20, 20, 20),
+        SurfaceLight = Color3.fromRGB(30, 30, 30),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextSecondary = Color3.fromRGB(180, 180, 180),
+        Accent = Color3.fromRGB(100, 200, 255),
+        Success = Color3.fromRGB(76, 175, 80),
+        Warning = Color3.fromRGB(255, 152, 0),
+        Error = Color3.fromRGB(244, 67, 54),
         Transparency = 0,
         CornerRadius = 8,
         StrokeThickness = 1.5
@@ -50,6 +88,7 @@ function UI:CreateWindow()
     Window.Theme = Theme
     Window.Tweens = {}
 
+    -- Notification container
     local NotifContainer = Instance.new("Frame")
     NotifContainer.Name = "NotifContainer"
     NotifContainer.Parent = ScreenGui
@@ -74,10 +113,10 @@ function UI:CreateWindow()
         elseif notifType == "error" then notifColor = Theme.Error end
         
         local NotifFrame = Instance.new("Frame")
-        NotifFrame.Size = UDim2.new(0, 300, 0, 40)
+        NotifFrame.Size = UDim2.new(0, 320, 0, 50)
         NotifFrame.BackgroundColor3 = Theme.Background
         NotifFrame.BorderSizePixel = 0
-        NotifFrame.BackgroundTransparency = 1
+        NotifFrame.BackgroundTransparency = 0.95
 
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(0, Theme.CornerRadius)
@@ -87,7 +126,7 @@ function UI:CreateWindow()
         stroke.Thickness = Theme.StrokeThickness
         stroke.Color = notifColor
         stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        stroke.Transparency = 1
+        stroke.Transparency = 0.3
         stroke.Parent = NotifFrame
 
         local NotifText = Instance.new("TextLabel")
@@ -100,12 +139,12 @@ function UI:CreateWindow()
         NotifText.Font = Enum.Font.GothamBold
         NotifText.TextSize = 13
         NotifText.TextWrapped = true
-        NotifText.TextTransparency = 1
+        NotifText.TextTransparency = 0.3
 
         NotifFrame.Parent = NotifContainer
 
         local tweens = {
-            TweenService:Create(NotifFrame, TWEEN_CONFIGS.Fast, {BackgroundTransparency = Theme.Transparency}),
+            TweenService:Create(NotifFrame, TWEEN_CONFIGS.Fast, {BackgroundTransparency = 0.1}),
             TweenService:Create(stroke, TWEEN_CONFIGS.Fast, {Transparency = 0}),
             TweenService:Create(NotifText, TWEEN_CONFIGS.Fast, {TextTransparency = 0})
         }
@@ -158,6 +197,7 @@ function UI:CreateWindow()
         end)
     end
 
+    -- Main window frame
     local Main = Instance.new("Frame")
     Main.Name = "Main"
     Main.Parent = ScreenGui
@@ -171,12 +211,17 @@ function UI:CreateWindow()
     MainCorner.CornerRadius = UDim.new(0, Theme.CornerRadius)
     MainCorner.Parent = Main
 
+    -- Create gradient for main background
+    CreateGradient(Main, Color3.fromRGB(15, 15, 15), Color3.fromRGB(25, 25, 25), 45)
+
     local MainStroke = Instance.new("UIStroke")
     MainStroke.Thickness = Theme.StrokeThickness
     MainStroke.Color = Theme.Secondary
     MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    MainStroke.Transparency = 0.5
     MainStroke.Parent = Main
 
+    -- Top bar
     local TopBar = Instance.new("Frame")
     TopBar.Name = "TopBar"
     TopBar.Parent = Main
@@ -185,44 +230,63 @@ function UI:CreateWindow()
     TopBar.BorderSizePixel = 0
     MakeDraggable(TopBar, Main)
 
+    CreateGradient(TopBar, Theme.Secondary, Color3.fromRGB(20, 120, 220), 0)
+
     local TopCorner = Instance.new("UICorner")
     TopCorner.CornerRadius = UDim.new(0, Theme.CornerRadius)
     TopCorner.Parent = TopBar
 
     local Title = Instance.new("TextLabel")
     Title.Parent = TopBar
-    Title.Text = "SLAYER TYCOON V1 <font color='#1E90FF'>BY @theuniqueleader</font>"
+    Title.Text = "SLAYER TYCOON V1 <font color='#64B4FF'>BY @theuniqueleader</font>"
     Title.RichText = true
     Title.TextColor3 = Theme.Text
-    Title.Size = UDim2.new(1, -80, 1, 0)
+    Title.Size = UDim2.new(1, -100, 1, 0)
     Title.Position = UDim2.new(0, 15, 0, 0)
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.BackgroundTransparency = 1
     Title.Font = Enum.Font.GothamBold
     Title.TextSize = 14
 
-    local CloseBtn = Instance.new("TextButton")
+    -- Close button with icon
+    local CloseBtn = Instance.new("ImageButton")
     CloseBtn.Parent = TopBar
     CloseBtn.Size = UDim2.new(0, 35, 0, 35)
     CloseBtn.Position = UDim2.new(1, -40, 0.5, -17)
     CloseBtn.BackgroundTransparency = 1
-    CloseBtn.Text = "✕"
-    CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-    CloseBtn.TextSize = 18
-    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.Image = "rbxassetid://" .. ICONS.Close
+    CloseBtn.ImageColor3 = Color3.fromRGB(255, 80, 80)
+    CloseBtn.ScaleType = Enum.ScaleType.Fit
+
+    CloseBtn.MouseEnter:Connect(function()
+        TweenService:Create(CloseBtn, TWEEN_CONFIGS.Fast, {ImageColor3 = Color3.fromRGB(255, 120, 120)}):Play()
+    end)
+
+    CloseBtn.MouseLeave:Connect(function()
+        TweenService:Create(CloseBtn, TWEEN_CONFIGS.Fast, {ImageColor3 = Color3.fromRGB(255, 80, 80)}):Play()
+    end)
+
     CloseBtn.MouseButton1Click:Connect(function()
         ScreenGui:Destroy()
     end)
 
-    local MinBtn = Instance.new("TextButton")
+    -- Minimize button with icon
+    local MinBtn = Instance.new("ImageButton")
     MinBtn.Parent = TopBar
     MinBtn.Size = UDim2.new(0, 35, 0, 35)
     MinBtn.Position = UDim2.new(1, -75, 0.5, -17)
     MinBtn.BackgroundTransparency = 1
-    MinBtn.Text = "—"
-    MinBtn.TextColor3 = Theme.TextSecondary
-    MinBtn.TextSize = 16
-    MinBtn.Font = Enum.Font.GothamBold
+    MinBtn.Image = "rbxassetid://" .. ICONS.Minimize
+    MinBtn.ImageColor3 = Theme.TextSecondary
+    MinBtn.ScaleType = Enum.ScaleType.Fit
+
+    MinBtn.MouseEnter:Connect(function()
+        TweenService:Create(MinBtn, TWEEN_CONFIGS.Fast, {ImageColor3 = Theme.Text}):Play()
+    end)
+
+    MinBtn.MouseLeave:Connect(function()
+        TweenService:Create(MinBtn, TWEEN_CONFIGS.Fast, {ImageColor3 = Theme.TextSecondary}):Play()
+    end)
 
     local isMinimized = false
     local originalPos = Main.Position
@@ -231,12 +295,13 @@ function UI:CreateWindow()
         isMinimized = not isMinimized
         if isMinimized then
             originalPos = Main.Position
-            TweenService:Create(Main, TWEEN_CONFIGS.Smooth, {Position = UDim2.new(0, 10, 1, -50), Size = UDim2.new(0, 180, 0, 40)}):Play()
+            TweenService:Create(Main, TWEEN_CONFIGS.ExtraSmooth, {Position = UDim2.new(0, 10, 1, -50), Size = UDim2.new(0, 200, 0, 40)}):Play()
         else
-            TweenService:Create(Main, TWEEN_CONFIGS.Smooth, {Position = originalPos, Size = UDim2.new(0, 500, 0, 350)}):Play()
+            TweenService:Create(Main, TWEEN_CONFIGS.ExtraSmooth, {Position = originalPos, Size = UDim2.new(0, 500, 0, 350)}):Play()
         end
     end)
 
+    -- Tab bar with fixed corner radius
     local TabBar = Instance.new("Frame")
     TabBar.Name = "TabBar"
     TabBar.Parent = Main
@@ -244,6 +309,14 @@ function UI:CreateWindow()
     TabBar.Position = UDim2.new(0, 0, 0, 40)
     TabBar.Size = UDim2.new(0, 110, 1, -40)
     TabBar.BorderSizePixel = 0
+    TabBar.ClipsDescendants = true
+
+    -- FIX: Add corner radius to TabBar
+    local TabBarCorner = Instance.new("UICorner")
+    TabBarCorner.CornerRadius = UDim.new(0, Theme.CornerRadius)
+    TabBarCorner.Parent = TabBar
+
+    CreateGradient(TabBar, Color3.fromRGB(22, 22, 22), Color3.fromRGB(28, 28, 28), 90)
 
     local TabListLayout = Instance.new("UIListLayout")
     TabListLayout.Parent = TabBar
@@ -265,7 +338,7 @@ function UI:CreateWindow()
     Window.TabBar = TabBar
     Window.TabCount = 0
 
-    function Window:CreateTab(name)
+    function Window:CreateTab(name, customIcon)
         local Tab = {}
         Window.TabCount = Window.TabCount + 1
 
@@ -286,6 +359,17 @@ function UI:CreateWindow()
             Page.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y)
         end)
 
+        -- Determine icon to use
+        local iconToUse
+        if customIcon == nil then
+            iconToUse = nil -- No icon, no space reserved
+        elseif customIcon == false or customIcon == "" then
+            iconToUse = ICONS.Default
+        else
+            iconToUse = customIcon or ICONS.Default
+        end
+
+        -- Tab button
         local TabBtn = Instance.new("TextButton")
         TabBtn.Name = name .. "Tab"
         TabBtn.Parent = Window.TabBar
@@ -300,7 +384,7 @@ function UI:CreateWindow()
         end
         
         TabBtn.BorderSizePixel = 0
-        TabBtn.Text = name
+        TabBtn.Text = ""
         TabBtn.Font = Enum.Font.GothamBold
         TabBtn.TextSize = 11
 
@@ -308,19 +392,109 @@ function UI:CreateWindow()
         TabCorner.CornerRadius = UDim.new(0, 6)
         TabCorner.Parent = TabBtn
 
+        -- Add gradient to active tabs
+        local function UpdateTabGradient()
+            if TabBtn.BackgroundColor3 == Theme.Primary then
+                local gradChildren = TabBtn:GetChildren()
+                for _, child in pairs(gradChildren) do
+                    if child:IsA("UIGradient") then
+                        child:Destroy()
+                    end
+                end
+                CreateGradient(TabBtn, Theme.Primary, Theme.PrimaryLight, 0)
+            else
+                local gradChildren = TabBtn:GetChildren()
+                for _, child in pairs(gradChildren) do
+                    if child:IsA("UIGradient") then
+                        child:Destroy()
+                    end
+                end
+                CreateGradient(TabBtn, Theme.Surface, Color3.fromRGB(35, 35, 35), 0)
+            end
+        end
+
+        UpdateTabGradient()
+
+        -- Tab content container (icon + text)
+        local TabContent = Instance.new("Frame")
+        TabContent.Parent = TabBtn
+        TabContent.BackgroundTransparency = 1
+        TabContent.Size = UDim2.new(1, 0, 1, 0)
+
+        local TabContentLayout = Instance.new("UIListLayout")
+        TabContentLayout.Parent = TabContent
+        TabContentLayout.FillDirection = Enum.FillDirection.Horizontal
+        TabContentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        TabContentLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+        TabContentLayout.Padding = UDim.new(0, 4)
+
+        -- Add icon if exists
+        if iconToUse then
+            local TabIcon = Instance.new("ImageLabel")
+            TabIcon.Parent = TabContent
+            TabIcon.BackgroundTransparency = 1
+            TabIcon.Size = UDim2.new(0, 16, 0, 16)
+            TabIcon.Image = "rbxassetid://" .. iconToUse
+            TabIcon.ImageColor3 = TabBtn.TextColor3
+            TabIcon.ScaleType = Enum.ScaleType.Fit
+        end
+
+        -- Tab text label
+        local TabLabel = Instance.new("TextLabel")
+        TabLabel.Parent = TabContent
+        TabLabel.BackgroundTransparency = 1
+        TabLabel.Size = UDim2.new(0, 60, 0, 16)
+        TabLabel.Text = name
+        TabLabel.TextColor3 = TabBtn.TextColor3
+        TabLabel.Font = Enum.Font.GothamBold
+        TabLabel.TextSize = 11
+        TabLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+        -- Tab click handler
         TabBtn.MouseButton1Click:Connect(function()
             for _, p in pairs(Window.Pages:GetChildren()) do 
-                if p:IsA("ScrollingFrame") then p.Visible = false end 
+                if p:IsA("ScrollingFrame") then 
+                    TweenService:Create(p, TWEEN_CONFIGS.Fast, {Position = UDim2.new(1, 0, 0, 0)}):Play()
+                    task.wait(0.05)
+                    p.Visible = false 
+                end
             end
             
             for _, t in pairs(Window.TabBar:GetChildren()) do
                 if t:IsA("TextButton") then 
                     TweenService:Create(t, TWEEN_CONFIGS.Fast, {TextColor3 = Theme.TextSecondary, BackgroundColor3 = Theme.Surface}):Play()
+                    
+                    local iconChild = t:FindFirstChild("ImageLabel") or t:FindFirstChildWhichIsA("ImageLabel")
+                    if iconChild then
+                        TweenService:Create(iconChild, TWEEN_CONFIGS.Fast, {ImageColor3 = Theme.TextSecondary}):Play()
+                    end
+                    
+                    local gradChildren = t:GetChildren()
+                    for _, child in pairs(gradChildren) do
+                        if child:IsA("UIGradient") then
+                            child:Destroy()
+                        end
+                    end
+                    CreateGradient(t, Theme.Surface, Color3.fromRGB(35, 35, 35), 0)
                 end
             end
             
             Page.Visible = true
+            Page.Position = UDim2.new(0, 0, 0, 0)
             TweenService:Create(TabBtn, TWEEN_CONFIGS.Fast, {TextColor3 = Theme.Text, BackgroundColor3 = Theme.Primary}):Play()
+            
+            local iconChild = TabBtn:FindFirstChild("ImageLabel") or TabBtn:FindFirstChildWhichIsA("ImageLabel")
+            if iconChild then
+                TweenService:Create(iconChild, TWEEN_CONFIGS.Fast, {ImageColor3 = Theme.Text}):Play()
+            end
+            
+            local gradChildren = TabBtn:GetChildren()
+            for _, child in pairs(gradChildren) do
+                if child:IsA("UIGradient") then
+                    child:Destroy()
+                end
+            end
+            CreateGradient(TabBtn, Theme.Primary, Theme.PrimaryLight, 0)
         end)
 
         function Tab:CreateLabel(text)
@@ -363,6 +537,8 @@ function UI:CreateWindow()
             btnCorner.CornerRadius = UDim.new(0, 6)
             btnCorner.Parent = TextBtn
 
+            CreateGradient(TextBtn, Color3.fromRGB(22, 22, 22), Color3.fromRGB(28, 28, 28), 0)
+
             local StatusContainer = Instance.new("Frame")
             StatusContainer.Parent = TextBtn
             StatusContainer.BackgroundColor3 = Theme.Secondary
@@ -403,6 +579,15 @@ function UI:CreateWindow()
                 SetState(enabled)
                 if config.Callback then config.Callback(enabled, SetState) end
             end)
+
+            TextBtn.MouseEnter:Connect(function()
+                TweenService:Create(TextBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
+            end)
+
+            TextBtn.MouseLeave:Connect(function()
+                TweenService:Create(TextBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Surface}):Play()
+            end)
+
             return SetState
         end
 
@@ -420,6 +605,8 @@ function UI:CreateWindow()
             local cCorner = Instance.new("UICorner")
             cCorner.CornerRadius = UDim.new(0, 6)
             cCorner.Parent = Container
+
+            CreateGradient(Container, Color3.fromRGB(22, 22, 22), Color3.fromRGB(28, 28, 28), 0)
 
             local Label = Instance.new("TextLabel")
             Label.Parent = Container
@@ -448,6 +635,7 @@ function UI:CreateWindow()
 
             BindBtn.MouseButton1Click:Connect(function()
                 BindBtn.Text = "..."
+                TweenService:Create(BindBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Primary}):Play()
                 if config.BindTable then config.BindTable.IsBinding = true end
                 local conn
                 conn = UserInputService.InputBegan:Connect(function(i)
@@ -457,6 +645,7 @@ function UI:CreateWindow()
                             config.BindTable[config.KeyIndex] = key
                         end
                         BindBtn.Text = tostring(key.Name or key)
+                        TweenService:Create(BindBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Secondary}):Play()
                         if config.BindTable then config.BindTable.IsBinding = false end
                         conn:Disconnect()
                     end
@@ -479,11 +668,21 @@ function UI:CreateWindow()
             btnCorner.CornerRadius = UDim.new(0, 6)
             btnCorner.Parent = TextBtn
 
+            CreateGradient(TextBtn, Theme.Secondary, Color3.fromRGB(30, 120, 220), 0)
+
             TextBtn.MouseButton1Down:Connect(function()
                 TweenService:Create(TextBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Primary}):Play()
             end)
             
             TextBtn.MouseButton1Up:Connect(function()
+                TweenService:Create(TextBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Secondary}):Play()
+            end)
+            
+            TextBtn.MouseEnter:Connect(function()
+                TweenService:Create(TextBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Color3.fromRGB(20, 120, 220)}):Play()
+            end)
+
+            TextBtn.MouseLeave:Connect(function()
                 TweenService:Create(TextBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Secondary}):Play()
             end)
             
@@ -508,7 +707,10 @@ function UI:CreateWindow()
             btnCorner.Parent = TextBtn
 
             TextBtn.MouseButton1Down:Connect(function()
-                TweenService:Create(TextBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Color3.fromRGB(config.Color.R * 1.2, config.Color.G * 1.2, config.Color.B * 1.2)}):Play()
+                local r = math.min(config.Color.R * 1.3, 1)
+                local g = math.min(config.Color.G * 1.3, 1)
+                local b = math.min(config.Color.B * 1.3, 1)
+                TweenService:Create(TextBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Color3.new(r, g, b)}):Play()
             end)
             
             TextBtn.MouseButton1Up:Connect(function()
@@ -522,13 +724,15 @@ function UI:CreateWindow()
 
         function Tab:CreateSlider(config)
             local SliderFrame = Instance.new("Frame")
-            SliderFrame.Size = UDim2.new(1, 0, 0, 50)
+            SliderFrame.Size = UDim2.new(1, 0, 0, 55)
             SliderFrame.BackgroundColor3 = Theme.Surface
             SliderFrame.Parent = Page
 
             local sCorner = Instance.new("UICorner")
             sCorner.CornerRadius = UDim.new(0, 6)
             sCorner.Parent = SliderFrame
+
+            CreateGradient(SliderFrame, Color3.fromRGB(22, 22, 22), Color3.fromRGB(28, 28, 28), 0)
 
             local Label = Instance.new("TextLabel")
             Label.Parent = SliderFrame
@@ -544,7 +748,7 @@ function UI:CreateWindow()
             SliderBack.Parent = SliderFrame
             SliderBack.BackgroundColor3 = Theme.Secondary
             SliderBack.Position = UDim2.new(0, 10, 0, 30)
-            SliderBack.Size = UDim2.new(1, -20, 0, 6)
+            SliderBack.Size = UDim2.new(1, -20, 0, 8)
             SliderBack.BorderSizePixel = 0
 
             local sbCorner = Instance.new("UICorner")
@@ -561,10 +765,26 @@ function UI:CreateWindow()
             sfCorner.CornerRadius = UDim.new(1, 0)
             sfCorner.Parent = SliderFill
 
+            CreateGradient(SliderFill, Theme.Primary, Theme.PrimaryLight, 0)
+
+            -- Slider thumb/ball
+            local SliderBall = Instance.new("Frame")
+            SliderBall.Parent = SliderBack
+            SliderBall.BackgroundColor3 = Theme.Accent
+            SliderBall.Size = UDim2.new(0, 16, 0, 16)
+            SliderBall.Position = UDim2.new((config.Default - config.Min) / (config.Max - config.Min), -8, 0.5, -8)
+            SliderBall.BorderSizePixel = 0
+            SliderBall.ZIndex = 10
+
+            local ballCorner = Instance.new("UICorner")
+            ballCorner.CornerRadius = UDim.new(1, 0)
+            ballCorner.Parent = SliderBall
+
             local sliding = false
             local function update(input)
                 local pos = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
                 SliderFill.Size = UDim2.new(pos, 0, 1, 0)
+                SliderBall.Position = UDim2.new(pos, -8, 0.5, -8)
                 local val = math.floor(((config.Max - config.Min) * pos) + config.Min)
                 Label.Text = "   " .. config.Name .. " : " .. val
                 if config.Callback then config.Callback(val) end
@@ -572,7 +792,8 @@ function UI:CreateWindow()
             
             SliderBack.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
-                    sliding = true 
+                    sliding = true
+                    TweenService:Create(SliderBall, TWEEN_CONFIGS.Fast, {Size = UDim2.new(0, 20, 0, 20), Position = SliderBall.Position + UDim2.new(0, -2, 0, -2)}):Play()
                     update(input) 
                 end
             end)
@@ -585,7 +806,8 @@ function UI:CreateWindow()
             
             UserInputService.InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
-                    sliding = false 
+                    sliding = false
+                    TweenService:Create(SliderBall, TWEEN_CONFIGS.Fast, {Size = UDim2.new(0, 16, 0, 16), Position = SliderBall.Position + UDim2.new(0, 2, 0, 2)}):Play()
                 end
             end)
         end
@@ -610,6 +832,8 @@ function UI:CreateWindow()
             local btnCorner = Instance.new("UICorner")
             btnCorner.CornerRadius = UDim.new(0, 6)
             btnCorner.Parent = MainBtn
+
+            CreateGradient(MainBtn, Color3.fromRGB(22, 22, 22), Color3.fromRGB(28, 28, 28), 0)
 
             local isOpen = false
             local DropdownMenu = Instance.new("Frame")
@@ -654,6 +878,14 @@ function UI:CreateWindow()
                 itemCorner.CornerRadius = UDim.new(0, 4)
                 itemCorner.Parent = ItemBtn
 
+                ItemBtn.MouseEnter:Connect(function()
+                    TweenService:Create(ItemBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Primary}):Play()
+                end)
+
+                ItemBtn.MouseLeave:Connect(function()
+                    TweenService:Create(ItemBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = Theme.Secondary}):Play()
+                end)
+
                 ItemBtn.MouseButton1Click:Connect(function()
                     MainBtn.Text = "   " .. config.Name .. " : " .. item
                     isOpen = false
@@ -678,6 +910,8 @@ function UI:CreateWindow()
             cCorner.CornerRadius = UDim.new(0, 6)
             cCorner.Parent = Container
 
+            CreateGradient(Container, Color3.fromRGB(22, 22, 22), Color3.fromRGB(28, 28, 28), 0)
+
             local TextBox = Instance.new("TextBox")
             TextBox.Parent = Container
             TextBox.Size = UDim2.new(1, -20, 1, 0)
@@ -685,7 +919,7 @@ function UI:CreateWindow()
             TextBox.BackgroundTransparency = 1
             TextBox.Text = config.Default or ""
             TextBox.PlaceholderText = config.Name or "Enter text..."
-            TextBox.TextColor3 = Theme.TextSecondary
+            TextBox.TextColor3 = Theme.Text
             TextBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
             TextBox.Font = Enum.Font.Gotham
             TextBox.TextSize = 13
@@ -750,6 +984,8 @@ function UI:CreateWindow()
             pCorner.CornerRadius = UDim.new(0, 6)
             pCorner.Parent = ProgressFrame
 
+            CreateGradient(ProgressFrame, Color3.fromRGB(22, 22, 22), Color3.fromRGB(28, 28, 28), 0)
+
             local Label = Instance.new("TextLabel")
             Label.Parent = ProgressFrame
             Label.Size = UDim2.new(1, 0, 0, 18)
@@ -779,6 +1015,8 @@ function UI:CreateWindow()
             local pfCorner = Instance.new("UICorner")
             pfCorner.CornerRadius = UDim.new(1, 0)
             pfCorner.Parent = ProgressFill
+
+            CreateGradient(ProgressFill, Theme.Primary, Theme.PrimaryLight, 0)
 
             local function SetProgress(value)
                 local clampedValue = math.clamp(value, 0, 100)
@@ -854,11 +1092,110 @@ function UI:CreateWindow()
             return function(state) enabled = state UpdateSwitch() end
         end
 
+        -- Advanced: Color Palette Picker
+        function Tab:CreateColorPalette(config)
+            local PaletteFrame = Instance.new("Frame")
+            PaletteFrame.Size = UDim2.new(1, 0, 0, 210)
+            PaletteFrame.BackgroundColor3 = Theme.Surface
+            PaletteFrame.Parent = Page
+
+            local pCorner = Instance.new("UICorner")
+            pCorner.CornerRadius = UDim.new(0, 6)
+            pCorner.Parent = PaletteFrame
+
+            CreateGradient(PaletteFrame, Color3.fromRGB(22, 22, 22), Color3.fromRGB(28, 28, 28), 0)
+
+            local TitleLabel = Instance.new("TextLabel")
+            TitleLabel.Parent = PaletteFrame
+            TitleLabel.Size = UDim2.new(1, 0, 0, 20)
+            TitleLabel.Position = UDim2.new(0, 0, 0, 5)
+            TitleLabel.BackgroundTransparency = 1
+            TitleLabel.Text = config.Name or "Color Palette"
+            TitleLabel.TextColor3 = Theme.TextSecondary
+            TitleLabel.Font = Enum.Font.GothamBold
+            TitleLabel.TextSize = 12
+
+            local PaletteGrid = Instance.new("Frame")
+            PaletteGrid.Parent = PaletteFrame
+            PaletteGrid.BackgroundTransparency = 1
+            PaletteGrid.Size = UDim2.new(1, -20, 1, -35)
+            PaletteGrid.Position = UDim2.new(0, 10, 0, 25)
+
+            local GridLayout = Instance.new("UIGridLayout")
+            GridLayout.Parent = PaletteGrid
+            GridLayout.CellSize = UDim2.new(0, 50, 0, 50)
+            GridLayout.CellPadding = UDim2.new(0, 5, 0, 5)
+            GridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+            GridLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+
+            local selectedColor = config.Default or Theme.Primary
+            local presets = config.Presets or {
+                Color3.fromRGB(30, 144, 255),    -- Blue
+                Color3.fromRGB(255, 80, 80),     -- Red
+                Color3.fromRGB(76, 175, 80),     -- Green
+                Color3.fromRGB(255, 152, 0),     -- Orange
+                Color3.fromRGB(156, 39, 176),    -- Purple
+                Color3.fromRGB(0, 188, 212),     -- Cyan
+                Color3.fromRGB(244, 67, 54),     -- Deep Red
+                Color3.fromRGB(233, 30, 99),     -- Pink
+            }
+
+            for _, colorVal in pairs(presets) do
+                local ColorBtn = Instance.new("TextButton")
+                ColorBtn.Parent = PaletteGrid
+                ColorBtn.BackgroundColor3 = colorVal
+                ColorBtn.Size = UDim2.new(0, 50, 0, 50)
+                ColorBtn.Text = ""
+                ColorBtn.BorderSizePixel = 0
+
+                local btnCorner = Instance.new("UICorner")
+                btnCorner.CornerRadius = UDim.new(0, 6)
+                btnCorner.Parent = ColorBtn
+
+                local btnStroke = Instance.new("UIStroke")
+                btnStroke.Thickness = 2
+                btnStroke.Color = colorVal
+                btnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                btnStroke.Transparency = 0.5
+                btnStroke.Parent = ColorBtn
+
+                ColorBtn.MouseEnter:Connect(function()
+                    TweenService:Create(ColorBtn, TWEEN_CONFIGS.Fast, {BackgroundColor3 = colorVal}):Play()
+                    TweenService:Create(btnStroke, TWEEN_CONFIGS.Fast, {Transparency = 0}):Play()
+                end)
+
+                ColorBtn.MouseLeave:Connect(function()
+                    TweenService:Create(btnStroke, TWEEN_CONFIGS.Fast, {Transparency = 0.5}):Play()
+                end)
+
+                ColorBtn.MouseButton1Click:Connect(function()
+                    selectedColor = colorVal
+                    if config.Callback then
+                        config.Callback(colorVal)
+                    end
+                    
+                    -- Update all selected indicators
+                    for _, child in pairs(PaletteGrid:GetChildren()) do
+                        if child:IsA("TextButton") then
+                            local stroke = child:FindFirstChildOfClass("UIStroke")
+                            if stroke then
+                                if child.BackgroundColor3 == selectedColor then
+                                    TweenService:Create(stroke, TWEEN_CONFIGS.Fast, {Transparency = 0, Thickness = 3}):Play()
+                                else
+                                    TweenService:Create(stroke, TWEEN_CONFIGS.Fast, {Transparency = 0.5, Thickness = 2}):Play()
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        end
+
         return Tab
     end
 
-    -- Auto-create Settings tab
-    local SettingsTab = Window:CreateTab("Settings")
+    -- Auto-create Settings tab with enhanced styling
+    local SettingsTab = Window:CreateTab("Settings", ICONS.Settings)
 
     SettingsTab:CreateLabel("── UI SETTINGS ──")
 
@@ -913,7 +1250,41 @@ function UI:CreateWindow()
     })
 
     SettingsTab:CreateLabel("")
-    SettingsTab:CreateLabel("── COLORS ──")
+    SettingsTab:CreateLabel("── COLOR PALETTE ──")
+
+    SettingsTab:CreateColorPalette({
+        Name = "Quick Colors",
+        Default = Theme.Primary,
+        Presets = {
+            Color3.fromRGB(30, 144, 255),
+            Color3.fromRGB(255, 80, 80),
+            Color3.fromRGB(76, 175, 80),
+            Color3.fromRGB(255, 152, 0),
+            Color3.fromRGB(156, 39, 176),
+            Color3.fromRGB(0, 188, 212),
+            Color3.fromRGB(244, 67, 54),
+            Color3.fromRGB(233, 30, 99),
+        },
+        Callback = function(color)
+            Theme.Primary = color
+            Theme.PrimaryLight = Color3.new(
+                math.min(color.R * 1.3, 1),
+                math.min(color.G * 1.3, 1),
+                math.min(color.B * 1.3, 1)
+            )
+            MainStroke.Color = Theme.Primary
+            
+            -- Update active tab colors
+            for _, btn in pairs(TabBar:GetChildren()) do
+                if btn:IsA("TextButton") and btn.BackgroundColor3 == Theme.Primary then
+                    btn.BackgroundColor3 = Theme.Primary
+                end
+            end
+        end
+    })
+
+    SettingsTab:CreateLabel("")
+    SettingsTab:CreateLabel("── ADVANCED COLORS ──")
 
     SettingsTab:CreateTextBox({
         Name = "Primary Color (Hex)",
@@ -926,11 +1297,6 @@ function UI:CreateWindow()
                 if r and g and b then
                     Theme.Primary = Color3.fromRGB(r, g, b)
                     MainStroke.Color = Theme.Primary
-                    for _, btn in pairs(TabBar:GetChildren()) do
-                        if btn:IsA("TextButton") and btn.BackgroundColor3 == Color3.fromRGB(30, 144, 255) then
-                            btn.BackgroundColor3 = Theme.Primary
-                        end
-                    end
                 end
             end
         end
@@ -947,7 +1313,6 @@ function UI:CreateWindow()
                 if r and g and b then
                     Theme.Secondary = Color3.fromRGB(r, g, b)
                     TopBar.BackgroundColor3 = Theme.Secondary
-                    TabBar.BackgroundColor3 = Theme.Secondary
                 end
             end
         end
@@ -983,7 +1348,6 @@ function UI:CreateWindow()
             Main.BackgroundTransparency = 0
             MainCorner.CornerRadius = UDim.new(0, 8)
             TopBar.BackgroundColor3 = Theme.Secondary
-            TabBar.BackgroundColor3 = Theme.Secondary
             MainStroke.Color = Theme.Primary
             
             Window:Notify("Theme reset to default", 2, "success")

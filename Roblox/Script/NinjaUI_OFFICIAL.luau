@@ -87,25 +87,31 @@ function UI:CreateWindow()
     local function MakeDraggable(topbarobject, object)
         local dragging = false
         local dragInput, mousePos, framePos
+
         topbarobject.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 dragging = true
                 mousePos = input.Position
                 framePos = object.Position
-                input.Changed:Connect(function()
-                    if input.UserInputState == Enum.UserInputState.End then
+
+                local endConn
+                endConn = UserInputService.InputEnded:Connect(function(endInput)
+                    if endInput.UserInputType == Enum.UserInputType.MouseButton1 or endInput.UserInputType == Enum.UserInputType.Touch then
                         dragging = false
+                        if endConn then endConn:Disconnect() end
                     end
                 end)
             end
         end)
+
         topbarobject.InputChanged:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
                 dragInput = input
             end
         end)
+
         UserInputService.InputChanged:Connect(function(input)
-            if input == dragInput and dragging then
+            if dragging and (input == dragInput or input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                 local delta = input.Position - mousePos
                 object.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
             end
@@ -164,7 +170,7 @@ function UI:CreateWindow()
     CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
     CloseBtn.TextSize = 18
     CloseBtn.Font = Enum.Font.GothamBold
-    CloseBtn.MouseButton1Click:Connect(function()
+    CloseBtn.Activated:Connect(function()
         ScreenGui:Destroy()
     end)
 
@@ -180,7 +186,7 @@ function UI:CreateWindow()
 
     local isMinimized = false
     local originalPos = Main.Position
-    MinBtn.MouseButton1Click:Connect(function()
+    MinBtn.Activated:Connect(function()
         isMinimized = not isMinimized
         if isMinimized then
             originalPos = Main.Position
@@ -261,7 +267,7 @@ function UI:CreateWindow()
         TabCorner.CornerRadius = UDim.new(0, 6)
         TabCorner.Parent = TabBtn
 
-        TabBtn.MouseButton1Click:Connect(function()
+        TabBtn.Activated:Connect(function()
             for _, p in pairs(Window.Pages:GetChildren()) do p.Visible = false end
             for _, t in pairs(Window.TabBar:GetChildren()) do
                 if t:IsA("TextButton") then 
@@ -347,7 +353,7 @@ function UI:CreateWindow()
                 end
             end
 
-            TextBtn.MouseButton1Click:Connect(function()
+            TextBtn.Activated:Connect(function()
                 enabled = not enabled
                 SetState(enabled)
                 if config.Callback then config.Callback(enabled, SetState) end
@@ -395,13 +401,22 @@ function UI:CreateWindow()
             bCorner.CornerRadius = UDim.new(0, 4)
             bCorner.Parent = BindBtn
 
-            BindBtn.MouseButton1Click:Connect(function()
+            BindBtn.Activated:Connect(function()
                 BindBtn.Text = "..."
                 if config.BindTable then config.BindTable.IsBinding = true end
                 local conn
                 conn = UserInputService.InputBegan:Connect(function(i)
-                    if i.UserInputType == Enum.UserInputType.Keyboard or i.UserInputType == Enum.UserInputType.MouseButton2 or i.UserInputType == Enum.UserInputType.MouseButton3 or i.UserInputType == Enum.UserInputType.MouseButton4 or i.UserInputType == Enum.UserInputType.MouseButton5 then
-                        local key = (i.UserInputType == Enum.UserInputType.Keyboard and i.KeyCode or i.UserInputType)
+                    if i.UserInputType == Enum.UserInputType.Keyboard 
+                       or i.UserInputType == Enum.UserInputType.MouseButton2 
+                       or i.UserInputType == Enum.UserInputType.MouseButton3 
+                       or i.UserInputType == Enum.UserInputType.MouseButton4 
+                       or i.UserInputType == Enum.UserInputType.MouseButton5
+                       or i.KeyCode.Name:find("Button") then
+                        
+                        local key = (i.UserInputType == Enum.UserInputType.Keyboard and i.KeyCode) 
+                                 or (i.KeyCode.Name:find("Button") and i.KeyCode) 
+                                 or i.UserInputType
+
                         if config.BindTable and config.KeyIndex then
                             config.BindTable[config.KeyIndex] = key
                         end
@@ -428,13 +443,19 @@ function UI:CreateWindow()
             btnCorner.CornerRadius = UDim.new(0, 6)
             btnCorner.Parent = TextBtn
 
-            TextBtn.MouseButton1Down:Connect(function()
-                TweenService:Create(TextBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(255, 0, 75)}):Play()
+            TextBtn.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    TweenService:Create(TextBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(255, 0, 75)}):Play()
+                end
             end)
-            TextBtn.MouseButton1Up:Connect(function()
-                TweenService:Create(TextBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
+
+            TextBtn.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    TweenService:Create(TextBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
+                end
             end)
-            TextBtn.MouseButton1Click:Connect(function()
+
+            TextBtn.Activated:Connect(function()
                 if config.Callback then config.Callback() end
             end)
         end
@@ -488,14 +509,24 @@ function UI:CreateWindow()
                 Label.Text = "   " .. config.Name .. " : " .. val
                 if config.Callback then config.Callback(val) end
             end
+
             SliderBack.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true update(input) end
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
+                    sliding = true 
+                    update(input) 
+                end
             end)
+
             UserInputService.InputChanged:Connect(function(input)
-                if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then update(input) end
+                if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then 
+                    update(input) 
+                end
             end)
+
             UserInputService.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
+                    sliding = false 
+                end
             end)
         end
         

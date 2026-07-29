@@ -238,7 +238,7 @@ function UI:CreateWindow()
     CloseBtn.Size = UDim2.new(0, 35, 0, 35)
     CloseBtn.Position = UDim2.new(1, -40, 0.5, -17)
     CloseBtn.BackgroundTransparency = 1
-    CloseBtn.Text = "✕"
+    CloseBtn.Text = "X"
     CloseBtn.TextColor3 = Color3.fromRGB(230, 230, 230)
     CloseBtn.TextSize = 16
     CloseBtn.Font = Enum.Font.GothamBold

@@ -1,6 +1,6 @@
 --!strict
 --[================================================================================]--
---|                 ROBLOX ADVANCED MODULAR WINDOW LIBRARY v3.0                    |--
+--|                 ROBLOX ADVANCED MODULAR WINDOW LIBRARY v3.1                    |--
 --|      Industrial-Grade Architecture, Memory Safe, Strict Typing & Theming       |--
 --[================================================================================]--
 
@@ -57,15 +57,25 @@ local defaultConfig = {
 }
 local configStorage = table.clone(defaultConfig)
 
+-- Sécurisation robuste des fonctions d'E/S de fichiers pour éviter tout crash 'nil value'
 local function loadConfiguration()
-	if not writefile or not readfile then return end
+	local hasWrite = (type(writefile) == "function")
+	local hasRead = (type(readfile) == "function")
+	local hasIsFile = (type(isfile) == "function")
+	
+	if not hasRead or not hasIsFile then return end
+	
 	pcall(function()
-		if isfile and isfile(CONFIG_FILE_NAME) then
+		if isfile(CONFIG_FILE_NAME) then
 			local content = readfile(CONFIG_FILE_NAME)
-			local decoded = HttpService:JSONDecode(content)
-			if type(decoded) == "table" then
-				for k, v in pairs(decoded) do
-					configStorage[k] = v
+			if type(content) == "string" and #content > 0 then
+				local success, decoded = pcall(function()
+					return HttpService:JSONDecode(content)
+				end)
+				if success and type(decoded) == "table" then
+					for k, v in pairs(decoded) do
+						configStorage[k] = v
+					end
 				end
 			end
 		end
@@ -73,10 +83,14 @@ local function loadConfiguration()
 end
 
 local function saveConfiguration()
-	if not writefile then return end
+	if type(writefile) ~= "function" then return end
 	pcall(function()
-		local encoded = HttpService:JSONEncode(configStorage)
-		writefile(CONFIG_FILE_NAME, encoded)
+		local success, encoded = pcall(function()
+			return HttpService:JSONEncode(configStorage)
+		end)
+		if success and type(encoded) == "string" then
+			writefile(CONFIG_FILE_NAME, encoded)
+		end
 	end)
 end
 

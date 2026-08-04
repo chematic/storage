@@ -435,7 +435,7 @@ function UI:CreateWindow()
             ToggleGlow.Thickness = 2
             ToggleGlow.Transparency = 1
 
-            local enabled = false
+            local enabled = config.Default or false
 
             table.insert(connections, TextBtn.MouseEnter:Connect(function()
                 TweenService:Create(TextBtn, TweenInfo.new(0.15), {BackgroundColor3 = HOVER_BG}):Play()
@@ -458,6 +458,8 @@ function UI:CreateWindow()
                 end
             end
 
+            if enabled then SetState(true) end
+
             table.insert(connections, TextBtn.MouseButton1Down:Connect(function()
                 TweenService:Create(BtnScale, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {Scale = 0.97}):Play()
             end))
@@ -469,6 +471,121 @@ function UI:CreateWindow()
                 if config.Callback then task.defer(config.Callback, enabled, SetState) end
             end))
             return SetState
+        end
+
+        function Tab:CreateDropdown(config)
+            local DropdownFrame = Instance.new("Frame")
+            DropdownFrame.Size = UDim2.new(1, 0, 0, 38)
+            DropdownFrame.BackgroundColor3 = COMPONENT_BG
+            DropdownFrame.Parent = Page
+            DropdownFrame.ClipsDescendants = true
+
+            local dCorner = Instance.new("UICorner")
+            dCorner.CornerRadius = UDim.new(0, 6)
+            dCorner.Parent = DropdownFrame
+
+            local Label = Instance.new("TextLabel")
+            Label.Parent = DropdownFrame
+            Label.Size = UDim2.new(1, -40, 0, 38)
+            Label.Position = UDim2.new(0, 10, 0, 0)
+            Label.BackgroundTransparency = 1
+            Label.Text = "   " .. config.Name .. " : " .. tostring(config.Default)
+            Label.TextColor3 = Color3.fromRGB(200, 200, 200)
+            Label.Font = Enum.Font.Gotham
+            Label.TextSize = 13
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+
+            local Arrow = Instance.new("TextLabel")
+            Arrow.Parent = DropdownFrame
+            Arrow.Size = UDim2.new(0, 30, 0, 38)
+            Arrow.Position = UDim2.new(1, -35, 0, 0)
+            Arrow.BackgroundTransparency = 1
+            Arrow.Text = "▼"
+            Arrow.TextColor3 = Color3.fromRGB(150, 150, 150)
+            Arrow.Font = Enum.Font.GothamBold
+            Arrow.TextSize = 12
+
+            local OptionContainer = Instance.new("ScrollingFrame")
+            OptionContainer.Name = "Options"
+            OptionContainer.Parent = DropdownFrame
+            OptionContainer.BackgroundTransparency = 1
+            OptionContainer.Position = UDim2.new(0, 0, 0, 38)
+            OptionContainer.Size = UDim2.new(1, 0, 0, 0)
+            OptionContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
+            OptionContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
+            OptionContainer.ScrollBarThickness = 2
+            OptionContainer.ScrollBarImageColor3 = SEA_BLUE
+            OptionContainer.BorderSizePixel = 0
+            OptionContainer.Visible = false
+
+            local optLayout = Instance.new("UIListLayout")
+            optLayout.Parent = OptionContainer
+            optLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+            local isOpen = false
+            local currentOption = config.Default
+
+            local function UpdateDropdownSize()
+                local contentHeight = math.min(#config.Options * 30, 150)
+                if isOpen then
+                    TweenService:Create(DropdownFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 0, 38 + contentHeight)}):Play()
+                    TweenService:Create(OptionContainer, TweenInfo.new(0.25), {Size = UDim2.new(1, 0, 0, contentHeight)}):Play()
+                    OptionContainer.Visible = true
+                    TweenService:Create(Arrow, TweenInfo.new(0.25), {Rotation = 180}):Play()
+                else
+                    TweenService:Create(DropdownFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 0, 38)}):Play()
+                    TweenService:Create(OptionContainer, TweenInfo.new(0.25), {Size = UDim2.new(1, 0, 0, 0)}):Play()
+                    TweenService:Create(Arrow, TweenInfo.new(0.25), {Rotation = 0}):Play()
+                    task.delay(0.25, function()
+                        if not isOpen then OptionContainer.Visible = false end
+                    end)
+                end
+            end
+
+            for _, opt in ipairs(config.Options) do
+                local OptBtn = Instance.new("TextButton")
+                OptBtn.Parent = OptionContainer
+                OptBtn.Size = UDim2.new(1, 0, 0, 30)
+                OptBtn.BackgroundColor3 = COMPONENT_BG
+                OptBtn.BackgroundTransparency = 0.5
+                OptBtn.Text = "      " .. tostring(opt)
+                OptBtn.TextColor3 = (opt == currentOption) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
+                OptBtn.Font = Enum.Font.Gotham
+                OptBtn.TextSize = 12
+                OptBtn.TextXAlignment = Enum.TextXAlignment.Left
+                OptBtn.BorderSizePixel = 0
+
+                table.insert(connections, OptBtn.MouseButton1Click:Connect(function()
+                    currentOption = opt
+                    Label.Text = "   " .. config.Name .. " : " .. tostring(opt)
+                    isOpen = false
+                    UpdateDropdownSize()
+                    for _, child in ipairs(OptionContainer:GetChildren()) do
+                        if child:IsA("TextButton") then
+                            child.TextColor3 = (child.Text:gsub("^%s+", "") == tostring(opt)) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
+                        end
+                    end
+                    if config.Callback then task.defer(config.Callback, opt) end
+                end))
+            end
+
+            local ClickBtn = Instance.new("TextButton")
+            ClickBtn.Parent = DropdownFrame
+            ClickBtn.Size = UDim2.new(1, 0, 0, 38)
+            ClickBtn.BackgroundTransparency = 1
+            ClickBtn.Text = ""
+
+            table.insert(connections, ClickBtn.MouseButton1Click:Connect(function()
+                isOpen = not isOpen
+                UpdateDropdownSize()
+            end))
+
+            table.insert(connections, DropdownFrame.MouseEnter:Connect(function()
+                TweenService:Create(DropdownFrame, TweenInfo.new(0.15), {BackgroundColor3 = HOVER_BG}):Play()
+            end))
+            table.insert(connections, DropdownFrame.MouseLeave:Connect(function()
+                TweenService:Create(DropdownFrame, TweenInfo.new(0.15), {BackgroundColor3 = COMPONENT_BG}):Play()
+            end))
         end
 
         function Tab:CreateBind(config)
@@ -712,6 +829,33 @@ function UI:CreateWindow()
                     task.defer(config.Callback, TextBox.Text)
                 end
             end))
+        end
+
+        -- ====================================================================
+        -- ALIASES DE COMPATIBILITÉ (pour faire le lien avec ton script)
+        -- ====================================================================
+        function Tab:addToggle(name, default, callback)
+            if type(name) == "table" then
+                return self:CreateToggle(name)
+            else
+                return self:CreateToggle({Name = name, Default = default, Callback = callback})
+            end
+        end
+
+        function Tab:addDropdown(name, default, options, callback)
+            if type(name) == "table" then
+                return self:CreateDropdown(name)
+            else
+                return self:CreateDropdown({Name = name, Default = default, Options = options, Callback = callback})
+            end
+        end
+
+        function Tab:addTextbox(name, default, callback)
+            if type(name) == "table" then
+                return self:CreateTextBox(name)
+            else
+                return self:CreateTextBox({Name = name, Default = default, Callback = callback})
+            end
         end
 
         return Tab

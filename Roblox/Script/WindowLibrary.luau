@@ -26,9 +26,8 @@ local colorCorrection = nil
 local configStorage = {}
 local CONFIG_FILE_NAME = "ModMenu_Config.json"
 
--- Fonction de chargement des configurations locales (sécurisé via pcall)
 local function loadConfiguration()
-	if not writefile or not readfile then return end -- Sécurité si l'environnement d'exécution ne le supporte pas
+	if not writefile or not readfile then return end
 	pcall(function()
 		if isfile and isfile(CONFIG_FILE_NAME) then
 			local content = readfile(CONFIG_FILE_NAME)
@@ -40,7 +39,6 @@ local function loadConfiguration()
 	end)
 end
 
--- Fonction de sauvegarde
 local function saveConfiguration()
 	if not writefile then return end
 	pcall(function()
@@ -51,7 +49,6 @@ end
 
 loadConfiguration()
 
--- Initialisation des effets visuels globaux (Lighting)
 local function initializeLightingEffects()
 	if not blurEffect then
 		blurEffect = Instance.new("BlurEffect")
@@ -68,7 +65,6 @@ local function initializeLightingEffects()
 	end
 end
 
--- Initialisation du ScreenGui principal
 local function initializeGui()
 	if screenGui then return screenGui end
 	
@@ -124,7 +120,6 @@ function Window:CreateGui()
 	uiStroke.Thickness = 1
 	uiStroke.Parent = self.MainFrame
 	
-	-- Barre de Titre (Drag Handle)
 	self.TitleBar = Instance.new("Frame")
 	self.TitleBar.Name = "TitleBar"
 	self.TitleBar.Size = UDim2.new(1, 0, 0, 32)
@@ -154,7 +149,6 @@ function Window:CreateGui()
 	self.TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 	self.TitleLabel.Parent = self.TitleBar
 	
-	-- Conteneur Scrollable
 	self.Container = Instance.new("ScrollingFrame")
 	self.Container.Name = "Container"
 	self.Container.Size = UDim2.new(1, -16, 1, -48)
@@ -304,12 +298,10 @@ function Window:AddToggle(text: string, defaultState: boolean, callback)
 	toggleCircle.Size = UDim2.new(0, 14, 0, 14)
 	toggleCircle.Position = state and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
 	toggleCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	toggleCircle.BorderSizePixel =urses = 0
 	toggleCircle.BorderSizePixel = 0
 	toggleCircle.Parent = toggleBg
 	
 	local toggleCircleCorner = Instance.new("UICorner")
-	toggleCircleCircleCorner = Instance.new("UICorner")
 	toggleCircleCorner.CornerRadius = UDim.new(1, 0)
 	toggleCircleCorner.Parent = toggleCircle
 	
@@ -509,14 +501,10 @@ function WindowManager.CreateWindow(title: string, size: UDim2?, position: UDim2
 	return Window.new(title, size, position)
 end
 
--- Bascule globale du Mod Menu avec Fade In / Fade Out et effets Lighting
 local function toggleModMenu()
 	isMenuVisible = not isMenuVisible
 	
-	-- Paramètres de Tween pour les fenêtres
 	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-	
-	-- Transition des effets du monde (Lighting)
 	local blurGoal = isMenuVisible and 40 or 0
 	local ccGoal = isMenuVisible and -1 or 0
 	
@@ -542,7 +530,6 @@ local function toggleModMenu()
 			end
 		end
 		
-		-- Si on ferme, on désactive complètement le ScreenGui après le fade out
 		if not isMenuVisible then
 			task.delay(0.3, function()
 				if not isMenuVisible then
@@ -553,7 +540,6 @@ local function toggleModMenu()
 	end
 end
 
--- Écouteur global pour la combinaison de touches Alt + F1
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	local isAltPressed = UserInputService:IsKeyDown(Enum.KeyCode.LeftAlt) or UserInputService:IsKeyDown(Enum.KeyCode.RightAlt)
 	if input.KeyCode == Enum.KeyCode.F1 and isAltPressed then

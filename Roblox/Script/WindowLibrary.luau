@@ -1,6 +1,6 @@
 --!strict
 --[================================================================================]--
---|                 ROBLOX ADVANCED MODULAR WINDOW LIBRARY v3.1                    |--
+--|                 ROBLOX ADVANCED MODULAR WINDOW LIBRARY v3.2                    |--
 --|      Industrial-Grade Architecture, Memory Safe, Strict Typing & Theming       |--
 --[================================================================================]--
 
@@ -57,22 +57,21 @@ local defaultConfig = {
 }
 local configStorage = table.clone(defaultConfig)
 
--- Sécurisation robuste des fonctions d'E/S de fichiers pour éviter tout crash 'nil value'
+-- Sécurisation robuste des fonctions d'E/S de fichiers
 local function loadConfiguration()
-	local hasWrite = (type(writefile) == "function")
-	local hasRead = (type(readfile) == "function")
-	local hasIsFile = (type(isfile) == "function")
+	local hasRead = (typeof(readfile) == "function")
+	local hasIsFile = (typeof(isfile) == "function")
 	
 	if not hasRead or not hasIsFile then return end
 	
 	pcall(function()
 		if isfile(CONFIG_FILE_NAME) then
 			local content = readfile(CONFIG_FILE_NAME)
-			if type(content) == "string" and #content > 0 then
+			if typeof(content) == "string" and #content > 0 then
 				local success, decoded = pcall(function()
 					return HttpService:JSONDecode(content)
 				end)
-				if success and type(decoded) == "table" then
+				if success and typeof(decoded) == "table" then
 					for k, v in pairs(decoded) do
 						configStorage[k] = v
 					end
@@ -83,12 +82,12 @@ local function loadConfiguration()
 end
 
 local function saveConfiguration()
-	if type(writefile) ~= "function" then return end
+	if typeof(writefile) ~= "function" then return end
 	pcall(function()
 		local success, encoded = pcall(function()
 			return HttpService:JSONEncode(configStorage)
 		end)
-		if success and type(encoded) == "string" then
+		if success and typeof(encoded) == "string" then
 			writefile(CONFIG_FILE_NAME, encoded)
 		end
 	end)
@@ -97,19 +96,21 @@ end
 loadConfiguration()
 
 local function initializeLightingEffects()
-	if not blurEffect then
-		blurEffect = Instance.new("BlurEffect")
-		blurEffect.Name = "SecEngine_Blur"
-		blurEffect.Size = 0
-		blurEffect.Parent = Lighting
-	end
-	
-	if not colorCorrection then
-		colorCorrection = Instance.new("ColorCorrectionEffect")
-		colorCorrection.Name = "SecEngine_CC"
-		colorCorrection.Brightness = 0
-		colorCorrection.Parent = Lighting
-	end
+	pcall(function()
+		if not blurEffect then
+			blurEffect = Instance.new("BlurEffect")
+			blurEffect.Name = "SecEngine_Blur"
+			blurEffect.Size = 0
+			blurEffect.Parent = Lighting
+		end
+		
+		if not colorCorrection then
+			colorCorrection = Instance.new("ColorCorrectionEffect")
+			colorCorrection.Name = "SecEngine_CC"
+			colorCorrection.Brightness = 0
+			colorCorrection.Parent = Lighting
+		end
+	end)
 end
 
 local function initializeGui(): ScreenGui
@@ -120,7 +121,23 @@ local function initializeGui(): ScreenGui
 	screenGui.Name = "SecureAdvancedModMenu"
 	screenGui.ResetOnSpawn = false
 	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	screenGui.Parent = PlayerGui
+	
+	-- Compatibilité maximale cross-exécuteurs (gethui -> CoreGui -> PlayerGui)
+	local success = pcall(function()
+		if typeof(gethui) == "function" then
+			screenGui.Parent = gethui()
+		elseif game:GetService("CoreGui") then
+			screenGui.Parent = game:GetService("CoreGui")
+		else
+			screenGui.Parent = PlayerGui
+		end
+	end)
+	
+	if not success or not screenGui.Parent then
+		pcall(function()
+			screenGui.Parent = PlayerGui
+		end)
+	end
 	
 	return screenGui
 end

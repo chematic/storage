@@ -1,6 +1,7 @@
+--!strict
 --[================================================================================]--
---|                 ROBLOX ADVANCED MODULAR WINDOW LIBRARY v2.2                    |--
---|         Ultra-Polished UI, Fluid Animations, Sub-Containers & Persistence      |--
+--|                 ROBLOX ADVANCED MODULAR WINDOW LIBRARY v3.0                    |--
+--|      Industrial-Grade Architecture, Memory Safe, Strict Typing & Theming       |--
 --[================================================================================]--
 
 local UserInputService = game:GetService("UserInputService")
@@ -12,15 +13,41 @@ local HttpService = game:GetService("HttpService")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
+--[================================================================================]--
+--|                       THEMING ENGINE & CONFIGURATION                           |--
+--[================================================================================]--
+
+export type ThemeConfig = {
+	Background: Color3,
+	SecondaryBackground: Color3,
+	ContainerBackground: Color3,
+	Accent: Color3,
+	Text: Color3,
+	TextDim: Color3,
+	Border: Color3,
+	Error: Color3,
+}
+
+local Theme: ThemeConfig = {
+	Background = Color3.fromRGB(15, 15, 19),
+	SecondaryBackground = Color3.fromRGB(22, 22, 28),
+	ContainerBackground = Color3.fromRGB(19, 19, 25),
+	Accent = Color3.fromRGB(0, 225, 130),
+	Text = Color3.fromRGB(240, 240, 245),
+	TextDim = Color3.fromRGB(170, 170, 185),
+	Border = Color3.fromRGB(40, 40, 52),
+	Error = Color3.fromRGB(180, 50, 50),
+}
+
 local WindowManager = {}
 WindowManager.__index = WindowManager
 
--- Global State & Default Configuration
 local activeWindows = {}
 local isMenuVisible = true
-local screenGui = nil
-local blurEffect = nil
-local colorCorrection = nil
+local screenGui: ScreenGui? = nil
+local blurEffect: BlurEffect? = nil
+local colorCorrection: ColorCorrectionEffect? = nil
+local globalZIndexCounter = 100
 
 local CONFIG_FILE_NAME = "ModMenu_Config.json"
 local defaultConfig = {
@@ -30,7 +57,6 @@ local defaultConfig = {
 }
 local configStorage = table.clone(defaultConfig)
 
--- Secure Configuration Loading via pcall
 local function loadConfiguration()
 	if not writefile or not readfile then return end
 	pcall(function()
@@ -56,7 +82,6 @@ end
 
 loadConfiguration()
 
--- Global Visual Effects Initialization (High Performance Lighting)
 local function initializeLightingEffects()
 	if not blurEffect then
 		blurEffect = Instance.new("BlurEffect")
@@ -73,7 +98,7 @@ local function initializeLightingEffects()
 	end
 end
 
-local function initializeGui()
+local function initializeGui(): ScreenGui
 	if screenGui then return screenGui end
 	initializeLightingEffects()
 	
@@ -87,17 +112,121 @@ local function initializeGui()
 end
 
 --[================================================================================]--
---|                      WINDOW CLASS (OOP, AUTO-LAYOUT & RESIZE)                  |--
+--|                        CONTAINER CLASS & SUB-SECTIONS                          |--
 --[================================================================================]--
+
+export type ContainerObj = {
+	Instance: Frame,
+	ParentContainer: Frame,
+	Title: string,
+	Connections: {RBXScriptConnection},
+	AddLabel: (self: ContainerObj, text: string) -> TextLabel,
+	AddButton: (self: ContainerObj, text: string, callback: () -> ()) -> TextButton,
+	Destroy: (self: ContainerObj) -> (),
+}
+
+local ContainerMeta = {}
+ContainerMeta.__index = ContainerMeta
+
+function ContainerMeta:AddLabel(text: string): TextLabel
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 0, 20)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.Gotham
+	label.Text = text
+	label.TextColor3 = Theme.TextDim
+	label.TextSize = 11
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = self.ParentContainer
+	return label
+end
+
+function ContainerMeta:AddButton(text: string, callback: () -> ()): TextButton
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, 0, 0, 32)
+	btn.BackgroundColor3 = Theme.SecondaryBackground
+	btn.BorderSizePixel = 0
+	btn.AutoButtonColor = false
+	btn.Font = Enum.Font.GothamMedium
+	btn.Text = text
+	btn.TextColor3 = Theme.Text
+	btn.TextSize = 12
+	btn.Parent = self.ParentContainer
+	
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Theme.Border
+	stroke.Thickness = 1
+	stroke.Parent = btn
+	
+	local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+	
+	table.insert(self.Connections, btn.MouseButton1Click:Connect(function()
+		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Theme.Accent, TextColor3 = Theme.Background}):Play()
+		task.delay(0.15, function()
+			if btn and btn.Parent then
+				TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Theme.SecondaryBackground, TextColor3 = Theme.Text}):Play()
+			end
+		end)
+		if callback then task.spawn(callback) end
+	end))
+	
+	table.insert(self.Connections, btn.MouseEnter:Connect(function()
+		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(34, 34, 44)}):Play()
+	end))
+	table.insert(self.Connections, btn.MouseLeave:Connect(function()
+		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Theme.SecondaryBackground}):Play()
+	end))
+	
+	return btn
+end
+
+function ContainerMeta:Destroy()
+	for _, conn in ipairs(self.Connections) do
+		conn:Disconnect()
+	end
+	table.clear(self.Connections)
+	if self.Instance then
+		self.Instance:Destroy()
+	end
+end
+
+--[================================================================================]--
+--|                        WINDOW CLASS (OOP, FOCUS & CLEANUP)                     |--
+--[================================================================================]--
+
+export type WindowObj = {
+	Title: string,
+	Size: UDim2,
+	Position: UDim2,
+	MainFrame: Frame,
+	TitleBar: Frame,
+	TitleLabel: TextLabel,
+	Container: ScrollingFrame,
+	ResizeHandle: TextButton,
+	Connections: {RBXScriptConnection},
+	CreateGui: (self: WindowObj) -> (),
+	InitDragging: (self: WindowObj) -> (),
+	InitResizing: (self: WindowObj) -> (),
+	BringToFront: (self: WindowObj) -> (),
+	SetTransparency: (self: WindowObj, transparency: number) -> (),
+	AddContainer: (self: WindowObj, titleText: string?) -> ContainerObj,
+	AddLabel: (self: WindowObj, text: string) -> TextLabel,
+	AddButton: (self: WindowObj, text: string, callback: () -> ()) -> TextButton,
+	AddToggle: (self: WindowObj, text: string, defaultState: boolean, callback: (boolean) -> ()) -> TextButton,
+	AddSlider: (self: WindowObj, text: string, min: number, max: number, defaultVal: number, callback: (number) -> ()) -> Frame,
+	AddKeybind: (self: WindowObj, text: string, defaultKey: Enum.KeyCode, callback: (Enum.KeyCode) -> ()) -> Frame,
+	Destroy: (self: WindowObj) -> (),
+}
 
 local Window = {}
 Window.__index = Window
 
-function Window.new(titleText: string, size: UDim2?, position: UDim2?)
-	local self = setmetatable({}, Window)
+function Window.new(titleText: string, size: UDim2?, position: UDim2?): WindowObj
+	local self = setmetatable({}, Window) :: any
 	
 	self.Title = titleText or "Panel"
 	self.Size = size or UDim2.new(0, 340, 0, 420)
+	self.Connections = {}
 	
 	if position then
 		self.Position = position
@@ -116,43 +245,48 @@ function Window.new(titleText: string, size: UDim2?, position: UDim2?)
 	return self
 end
 
+function Window:BringToFront()
+	globalZIndexCounter += 1
+	if self.MainFrame then
+		self.MainFrame.ZIndex = globalZIndexCounter
+	end
+end
+
 function Window:CreateGui()
 	local parentGui = initializeGui()
 	
-	-- Main Frame (Zero Corner Radius - Pure Geometric Sharp Design)
 	self.MainFrame = Instance.new("Frame")
 	self.MainFrame.Name = self.Title .. "_Window"
 	self.MainFrame.Size = self.Size
 	self.MainFrame.Position = self.Position
-	self.MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 19)
+	self.MainFrame.BackgroundColor3 = Theme.Background
 	self.MainFrame.BackgroundTransparency = configStorage.WindowTransparency or 0
 	self.MainFrame.BorderSizePixel = 0
 	self.MainFrame.Active = true
+	self.MainFrame.ZIndex = globalZIndexCounter
 	self.MainFrame.Parent = parentGui
 	
 	local uiStroke = Instance.new("UIStroke")
-	uiStroke.Color = Color3.fromRGB(40, 40, 52)
+	uiStroke.Color = Theme.Border
 	uiStroke.Thickness = 1
 	uiStroke.Parent = self.MainFrame
 	
-	-- Accent Glow Line on Top
 	local topAccent = Instance.new("Frame")
 	topAccent.Size = UDim2.new(1, 0, 0, 2)
-	topAccent.BackgroundColor3 = Color3.fromRGB(0, 225, 130)
+	topAccent.BackgroundColor3 = Theme.Accent
 	topAccent.BorderSizePixel = 0
 	topAccent.Parent = self.MainFrame
 	
-	-- Title Bar (Drag Handle)
 	self.TitleBar = Instance.new("Frame")
 	self.TitleBar.Name = "TitleBar"
 	self.TitleBar.Size = UDim2.new(1, 0, 0, 34)
 	self.TitleBar.Position = UDim2.new(0, 0, 0, 2)
-	self.TitleBar.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+	self.TitleBar.BackgroundColor3 = Theme.SecondaryBackground
 	self.TitleBar.BorderSizePixel = 0
 	self.TitleBar.Parent = self.MainFrame
 	
 	local titleStroke = Instance.new("UIStroke")
-	titleStroke.Color = Color3.fromRGB(40, 40, 52)
+	titleStroke.Color = Theme.Border
 	titleStroke.Thickness = 1
 	titleStroke.Parent = self.TitleBar
 	
@@ -160,14 +294,13 @@ function Window:CreateGui()
 	self.TitleLabel.Size = UDim2.new(1, -16, 1, 0)
 	self.TitleLabel.Position = UDim2.new(0, 12, 0, 0)
 	self.TitleLabel.BackgroundTransparency = 1
-	self.TitleLabel.Font = Enum.Font.JetBrainsMono
+	self.TitleLabel.Font = Enum.Font.Code
 	self.TitleLabel.Text = "// " .. string.upper(self.Title)
-	self.TitleLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+	self.TitleLabel.TextColor3 = Theme.Text
 	self.TitleLabel.TextSize = 12
 	self.TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 	self.TitleLabel.Parent = self.TitleBar
 	
-	-- Scrollable Container
 	self.Container = Instance.new("ScrollingFrame")
 	self.Container.Name = "Container"
 	self.Container.Size = UDim2.new(1, -16, 1, -52)
@@ -177,7 +310,7 @@ function Window:CreateGui()
 	self.Container.CanvasSize = UDim2.new(0, 0, 0, 0)
 	self.Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	self.Container.ScrollBarThickness = 3
-	self.Container.ScrollBarImageColor3 = Color3.fromRGB(0, 225, 130)
+	self.Container.ScrollBarImageColor3 = Theme.Accent
 	self.Container.Parent = self.MainFrame
 	
 	local uiLayout = Instance.new("UIListLayout")
@@ -185,45 +318,56 @@ function Window:CreateGui()
 	uiLayout.Padding = UDim.new(0, 8)
 	uiLayout.Parent = self.Container
 	
-	-- Bottom-Right Resize Handle
 	self.ResizeHandle = Instance.new("TextButton")
 	self.ResizeHandle.Name = "ResizeHandle"
 	self.ResizeHandle.Size = UDim2.new(0, 14, 0, 14)
 	self.ResizeHandle.Position = UDim2.new(1, -14, 1, -14)
-	self.ResizeHandle.BackgroundColor3 = Color3.fromRGB(40, 40, 52)
+	self.ResizeHandle.BackgroundColor3 = Theme.Border
 	self.ResizeHandle.BorderSizePixel = 0
 	self.ResizeHandle.Text = ""
 	self.ResizeHandle.AutoButtonColor = false
 	self.ResizeHandle.Parent = self.MainFrame
+	
+	table.insert(self.Connections, self.MainFrame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			self:BringToFront()
+		end
+	end))
 	
 	self:InitDragging()
 	self:InitResizing()
 end
 
 function Window:InitDragging()
-	local dragging, dragInput, dragStart, startPos
+	local dragging = false
+	local dragInput: InputObject? = nil
+	local dragStart = Vector3.zero
+	local startPos = UDim2.new()
 	
-	self.TitleBar.InputBegan:Connect(function(input)
+	table.insert(self.Connections, self.TitleBar.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
 			dragStart = input.Position
 			startPos = self.MainFrame.Position
+			self:BringToFront()
 			
-			input.Changed:Connect(function()
+			local conn
+			conn = input.Changed:Connect(function()
 				if input.UserInputState == Enum.UserInputState.End then
 					dragging = false
+					if conn then conn:Disconnect() end
 				end
 			end)
 		end
-	end)
+	end))
 	
-	self.TitleBar.InputChanged:Connect(function(input)
+	table.insert(self.Connections, self.TitleBar.InputChanged:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
 			dragInput = input
 		end
-	end)
+	end))
 	
-	UserInputService.InputChanged:Connect(function(input)
+	table.insert(self.Connections, UserInputService.InputChanged:Connect(function(input)
 		if input == dragInput and dragging then
 			local delta = input.Position - dragStart
 			self.MainFrame.Position = UDim2.new(
@@ -233,27 +377,32 @@ function Window:InitDragging()
 				startPos.Y.Offset + delta.Y
 			)
 		end
-	end)
+	end))
 end
 
 function Window:InitResizing()
-	local resizing, resizeStart, startSize
+	local resizing = false
+	local resizeStart = Vector3.zero
+	local startSize = Vector2.zero
 	
-	self.ResizeHandle.InputBegan:Connect(function(input)
+	table.insert(self.Connections, self.ResizeHandle.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			resizing = true
 			resizeStart = input.Position
 			startSize = self.MainFrame.AbsoluteSize
+			self:BringToFront()
 			
-			input.Changed:Connect(function()
+			local conn
+			conn = input.Changed:Connect(function()
 				if input.UserInputState == Enum.UserInputState.End then
 					resizing = false
+					if conn then conn:Disconnect() end
 				end
 			end)
 		end
-	end)
+	end))
 	
-	UserInputService.InputChanged:Connect(function(input)
+	table.insert(self.Connections, UserInputService.InputChanged:Connect(function(input)
 		if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 			local delta = input.Position - resizeStart
 			local newWidth = math.clamp(startSize.X + delta.X, 240, 800)
@@ -261,7 +410,7 @@ function Window:InitResizing()
 			
 			self.MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
 		end
-	end)
+	end))
 end
 
 function Window:SetTransparency(transparency: number)
@@ -270,23 +419,16 @@ function Window:SetTransparency(transparency: number)
 	end
 end
 
---[================================================================================]--
---|                     SUB-CONTAINER BUILDER (SECTIONS)                           |--
---[================================================================================]--
-
-local ContainerObj = {}
-ContainerObj.__index = ContainerObj
-
-function Window:AddContainer(titleText: string?)
+function Window:AddContainer(titleText: string?): ContainerObj
 	local containerFrame = Instance.new("Frame")
 	containerFrame.Size = UDim2.new(1, 0, 0, 0)
 	containerFrame.AutomaticSize = Enum.AutomaticSize.Y
-	containerFrame.BackgroundColor3 = Color3.fromRGB(19, 19, 25)
+	containerFrame.BackgroundColor3 = Theme.ContainerBackground
 	containerFrame.BorderSizePixel = 0
 	containerFrame.Parent = self.Container
 	
 	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(45, 45, 58)
+	stroke.Color = Theme.Border
 	stroke.Thickness = 1
 	stroke.Parent = containerFrame
 	
@@ -306,9 +448,9 @@ function Window:AddContainer(titleText: string?)
 		local header = Instance.new("TextLabel")
 		header.Size = UDim2.new(1, 0, 0, 20)
 		header.BackgroundTransparency = 1
-		header.Font = Enum.Font.JetBrainsMono
+		header.Font = Enum.Font.Code
 		header.Text = string.upper(titleText)
-		header.TextColor3 = Color3.fromRGB(0, 225, 130)
+		header.TextColor3 = Theme.Accent
 		header.TextSize = 10
 		header.TextXAlignment = Enum.TextXAlignment.Left
 		header.Parent = containerFrame
@@ -317,131 +459,79 @@ function Window:AddContainer(titleText: string?)
 	local wrapper = setmetatable({
 		Instance = containerFrame,
 		ParentContainer = containerFrame,
-		Title = self.Title
-	}, ContainerObj)
+		Title = self.Title,
+		Connections = {}
+	}, ContainerMeta) :: any
 	
 	return wrapper
 end
 
--- Allow adding components directly inside sub-containers
-function ContainerObj:AddLabel(text: string)
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 0, 20)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.Gotham
-	label.Text = text
-	label.TextColor3 = Color3.fromRGB(170, 170, 185)
-	label.TextSize = 11
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.Parent = self.ParentContainer
-	return label
-end
-
-function ContainerObj:AddButton(text: string, callback)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, 0, 0, 32)
-	btn.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
-	btn.BorderSizePixel = 0
-	btn.AutoButtonColor = false
-	btn.Font = Enum.Font.GothamMedium
-	btn.Text = text
-	btn.TextColor3 = Color3.fromRGB(220, 220, 230)
-	btn.TextSize = 12
-	btn.Parent = self.ParentContainer
-	
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(45, 45, 58)
-	stroke.Thickness = 1
-	stroke.Parent = btn
-	
-	local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-	
-	btn.MouseButton1Click:Connect(function()
-		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(0, 225, 130), TextColor3 = Color3.fromRGB(15, 15, 19)}):Play()
-		task.delay(0.15, function()
-			TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(24, 24, 32), TextColor3 = Color3.fromRGB(220, 220, 230)}):Play()
-		end)
-		if callback then task.spawn(callback) end
-	end)
-	
-	btn.MouseEnter:Connect(function()
-		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(34, 34, 44), BorderColor3 = Color3.fromRGB(0, 225, 130)}):Play()
-	end)
-	btn.MouseLeave:Connect(function()
-		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(24, 24, 32)}):Play()
-	end)
-	
-	return btn
-end
-
---[================================================================================]--
---|                        UI COMPONENTS (HIGH FIDELITY ANIMATIONS)                |--
---[================================================================================]--
-
-function Window:AddLabel(text: string)
+function Window:AddLabel(text: string): TextLabel
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, 0, 0, 22)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.Gotham
 	label.Text = text
-	label.TextColor3 = Color3.fromRGB(170, 170, 185)
+	label.TextColor3 = Theme.TextDim
 	label.TextSize = 11
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = self.Container
 	return label
 end
 
-function Window:AddButton(text: string, callback)
+function Window:AddButton(text: string, callback: () -> ()): TextButton
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, 0, 0, 32)
-	btn.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
+	btn.BackgroundColor3 = Theme.SecondaryBackground
 	btn.BorderSizePixel = 0
 	btn.AutoButtonColor = false
 	btn.Font = Enum.Font.GothamMedium
 	btn.Text = text
-	btn.TextColor3 = Color3.fromRGB(220, 220, 230)
+	btn.TextColor3 = Theme.Text
 	btn.TextSize = 12
 	btn.Parent = self.Container
 	
 	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(45, 45, 58)
+	stroke.Color = Theme.Border
 	stroke.Thickness = 1
 	stroke.Parent = btn
 	
 	local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 	
-	btn.MouseButton1Click:Connect(function()
-		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(0, 225, 130), TextColor3 = Color3.fromRGB(15, 15, 19)}):Play()
+	table.insert(self.Connections, btn.MouseButton1Click:Connect(function()
+		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Theme.Accent, TextColor3 = Theme.Background}):Play()
 		task.delay(0.15, function()
-			TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(24, 24, 32), TextColor3 = Color3.fromRGB(220, 220, 230)}):Play()
+			if btn and btn.Parent then
+				TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Theme.SecondaryBackground, TextColor3 = Theme.Text}):Play()
+			end
 		end)
 		if callback then task.spawn(callback) end
-	end)
+	end))
 	
-	btn.MouseEnter:Connect(function()
+	table.insert(self.Connections, btn.MouseEnter:Connect(function()
 		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(34, 34, 44)}):Play()
-	end)
-	btn.MouseLeave:Connect(function()
-		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(24, 24, 32)}):Play()
-	end)
+	end))
+	table.insert(self.Connections, btn.MouseLeave:Connect(function()
+		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Theme.SecondaryBackground}):Play()
+	end))
 	
 	return btn
 end
 
-function Window:AddToggle(text: string, defaultState: boolean, callback)
+function Window:AddToggle(text: string, defaultState: boolean, callback: (boolean) -> ()): TextButton
 	local id = self.Title .. "_" .. text
 	local state = if configStorage[id] ~= nil then configStorage[id] else (defaultState or false)
 	
 	local container = Instance.new("TextButton")
 	container.Size = UDim2.new(1, 0, 0, 32)
-	container.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
+	container.BackgroundColor3 = Theme.SecondaryBackground
 	container.BorderSizePixel = 0
 	container.AutoButtonColor = false
 	container.Text = ""
 	container.Parent = self.Container
 	
 	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(45, 45, 58)
+	stroke.Color = Theme.Border
 	stroke.Thickness = 1
 	stroke.Parent = container
 	
@@ -451,7 +541,7 @@ function Window:AddToggle(text: string, defaultState: boolean, callback)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamMedium
 	label.Text = text
-	label.TextColor3 = Color3.fromRGB(220, 220, 230)
+	label.TextColor3 = Theme.Text
 	label.TextSize = 12
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = container
@@ -459,7 +549,7 @@ function Window:AddToggle(text: string, defaultState: boolean, callback)
 	local toggleBg = Instance.new("Frame")
 	toggleBg.Size = UDim2.new(0, 36, 0, 18)
 	toggleBg.Position = UDim2.new(1, -44, 0.5, -9)
-	toggleBg.BackgroundColor3 = state and Color3.fromRGB(0, 225, 130) or Color3.fromRGB(38, 38, 48)
+	toggleBg.BackgroundColor3 = state and Theme.Accent or Color3.fromRGB(38, 38, 48)
 	toggleBg.BorderSizePixel = 0
 	toggleBg.Parent = container
 	
@@ -473,7 +563,7 @@ function Window:AddToggle(text: string, defaultState: boolean, callback)
 	local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 	
 	local function updateVisual(instant: boolean)
-		local goalBgColor = state and Color3.fromRGB(0, 225, 130) or Color3.fromRGB(38, 38, 48)
+		local goalBgColor = state and Theme.Accent or Color3.fromRGB(38, 38, 48)
 		local goalCirclePos = state and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
 		
 		if instant then
@@ -488,36 +578,36 @@ function Window:AddToggle(text: string, defaultState: boolean, callback)
 	updateVisual(true)
 	if callback then task.spawn(callback, state) end
 	
-	container.MouseButton1Click:Connect(function()
+	table.insert(self.Connections, container.MouseButton1Click:Connect(function()
 		state = not state
 		configStorage[id] = state
 		saveConfiguration()
 		updateVisual(false)
 		if callback then task.spawn(callback, state) end
-	end)
+	end))
 	
-	container.MouseEnter:Connect(function()
+	table.insert(self.Connections, container.MouseEnter:Connect(function()
 		TweenService:Create(container, tweenInfo, {BackgroundColor3 = Color3.fromRGB(30, 30, 38)}):Play()
-	end)
-	container.MouseLeave:Connect(function()
-		TweenService:Create(container, tweenInfo, {BackgroundColor3 = Color3.fromRGB(24, 24, 32)}):Play()
-	end)
+	end))
+	table.insert(self.Connections, container.MouseLeave:Connect(function()
+		TweenService:Create(container, tweenInfo, {BackgroundColor3 = Theme.SecondaryBackground}):Play()
+	end))
 	
 	return container
 end
 
-function Window:AddSlider(text: string, min: number, max: number, defaultVal: number, callback)
+function Window:AddSlider(text: string, min: number, max: number, defaultVal: number, callback: (number) -> ()): Frame
 	local id = self.Title .. "_" .. text
 	local val = if configStorage[id] ~= nil then configStorage[id] else (defaultVal or min)
 	
 	local container = Instance.new("Frame")
 	container.Size = UDim2.new(1, 0, 0, 48)
-	container.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
+	container.BackgroundColor3 = Theme.SecondaryBackground
 	container.BorderSizePixel = 0
 	container.Parent = self.Container
 	
 	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(45, 45, 58)
+	stroke.Color = Theme.Border
 	stroke.Thickness = 1
 	stroke.Parent = container
 	
@@ -527,7 +617,7 @@ function Window:AddSlider(text: string, min: number, max: number, defaultVal: nu
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamMedium
 	label.Text = text .. ": " .. tostring(val)
-	label.TextColor3 = Color3.fromRGB(220, 220, 230)
+	label.TextColor3 = Theme.Text
 	label.TextSize = 12
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = container
@@ -543,14 +633,15 @@ function Window:AddSlider(text: string, min: number, max: number, defaultVal: nu
 	
 	local sliderFill = Instance.new("Frame")
 	sliderFill.Size = UDim2.new((val - min) / (max - min), 0, 1, 0)
-	sliderFill.BackgroundColor3 = Color3.fromRGB(0, 225, 130)
+	sliderFill.BackgroundColor3 = Theme.Accent
 	sliderFill.BorderSizePixel = 0
 	sliderFill.Parent = sliderBar
 	
 	local sliding = false
 	
-	local function updateValue(inputPos)
+	local function updateValue(inputPos: number)
 		local sizeX = sliderBar.AbsoluteSize.X
+		if sizeX <= 0 then return end
 		local posRelative = math.clamp((inputPos - sliderBar.AbsolutePosition.X) / sizeX, 0, 1)
 		val = math.floor((min + (max - min) * posRelative) * 10) / 10
 		
@@ -563,48 +654,48 @@ function Window:AddSlider(text: string, min: number, max: number, defaultVal: nu
 		if callback then task.spawn(callback, val) end
 	end
 	
-	sliderBar.InputBegan:Connect(function(input)
+	table.insert(self.Connections, sliderBar.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			sliding = true
 			updateValue(input.Position.X)
 		end
-	end)
+	end))
 	
-	UserInputService.InputEnded:Connect(function(input)
+	table.insert(self.Connections, UserInputService.InputEnded:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			sliding = false
 		end
-	end)
+	end))
 	
-	UserInputService.InputChanged:Connect(function(input)
+	table.insert(self.Connections, UserInputService.InputChanged:Connect(function(input)
 		if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 			updateValue(input.Position.X)
 		end
-	end)
+	end))
 	
 	if callback then task.spawn(callback, val) end
 	return container
 end
 
-function Window:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback)
+function Window:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback: (Enum.KeyCode) -> ()): Frame
 	local id = self.Title .. "_" .. text
 	local currentKey = defaultKey
 	
 	if configStorage[id] then
 		local success, enumItem = pcall(function()
-			return Enum.KeyCode[configStorage[id]]
+			return (Enum.KeyCode :: any)[configStorage[id]]
 		end)
 		if success and enumItem then currentKey = enumItem end
 	end
 	
 	local container = Instance.new("Frame")
 	container.Size = UDim2.new(1, 0, 0, 32)
-	container.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
+	container.BackgroundColor3 = Theme.SecondaryBackground
 	container.BorderSizePixel = 0
 	container.Parent = self.Container
 	
 	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(45, 45, 58)
+	stroke.Color = Theme.Border
 	stroke.Thickness = 1
 	stroke.Parent = container
 	
@@ -614,7 +705,7 @@ function Window:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamMedium
 	label.Text = text
-	label.TextColor3 = Color3.fromRGB(220, 220, 230)
+	label.TextColor3 = Theme.Text
 	label.TextSize = 12
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = container
@@ -624,7 +715,7 @@ function Window:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback)
 	bindButton.Position = UDim2.new(1, -94, 0.5, -11)
 	bindButton.BackgroundColor3 = Color3.fromRGB(34, 34, 44)
 	bindButton.BorderSizePixel = 0
-	bindButton.Font = Enum.Font.JetBrainsMono
+	bindButton.Font = Enum.Font.Code
 	bindButton.Text = currentKey.Name
 	bindButton.TextColor3 = Color3.fromRGB(200, 200, 215)
 	bindButton.TextSize = 11
@@ -632,13 +723,13 @@ function Window:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback)
 	
 	local binding = false
 	
-	bindButton.MouseButton1Click:Connect(function()
+	table.insert(self.Connections, bindButton.MouseButton1Click:Connect(function()
 		binding = true
 		bindButton.Text = "..."
-		bindButton.TextColor3 = Color3.fromRGB(0, 225, 130)
-	end)
+		bindButton.TextColor3 = Theme.Accent
+	end))
 	
-	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	table.insert(self.Connections, UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		if binding then
 			if input.UserInputType == Enum.UserInputType.Keyboard then
 				currentKey = input.KeyCode
@@ -652,112 +743,34 @@ function Window:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback)
 		elseif not gameProcessed and input.KeyCode == currentKey then
 			if callback then task.spawn(callback, currentKey) end
 		end
-	end)
+	end))
 	
 	return container
 end
 
---[================================================================================]--
---|                       SPECIAL PANELS (INSTRUCTIONS & SETTINGS)                 |--
---[================================================================================]--
-
-function WindowManager.BuildInstructionPanel()
-	local instWindow = Window.new("Instructions")
+function Window:Destroy()
+	for _, conn in ipairs(self.Connections) do
+		conn:Disconnect()
+	end
+	table.clear(self.Connections)
 	
-	local infoContainer = instWindow:AddContainer("User Guide")
-	infoContainer:AddLabel("• F1 (+ Alt by default) : Toggle UI")
-	infoContainer:AddLabel("• Resizing : Drag bottom-right corner")
-	infoContainer:AddLabel("• Persistence : Auto-saves to JSON")
-	infoContainer:AddLabel("• Use mouse wheel to scroll panels")
-	
-	return instWindow
-end
-
-function WindowManager.BuildSettingsPanel()
-	local setWindow = Window.new("UI Settings")
-	
-	local configContainer = setWindow:AddContainer("Global Configuration")
-	
-	local keyContainer = Instance.new("Frame")
-	keyContainer.Size = UDim2.new(1, 0, 0, 32)
-	keyContainer.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
-	keyContainer.BorderSizePixel = 0
-	keyContainer.Parent = configContainer.ParentContainer
-	
-	local keyLabel = Instance.new("TextLabel")
-	keyLabel.Size = UDim2.new(1, -120, 1, 0)
-	keyLabel.Position = UDim2.new(0, 12, 0, 0)
-	keyLabel.BackgroundTransparency = 1
-	keyLabel.Font = Enum.Font.GothamMedium
-	keyLabel.Text = "Toggle Key"
-	keyLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
-	keyLabel.TextSize = 12
-	keyLabel.TextXAlignment = Enum.TextXAlignment.Left
-	keyLabel.Parent = keyContainer
-	
-	local keyBtn = Instance.new("TextButton")
-	keyBtn.Size = UDim2.new(0, 50, 0, 22)
-	keyBtn.Position = UDim2.new(1, -118, 0.5, -11)
-	keyBtn.BackgroundColor3 = Color3.fromRGB(34, 34, 44)
-	keyBtn.BorderSizePixel = 0
-	keyBtn.Font = Enum.Font.JetBrainsMono
-	keyBtn.Text = configStorage.ToggleKey or "F1"
-	keyBtn.TextColor3 = Color3.fromRGB(200, 200, 215)
-	keyBtn.TextSize = 11
-	keyBtn.Parent = keyContainer
-	
-	local resetBtn = Instance.new("TextButton")
-	resetBtn.Size = UDim2.new(0, 56, 0, 22)
-	resetBtn.Position = UDim2.new(1, -60, 0.5, -11)
-	resetBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-	resetBtn.BorderSizePixel = 0
-	resetBtn.Font = Enum.Font.GothamMedium
-	resetBtn.Text = "Reset"
-	resetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	resetBtn.TextSize = 11
-	resetBtn.Parent = keyContainer
-	
-	local settingKeyBinding = false
-	keyBtn.MouseButton1Click:Connect(function()
-		settingKeyBinding = true
-		keyBtn.Text = "..."
-	end)
-	
-	UserInputService.InputBegan:Connect(function(input)
-		if settingKeyBinding and input.UserInputType == Enum.UserInputType.Keyboard then
-			configStorage.ToggleKey = input.KeyCode.Name
-			keyBtn.Text = input.KeyCode.Name
-			settingKeyBinding = false
-			saveConfiguration()
+	for i, win in ipairs(activeWindows) do
+		if win == self then
+			table.remove(activeWindows, i)
+			break
 		end
-	end)
+	end
 	
-	resetBtn.MouseButton1Click:Connect(function()
-		configStorage.ToggleKey = defaultConfig.ToggleKey
-		configStorage.WindowTransparency = defaultConfig.WindowTransparency
-		keyBtn.Text = defaultConfig.ToggleKey
-		saveConfiguration()
-		for _, w in ipairs(activeWindows) do
-			w:SetTransparency(defaultConfig.WindowTransparency)
-		end
-	end)
-	
-	setWindow:AddSlider("Panel Transparency", 0, 0.8, configStorage.WindowTransparency or 0, function(val)
-		configStorage.WindowTransparency = val
-		saveConfiguration()
-		for _, w in ipairs(activeWindows) do
-			w:SetTransparency(val)
-		end
-	end)
-	
-	return setWindow
+	if self.MainFrame then
+		self.MainFrame:Destroy()
+	end
 end
 
 --[================================================================================]--
 --|                       MANAGER & ANIMATIONS (FADE IN/OUT)                       |--
 --[================================================================================]--
 
-function WindowManager.CreateWindow(title: string, size: UDim2?, position: UDim2?)
+function WindowManager.CreateWindow(title: string, size: UDim2?, position: UDim2?): WindowObj
 	return Window.new(title, size, position)
 end
 
@@ -769,8 +782,8 @@ local function toggleModMenu()
 	local blurGoal = isMenuVisible and 30 or 0
 	local ccGoal = isMenuVisible and -0.1 or 0
 	
-	TweenService:Create(blurEffect, tweenInfo, {Size = blurGoal}):Play()
-	TweenService:Create(colorCorrection, tweenInfo, {Brightness = ccGoal}):Play()
+	if blurEffect then TweenService:Create(blurEffect, tweenInfo, {Size = blurGoal}):Play() end
+	if colorCorrection then TweenService:Create(colorCorrection, tweenInfo, {Brightness = ccGoal}):Play() end
 	
 	if screenGui then
 		screenGui.Enabled = true
@@ -807,7 +820,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 	
 	local success, targetKeyCode = pcall(function()
-		return Enum.KeyCode[configStorage.ToggleKey or "F1"]
+		return (Enum.KeyCode :: any)[configStorage.ToggleKey or "F1"]
 	end)
 	
 	if success and targetKeyCode and input.KeyCode == targetKeyCode then

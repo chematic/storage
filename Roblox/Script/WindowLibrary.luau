@@ -26,6 +26,7 @@ local colorCorrection = nil
 local configStorage = {}
 local CONFIG_FILE_NAME = "ModMenu_Config.json"
 
+-- Fonction de chargement des configurations locales (sécurisé via pcall)
 local function loadConfiguration()
 	if not writefile or not readfile then return end
 	pcall(function()
@@ -39,6 +40,7 @@ local function loadConfiguration()
 	end)
 end
 
+-- Fonction de sauvegarde
 local function saveConfiguration()
 	if not writefile then return end
 	pcall(function()
@@ -49,6 +51,7 @@ end
 
 loadConfiguration()
 
+-- Initialisation des effets visuels globaux (Lighting)
 local function initializeLightingEffects()
 	if not blurEffect then
 		blurEffect = Instance.new("BlurEffect")
@@ -65,6 +68,7 @@ local function initializeLightingEffects()
 	end
 end
 
+-- Initialisation du ScreenGui principal
 local function initializeGui()
 	if screenGui then return screenGui end
 	
@@ -120,6 +124,7 @@ function Window:CreateGui()
 	uiStroke.Thickness = 1
 	uiStroke.Parent = self.MainFrame
 	
+	-- Barre de Titre (Drag Handle)
 	self.TitleBar = Instance.new("Frame")
 	self.TitleBar.Name = "TitleBar"
 	self.TitleBar.Size = UDim2.new(1, 0, 0, 32)
@@ -149,6 +154,7 @@ function Window:CreateGui()
 	self.TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 	self.TitleLabel.Parent = self.TitleBar
 	
+	-- Conteneur Scrollable
 	self.Container = Instance.new("ScrollingFrame")
 	self.Container.Name = "Container"
 	self.Container.Size = UDim2.new(1, -16, 1, -48)

@@ -12,7 +12,7 @@ local PlayerGui = Player:WaitForChild("PlayerGui")
 local Camera = workspace.CurrentCamera
 
 -- Configuration de l'identifiant et du nom de l'UI (Anti-Multi-Instance)
-local PLAYER_ID = LocalPlayer.UserId
+local PLAYER_ID = Player.UserId
 local UI_NAME = PLAYER_ID .. "_WLibraryUI"
 
 local function cleanupOldInstances()

@@ -102,6 +102,15 @@ local defaultConfig = {
 local configStorage = table.clone(defaultConfig)
 local Theme: ThemeConfig = Themes.Default
 
+local function getKeyCodeFromName(name: string): Enum.KeyCode
+	for _, item in ipairs(Enum.KeyCode:GetEnumItems()) do
+		if item.Name == name then
+			return item
+		end
+	end
+	return Enum.KeyCode.F1
+end
+
 local function loadConfiguration()
 	local hasRead = (typeof(readfile) == "function")
 	local hasIsFile = (typeof(isfile) == "function")
@@ -188,6 +197,9 @@ export type ContainerObj = {
 	Connections: {RBXScriptConnection},
 	AddLabel: (self: ContainerObj, text: string) -> TextLabel,
 	AddButton: (self: ContainerObj, text: string, callback: () -> ()) -> TextButton,
+	AddToggle: (self: ContainerObj, text: string, defaultState: boolean, callback: (boolean) -> ()) -> TextButton,
+	AddSlider: (self: ContainerObj, text: string, min: number, max: number, defaultVal: number, callback: (number) -> ()) -> Frame,
+	AddKeybind: (self: ContainerObj, text: string, defaultKey: Enum.KeyCode, callback: (Enum.KeyCode) -> ()) -> Frame,
 	Destroy: (self: ContainerObj) -> (),
 }
 
@@ -241,6 +253,218 @@ function ContainerMeta:AddButton(text: string, callback: () -> ()): TextButton
 		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Theme.SecondaryBackground}):Play()
 	end))
 	return btn
+end
+
+function ContainerMeta:AddToggle(text: string, defaultState: boolean, callback: (boolean) -> ()): TextButton
+	local id = self.Title .. "_" .. text
+	local state = if configStorage[id] ~= nil then configStorage[id] else (defaultState or false)
+	
+	local container = Instance.new("TextButton")
+	container.Size = UDim2.new(1, 0, 0, 32)
+	container.BackgroundColor3 = Theme.SecondaryBackground
+	container.BorderSizePixel = 0
+	container.AutoButtonColor = false
+	container.Text = ""
+	container.Parent = self.ParentContainer
+	
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Theme.Border
+	stroke.Thickness = 1
+	stroke.Parent = container
+	
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, -50, 1, 0)
+	label.Position = UDim2.new(0, 12, 0, 0)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.GothamMedium
+	label.Text = text
+	label.TextColor3 = Theme.Text
+	label.TextSize = 12
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = container
+	
+	local toggleBg = Instance.new("Frame")
+	toggleBg.Size = UDim2.new(0, 36, 0, 18)
+	toggleBg.Position = UDim2.new(1, -44, 0.5, -9)
+	toggleBg.BackgroundColor3 = state and Theme.Accent or Color3.fromRGB(38, 38, 48)
+	toggleBg.BorderSizePixel = 0
+	toggleBg.Parent = container
+	
+	local toggleCircle = Instance.new("Frame")
+	toggleCircle.Size = UDim2.new(0, 14, 0, 14)
+	toggleCircle.Position = state and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
+	toggleCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	toggleCircle.BorderSizePixel = 0
+	toggleCircle.Parent = toggleBg
+	
+	local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+	local function updateVisual(instant: boolean)
+		local goalBgColor = state and Theme.Accent or Color3.fromRGB(38, 38, 48)
+		local goalCirclePos = state and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
+		if instant then
+			toggleBg.BackgroundColor3 = goalBgColor
+			toggleCircle.Position = goalCirclePos
+		else
+			TweenService:Create(toggleBg, tweenInfo, {BackgroundColor3 = goalBgColor}):Play()
+			TweenService:Create(toggleCircle, tweenInfo, {Position = goalCirclePos}):Play()
+		end
+	end
+	
+	updateVisual(true)
+	if callback then task.spawn(callback, state) end
+	
+	table.insert(self.Connections, container.MouseButton1Click:Connect(function()
+		state = not state
+		configStorage[id] = state
+		saveConfiguration()
+		updateVisual(false)
+		if callback then task.spawn(callback, state) end
+	end))
+	table.insert(self.Connections, container.MouseEnter:Connect(function()
+		TweenService:Create(container, tweenInfo, {BackgroundColor3 = Color3.fromRGB(30, 30, 38)}):Play()
+	end))
+	table.insert(self.Connections, container.MouseLeave:Connect(function()
+		TweenService:Create(container, tweenInfo, {BackgroundColor3 = Theme.SecondaryBackground}):Play()
+	end))
+	return container
+end
+
+function ContainerMeta:AddSlider(text: string, min: number, max: number, defaultVal: number, callback: (number) -> ()): Frame
+	local id = self.Title .. "_" .. text
+	local val = if configStorage[id] ~= nil then configStorage[id] else (defaultVal or min)
+	
+	local container = Instance.new("Frame")
+	container.Size = UDim2.new(1, 0, 0, 48)
+	container.BackgroundColor3 = Theme.SecondaryBackground
+	container.BorderSizePixel = 0
+	container.Parent = self.ParentContainer
+	
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Theme.Border
+	stroke.Thickness = 1
+	stroke.Parent = container
+	
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, -24, 0, 20)
+	label.Position = UDim2.new(0, 12, 0, 4)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.GothamMedium
+	label.Text = text .. ": " .. tostring(val)
+	label.TextColor3 = Theme.Text
+	label.TextSize = 12
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = container
+	
+	local sliderBar = Instance.new("TextButton")
+	sliderBar.Size = UDim2.new(1, -24, 0, 6)
+	sliderBar.Position = UDim2.new(0, 12, 0, 32)
+	sliderBar.BackgroundColor3 = Color3.fromRGB(38, 38, 48)
+	sliderBar.BorderSizePixel = 0
+	sliderBar.AutoButtonColor = false
+	sliderBar.Text = ""
+	sliderBar.Parent = container
+	
+	local sliderFill = Instance.new("Frame")
+	sliderFill.Size = UDim2.new((val - min) / (max - min), 0, 1, 0)
+	sliderFill.BackgroundColor3 = Theme.Accent
+	sliderFill.BorderSizePixel = 0
+	sliderFill.Parent = sliderBar
+	
+	local sliding = false
+	local function updateValue(inputPos: number)
+		local sizeX = sliderBar.AbsoluteSize.X
+		if sizeX <= 0 then return end
+		local posRelative = math.clamp((inputPos - sliderBar.AbsolutePosition.X) / sizeX, 0, 1)
+		val = math.floor((min + (max - min) * posRelative) * 10) / 10
+		sliderFill.Size = UDim2.new(posRelative, 0, 1, 0)
+		label.Text = text .. ": " .. tostring(val)
+		configStorage[id] = val
+		saveConfiguration()
+		if callback then task.spawn(callback, val) end
+	end
+	
+	table.insert(self.Connections, sliderBar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			sliding = true
+			updateValue(input.Position.X)
+		end
+	end))
+	table.insert(self.Connections, UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			sliding = false
+		end
+	end))
+	table.insert(self.Connections, UserInputService.InputChanged:Connect(function(input)
+		if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			updateValue(input.Position.X)
+		end
+	end))
+	
+	if callback then task.spawn(callback, val) end
+	return container
+end
+
+function ContainerMeta:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback: (Enum.KeyCode) -> ()): Frame
+	local id = self.Title .. "_" .. text
+	local currentKey = defaultKey
+	if configStorage[id] then
+		currentKey = getKeyCodeFromName(configStorage[id])
+	end
+	
+	local container = Instance.new("Frame")
+	container.Size = UDim2.new(1, 0, 0, 32)
+	container.BackgroundColor3 = Theme.SecondaryBackground
+	container.BorderSizePixel = 0
+	container.Parent = self.ParentContainer
+	
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Theme.Border
+	stroke.Thickness = 1
+	stroke.Parent = container
+	
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, -110, 1, 0)
+	label.Position = UDim2.new(0, 12, 0, 0)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.GothamMedium
+	label.Text = text
+	label.TextColor3 = Theme.Text
+	label.TextSize = 12
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = container
+	
+	local bindButton = Instance.new("TextButton")
+	bindButton.Size = UDim2.new(0, 86, 0, 22)
+	bindButton.Position = UDim2.new(1, -94, 0.5, -11)
+	bindButton.BackgroundColor3 = Color3.fromRGB(34, 34, 44)
+	bindButton.BorderSizePixel = 0
+	bindButton.Font = Enum.Font.Code
+	bindButton.Text = currentKey.Name
+	bindButton.TextColor3 = Color3.fromRGB(200, 200, 215)
+	bindButton.TextSize = 11
+	bindButton.Parent = container
+	
+	local binding = false
+	table.insert(self.Connections, bindButton.MouseButton1Click:Connect(function()
+		binding = true
+		bindButton.Text = "..."
+		bindButton.TextColor3 = Theme.Accent
+	end))
+	table.insert(self.Connections, UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if binding then
+			if input.UserInputType == Enum.UserInputType.Keyboard then
+				currentKey = input.KeyCode
+				bindButton.Text = currentKey.Name
+				bindButton.TextColor3 = Color3.fromRGB(200, 200, 215)
+				binding = false
+				configStorage[id] = currentKey.Name
+				saveConfiguration()
+			end
+		elseif not gameProcessed and input.KeyCode == currentKey then
+			if callback then task.spawn(callback, currentKey) end
+		end
+	end))
+	return container
 end
 
 function ContainerMeta:Destroy()
@@ -342,6 +566,7 @@ function Window:CreateGui()
 	self.MainFrame.Parent = parentGui
 	
 	local uiStroke = Instance.new("UIStroke")
+	uiStroke.Name = "WindowStroke"
 	uiStroke.Color = Theme.Border
 	uiStroke.Thickness = 1
 	uiStroke.Parent = self.MainFrame
@@ -362,6 +587,7 @@ function Window:CreateGui()
 	self.TitleBar.Parent = self.MainFrame
 	
 	local titleStroke = Instance.new("UIStroke")
+	titleStroke.Name = "TitleStroke"
 	titleStroke.Color = Theme.Border
 	titleStroke.Thickness = 1
 	titleStroke.Parent = self.TitleBar
@@ -391,6 +617,7 @@ function Window:CreateGui()
 	self.MinimizeButton.Parent = self.TitleBar
 	
 	local minStroke = Instance.new("UIStroke")
+	minStroke.Name = "MinStroke"
 	minStroke.Color = Theme.Border
 	minStroke.Thickness = 1
 	minStroke.Parent = self.MinimizeButton
@@ -562,6 +789,7 @@ function Window:AddContainer(titleText: string?): ContainerObj
 	
 	if titleText and titleText ~= "" then
 		local header = Instance.new("TextLabel")
+		header.Name = "HeaderLabel"
 		header.Size = UDim2.new(1, 0, 0, 20)
 		header.BackgroundTransparency = 1
 		header.Font = Enum.Font.Code
@@ -660,6 +888,7 @@ function Window:AddToggle(text: string, defaultState: boolean, callback: (boolea
 	label.Parent = container
 	
 	local toggleBg = Instance.new("Frame")
+	toggleBg.Name = "ToggleBg"
 	toggleBg.Size = UDim2.new(0, 36, 0, 18)
 	toggleBg.Position = UDim2.new(1, -44, 0.5, -9)
 	toggleBg.BackgroundColor3 = state and Theme.Accent or Color3.fromRGB(38, 38, 48)
@@ -721,6 +950,7 @@ function Window:AddSlider(text: string, min: number, max: number, defaultVal: nu
 	stroke.Parent = container
 	
 	local label = Instance.new("TextLabel")
+	label.Name = "SliderLabel"
 	label.Size = UDim2.new(1, -24, 0, 20)
 	label.Position = UDim2.new(0, 12, 0, 4)
 	label.BackgroundTransparency = 1
@@ -741,6 +971,7 @@ function Window:AddSlider(text: string, min: number, max: number, defaultVal: nu
 	sliderBar.Parent = container
 	
 	local sliderFill = Instance.new("Frame")
+	sliderFill.Name = "SliderFill"
 	sliderFill.Size = UDim2.new((val - min) / (max - min), 0, 1, 0)
 	sliderFill.BackgroundColor3 = Theme.Accent
 	sliderFill.BorderSizePixel = 0
@@ -784,10 +1015,7 @@ function Window:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback: (En
 	local id = self.Title .. "_" .. text
 	local currentKey = defaultKey
 	if configStorage[id] then
-		local success, enumItem = pcall(function()
-			return (Enum.KeyCode :: any)[configStorage[id]]
-		end)
-		if success and enumItem then currentKey = enumItem end
+		currentKey = getKeyCodeFromName(configStorage[id])
 	end
 	
 	local container = Instance.new("Frame")
@@ -866,6 +1094,70 @@ function WindowManager.CreateWindow(title: string, size: UDim2?, position: UDim2
 	return Window.new(title, size, position)
 end
 
+local function applyThemeToAll()
+	for _, window in ipairs(activeWindows) do
+		if window.MainFrame then
+			window.MainFrame.BackgroundColor3 = Theme.Background
+			local stroke = window.MainFrame:FindFirstChildOfClass("UIStroke")
+			if stroke then stroke.Color = Theme.Border end
+			
+			local topAccent = window.MainFrame:FindFirstChild("TopAccent")
+			if topAccent then (topAccent :: Frame).BackgroundColor3 = Theme.Accent end
+			
+			if window.TitleBar then
+				window.TitleBar.BackgroundColor3 = Theme.SecondaryBackground
+				local tStroke = window.TitleBar:FindFirstChildOfClass("UIStroke")
+				if tStroke then tStroke.Color = Theme.Border end
+			end
+			
+			if window.TitleLabel then
+				window.TitleLabel.TextColor3 = Theme.Text
+			end
+			
+			if window.MinimizeButton then
+				window.MinimizeButton.BackgroundColor3 = Theme.SecondaryBackground
+				window.MinimizeButton.TextColor3 = Theme.Text
+				local mStroke = window.MinimizeButton:FindFirstChildOfClass("UIStroke")
+				if mStroke then mStroke.Color = Theme.Border end
+			end
+			
+			if window.Container then
+				window.Container.ScrollBarImageColor3 = Theme.Accent
+				for _, child in ipairs(window.Container:GetDescendants()) do
+					if child:IsA("Frame") then
+						if child.Name == "ToggleBg" then
+							-- handled by state
+						elseif child.Name == "SliderFill" then
+							child.BackgroundColor3 = Theme.Accent
+						else
+							child.BackgroundColor3 = Theme.ContainerBackground
+							local cStroke = child:FindFirstChildOfClass("UIStroke")
+							if cStroke then cStroke.Color = Theme.Border end
+							local header = child:FindFirstChild("HeaderLabel")
+							if header and header:IsA("TextLabel") then
+								header.TextColor3 = Theme.Accent
+							end
+						end
+					elseif child:IsA("TextButton") then
+						child.BackgroundColor3 = Theme.SecondaryBackground
+						child.TextColor3 = Theme.Text
+						local bStroke = child:FindFirstChildOfClass("UIStroke")
+						if bStroke then bStroke.Color = Theme.Border end
+					elseif child:IsA("TextLabel") then
+						if child.Name ~= "HeaderLabel" then
+							child.TextColor3 = Theme.Text
+						end
+					end
+				end
+			end
+			
+			if window.ResizeHandle then
+				window.ResizeHandle.BackgroundColor3 = Theme.Border
+			end
+		end
+	end
+end
+
 local function toggleModMenu()
 	isMenuVisible = not isMenuVisible
 	local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
@@ -906,10 +1198,8 @@ end
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 	local toggleKeyStr = configStorage.ToggleKey or "F1"
-	local success, targetKeyCode = pcall(function()
-		return (Enum.KeyCode :: any)[toggleKeyStr]
-	end)
-	if success and targetKeyCode and input.KeyCode == targetKeyCode then
+	local targetKeyCode = getKeyCodeFromName(toggleKeyStr)
+	if input.KeyCode == targetKeyCode then
 		toggleModMenu()
 	end
 end)
@@ -922,27 +1212,29 @@ local function buildSettingsWindow()
 		configStorage.CurrentTheme = "Default"
 		Theme = Themes.Default
 		saveConfiguration()
-		print("Theme switched to Default. Please restart UI to apply fully.")
+		applyThemeToAll()
 	end)
 	themeContainer:AddButton("Theme: Halloween", function()
 		configStorage.CurrentTheme = "Halloween"
 		Theme = Themes.Halloween
 		saveConfiguration()
-		print("Theme switched to Halloween. Please restart UI to apply fully.")
+		applyThemeToAll()
 	end)
 	themeContainer:AddButton("Theme: Winter Arc", function()
 		configStorage.CurrentTheme = "WinterArc"
 		Theme = Themes.WinterArc
 		saveConfiguration()
+		applyThemeToAll()
 	end)
 	themeContainer:AddButton("Theme: Autumn", function()
 		configStorage.CurrentTheme = "Autumn"
 		Theme = Themes.Autumn
 		saveConfiguration()
+		applyThemeToAll()
 	end)
 	
 	local bindContainer = settingsWin:AddContainer("UI Toggle Keybind")
-	bindContainer:AddKeybind("Toggle Key", Enum.KeyCode[configStorage.ToggleKey or "F1"], function(key)
+	bindContainer:AddKeybind("Toggle Key", getKeyCodeFromName(configStorage.ToggleKey or "F1"), function(key)
 		configStorage.ToggleKey = key.Name
 		saveConfiguration()
 	end)

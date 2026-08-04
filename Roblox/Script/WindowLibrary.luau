@@ -5,10 +5,57 @@ local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
+local CoreGui = game:GetService("CoreGui")
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 local Camera = workspace.CurrentCamera
+
+-- Configuration de l'identifiant et du nom de l'UI (Anti-Multi-Instance)
+local PLAYER_ID = LocalPlayer.UserId
+local UI_NAME = PLAYER_ID .. "_WLibraryUI"
+
+local function cleanupOldInstances()
+	pcall(function()
+		-- 1. Nettoyage dans CoreGui
+		if CoreGui then
+			local oldGui = CoreGui:FindFirstChild(UI_NAME)
+			if oldGui then
+				oldGui:Destroy()
+			end
+		end
+		
+		-- 2. Nettoyage dans gethui() (environnements d'exécuteurs avancés)
+		if typeof(gethui) == "function" then
+			local success, hui = pcall(gethui)
+			if success and hui then
+				local oldGui = hui:FindFirstChild(UI_NAME)
+				if oldGui then
+					oldGui:Destroy()
+				end
+			end
+		end
+		
+		-- 3. Nettoyage de secours dans PlayerGui
+		if PlayerGui then
+			local oldGui = PlayerGui:FindFirstChild(UI_NAME)
+			if oldGui then
+				oldGui:Destroy()
+			end
+		end
+		
+		-- 4. Nettoyage des effets de lighting orphelins
+		if Lighting then
+			local oldBlur = Lighting:FindFirstChild("SecEngine_Blur")
+			if oldBlur then oldBlur:Destroy() end
+			local oldCC = Lighting:FindFirstChild("SecEngine_CC")
+			if oldCC then oldCC:Destroy() end
+		end
+	end)
+end
+
+-- Exécution immédiate du nettoyage anti-multi-instance
+cleanupOldInstances()
 
 task.spawn(function()
 	local hasRConsole = (typeof(rconsoleprint) == "function")
@@ -167,21 +214,24 @@ local function initializeLightingEffects()
 end
 
 local function initializeGui(): ScreenGui
-	if screenGui then return screenGui end
+	if screenGui and screenGui.Parent then return screenGui end
+	
 	initializeLightingEffects()
 	screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "SecureAdvancedModMenu"
+	screenGui.Name = UI_NAME
 	screenGui.ResetOnSpawn = false
 	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	
 	pcall(function()
 		if typeof(gethui) == "function" then
 			screenGui.Parent = gethui()
-		elseif game:GetService("CoreGui") then
-			screenGui.Parent = game:GetService("CoreGui")
+		elseif CoreGui then
+			screenGui.Parent = CoreGui
 		else
 			screenGui.Parent = PlayerGui
 		end
 	end)
+	
 	if not screenGui.Parent then
 		pcall(function()
 			screenGui.Parent = PlayerGui

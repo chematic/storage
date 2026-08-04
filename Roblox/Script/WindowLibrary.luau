@@ -1,6 +1,6 @@
 --[================================================================================]--
---|                 ROBLOX ADVANCED MODULAR WINDOW LIBRARY v2.0                    |--
---|              Secure Client-Side UI, Resizing & Persistence Engine              |--
+--|                 ROBLOX ADVANCED MODULAR WINDOW LIBRARY v2.1                    |--
+--|           Secure Client-Side UI, Auto-Layout, Resizing & Persistence           |--
 --[================================================================================]--
 
 local UserInputService = game:GetService("UserInputService")
@@ -15,7 +15,7 @@ local PlayerGui = Player:WaitForChild("PlayerGui")
 local WindowManager = {}
 WindowManager.__index = WindowManager
 
--- État global & Configuration par défaut
+-- Global State & Default Configuration
 local activeWindows = {}
 local isMenuVisible = true
 local screenGui = nil
@@ -30,7 +30,7 @@ local defaultConfig = {
 }
 local configStorage = table.clone(defaultConfig)
 
--- Chargement sécurisé des configurations via pcall
+-- Secure Configuration Loading via pcall
 local function loadConfiguration()
 	if not writefile or not readfile then return end
 	pcall(function()
@@ -56,7 +56,7 @@ end
 
 loadConfiguration()
 
--- Initialisation des effets visuels globaux (Lighting haute performance)
+-- Global Visual Effects Initialization (High Performance Lighting)
 local function initializeLightingEffects()
 	if not blurEffect then
 		blurEffect = Instance.new("BlurEffect")
@@ -87,7 +87,7 @@ local function initializeGui()
 end
 
 --[================================================================================]--
---|                         WINDOW CLASS (OOP & RESIZABLE)                         |--
+--|                      WINDOW CLASS (OOP, AUTO-LAYOUT & RESIZE)                  |--
 --[================================================================================]--
 
 local Window = {}
@@ -98,7 +98,18 @@ function Window.new(titleText: string, size: UDim2?, position: UDim2?)
 	
 	self.Title = titleText or "Panel"
 	self.Size = size or UDim2.new(0, 320, 0, 380)
-	self.Position = position or UDim2.new(0.5, -160, 0.5, -190)
+	
+	-- Automatic side-by-side positioning if no position is provided
+	if position then
+		self.Position = position
+	else
+		local windowCount = #activeWindows
+		local defaultWidth = 320
+		local spacing = 20
+		local startX = 40 + (windowCount * (defaultWidth + spacing))
+		local startY = 80
+		self.Position = UDim2.new(0, startX, 0, startY)
+	end
 	
 	self:CreateGui()
 	table.insert(activeWindows, self)
@@ -109,7 +120,7 @@ end
 function Window:CreateGui()
 	local parentGui = initializeGui()
 	
-	-- Panneau principal SANS AUCUN UICorner (Style géométrique net)
+	-- Main Frame with clean geometric borders (No UICorner)
 	self.MainFrame = Instance.new("Frame")
 	self.MainFrame.Name = self.Title .. "_Window"
 	self.MainFrame.Size = self.Size
@@ -125,7 +136,7 @@ function Window:CreateGui()
 	uiStroke.Thickness = 1
 	uiStroke.Parent = self.MainFrame
 	
-	-- Barre de Titre (Drag Handle)
+	-- Title Bar (Drag Handle)
 	self.TitleBar = Instance.new("Frame")
 	self.TitleBar.Name = "TitleBar"
 	self.TitleBar.Size = UDim2.new(1, 0, 0, 32)
@@ -149,7 +160,7 @@ function Window:CreateGui()
 	self.TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 	self.TitleLabel.Parent = self.TitleBar
 	
-	-- Conteneur Scrollable (Empêche le surplus et gère l'affichage dynamique)
+	-- Scrollable Container to prevent overflow
 	self.Container = Instance.new("ScrollingFrame")
 	self.Container.Name = "Container"
 	self.Container.Size = UDim2.new(1, -16, 1, -48)
@@ -167,7 +178,7 @@ function Window:CreateGui()
 	uiLayout.Padding = UDim.new(0, 6)
 	uiLayout.Parent = self.Container
 	
-	-- Poignée de redimensionnement (Resize Handle en bas à droite)
+	-- Bottom-Right Resize Handle
 	self.ResizeHandle = Instance.new("TextButton")
 	self.ResizeHandle.Name = "ResizeHandle"
 	self.ResizeHandle.Size = UDim2.new(0, 14, 0, 14)
@@ -253,7 +264,7 @@ function Window:SetTransparency(transparency: number)
 end
 
 --[================================================================================]--
---|                        COMPOSANTS UI HAUTE FIDÉLITÉ                            |--
+--|                        UI COMPONENTS (HIGH FIDELITY)                           |--
 --[================================================================================]--
 
 function Window:AddLabel(text: string)
@@ -525,29 +536,28 @@ function Window:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback)
 end
 
 --[================================================================================]--
---|                       PANNEAUX SPÉCIAUX (INSTRUCTIONS & SETTINGS)              |--
+--|                       SPECIAL PANELS (INSTRUCTIONS & SETTINGS)                 |--
 --[================================================================================]--
 
 function WindowManager.BuildInstructionPanel()
-	local instWindow = Window.new("Instructions", UDim2.new(0, 320, 0, 300), UDim2.new(0.5, -340, 0.25, 0))
-	instWindow:AddLabel("--- Guide d'Utilisation ---")
-	instWindow:AddLabel("• F1 (+ Alt par défaut) : Bascule l'UI.")
-	instWindow:AddLabel("• Redimensionnement : Glissez le coin bas-droit.")
-	instWindow:AddLabel("• Persistance : Sauvegarde automatique JSON.")
-	instWindow:AddLabel("• Utilisez la molette pour scroller les panneaux.")
+	local instWindow = Window.new("Instructions")
+	instWindow:AddLabel("--- User Guide ---")
+	instWindow:AddLabel("• F1 (+ Alt by default) : Toggle UI.")
+	instWindow:AddLabel("• Resizing : Drag bottom-right corner.")
+	instWindow:AddLabel("• Persistence : Auto-saves to JSON.")
+	instWindow:AddLabel("• Use mouse wheel to scroll panels.")
 	return instWindow
 end
 
 function WindowManager.BuildSettingsPanel()
-	local setWindow = Window.new("UI Settings", UDim2.new(0, 320, 0, 320), UDim2.new(0.5, 20, 0.25, 0))
+	local setWindow = Window.new("UI Settings")
 	
-	setWindow:AddLabel("--- Configuration Globale ---")
+	setWindow:AddLabel("--- Global Configuration ---")
 	
-	-- Changement de touche Toggle avec bouton Reset à droite
 	local keyContainer = Instance.new("Frame")
 	keyContainer.Size = UDim2.new(1, 0, 0, 30)
 	keyContainer.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
-	keyContainer.BorderSizePixel = tabControl or 0
+	keyContainer.BorderSizePixel = 0 -- Fixed nil variable bug here
 	keyContainer.Parent = setWindow.Container
 	
 	local keyLabel = Instance.new("TextLabel")
@@ -555,7 +565,7 @@ function WindowManager.BuildSettingsPanel()
 	keyLabel.Position = UDim2.new(0, 10, 0, 0)
 	keyLabel.BackgroundTransparency = 1
 	keyLabel.Font = Enum.Font.GothamMedium
-	keyLabel.Text = "Touche d'Ouverture"
+	keyLabel.Text = "Toggle Key"
 	keyLabel.TextColor3 = Color3.fromRGB(210, 210, 220)
 	keyLabel.TextSize = 12
 	keyLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -608,8 +618,7 @@ function WindowManager.BuildSettingsPanel()
 		end
 	end)
 	
-	-- Slider de transparence des fenêtres
-	setWindow:AddSlider("Transparence Panneaux", 0, 0.8, configStorage.WindowTransparency or 0, function(val)
+	setWindow:AddSlider("Panel Transparency", 0, 0.8, configStorage.WindowTransparency or 0, function(val)
 		configStorage.WindowTransparency = val
 		saveConfiguration()
 		for _, w in ipairs(activeWindows) do
@@ -633,7 +642,6 @@ local function toggleModMenu()
 	
 	local tweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 	
-	-- Application stricte des valeurs demandées : Blur = 30, Brightness = -0.1
 	local blurGoal = isMenuVisible and 30 or 0
 	local ccGoal = isMenuVisible and -0.1 or 0
 	
@@ -671,7 +679,6 @@ local function toggleModMenu()
 	end
 end
 
--- Écouteur global de la touche de bascule dynamique
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 	

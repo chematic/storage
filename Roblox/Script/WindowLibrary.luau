@@ -1,8 +1,4 @@
 --!strict
---[================================================================================]--
---|                 ROBLOX ADVANCED MODULAR WINDOW LIBRARY v3.2                    |--
---|      Industrial-Grade Architecture, Memory Safe, Strict Typing & Theming       |--
---[================================================================================]--
 
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -12,10 +8,26 @@ local HttpService = game:GetService("HttpService")
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
+local Camera = workspace.CurrentCamera
 
---[================================================================================]--
---|                       THEMING ENGINE & CONFIGURATION                           |--
---[================================================================================]--
+task.spawn(function()
+	local hasRConsole = (typeof(rconsoleprint) == "function")
+	if hasRConsole then
+		pcall(function() rconsoleprint("\27[33m") end)
+	end
+	for i = 1, 100, 5 do
+		local bar = "[" .. string.rep("=", math.floor(i/10)) .. string.rep("-", 10 - math.floor(i/10)) .. "] " .. tostring(i) .. "% Loading Window Library..."
+		if hasRConsole then
+			pcall(function() rconsoleprint(bar .. "\n") end)
+		else
+			print("\27[33m" .. bar .. "\27[0m")
+		end
+		task.wait(0.015)
+	end
+	if hasRConsole then
+		pcall(function() rconsoleprint("\27[0m") end)
+	end
+end)
 
 export type ThemeConfig = {
 	Background: Color3,
@@ -28,15 +40,47 @@ export type ThemeConfig = {
 	Error: Color3,
 }
 
-local Theme: ThemeConfig = {
-	Background = Color3.fromRGB(15, 15, 19),
-	SecondaryBackground = Color3.fromRGB(22, 22, 28),
-	ContainerBackground = Color3.fromRGB(19, 19, 25),
-	Accent = Color3.fromRGB(0, 225, 130),
-	Text = Color3.fromRGB(240, 240, 245),
-	TextDim = Color3.fromRGB(170, 170, 185),
-	Border = Color3.fromRGB(40, 40, 52),
-	Error = Color3.fromRGB(180, 50, 50),
+local Themes: {[string]: ThemeConfig} = {
+	Default = {
+		Background = Color3.fromRGB(15, 15, 19),
+		SecondaryBackground = Color3.fromRGB(22, 22, 28),
+		ContainerBackground = Color3.fromRGB(19, 19, 25),
+		Accent = Color3.fromRGB(0, 225, 130),
+		Text = Color3.fromRGB(240, 240, 245),
+		TextDim = Color3.fromRGB(170, 170, 185),
+		Border = Color3.fromRGB(40, 40, 52),
+		Error = Color3.fromRGB(180, 50, 50),
+	},
+	Halloween = {
+		Background = Color3.fromRGB(18, 15, 22),
+		SecondaryBackground = Color3.fromRGB(26, 21, 32),
+		ContainerBackground = Color3.fromRGB(22, 18, 28),
+		Accent = Color3.fromRGB(255, 140, 0),
+		Text = Color3.fromRGB(245, 240, 250),
+		TextDim = Color3.fromRGB(180, 165, 195),
+		Border = Color3.fromRGB(55, 40, 70),
+		Error = Color3.fromRGB(200, 50, 50),
+	},
+	WinterArc = {
+		Background = Color3.fromRGB(14, 18, 25),
+		SecondaryBackground = Color3.fromRGB(20, 26, 36),
+		ContainerBackground = Color3.fromRGB(17, 22, 31),
+		Accent = Color3.fromRGB(0, 180, 255),
+		Text = Color3.fromRGB(235, 245, 255),
+		TextDim = Color3.fromRGB(160, 185, 210),
+		Border = Color3.fromRGB(35, 50, 75),
+		Error = Color3.fromRGB(200, 60, 60),
+	},
+	Autumn = {
+		Background = Color3.fromRGB(20, 17, 15),
+		SecondaryBackground = Color3.fromRGB(30, 25, 22),
+		ContainerBackground = Color3.fromRGB(25, 21, 18),
+		Accent = Color3.fromRGB(210, 105, 30),
+		Text = Color3.fromRGB(250, 240, 230),
+		TextDim = Color3.fromRGB(190, 170, 155),
+		Border = Color3.fromRGB(65, 45, 35),
+		Error = Color3.fromRGB(180, 70, 50),
+	}
 }
 
 local WindowManager = {}
@@ -52,18 +96,16 @@ local globalZIndexCounter = 100
 local CONFIG_FILE_NAME = "ModMenu_Config.json"
 local defaultConfig = {
 	ToggleKey = "F1",
-	RequireAlt = true,
 	WindowTransparency = 0,
+	CurrentTheme = "Default",
 }
 local configStorage = table.clone(defaultConfig)
+local Theme: ThemeConfig = Themes.Default
 
--- Sécurisation robuste des fonctions d'E/S de fichiers
 local function loadConfiguration()
 	local hasRead = (typeof(readfile) == "function")
 	local hasIsFile = (typeof(isfile) == "function")
-	
 	if not hasRead or not hasIsFile then return end
-	
 	pcall(function()
 		if isfile(CONFIG_FILE_NAME) then
 			local content = readfile(CONFIG_FILE_NAME)
@@ -79,6 +121,9 @@ local function loadConfiguration()
 			end
 		end
 	end)
+	if configStorage.CurrentTheme and Themes[configStorage.CurrentTheme] then
+		Theme = Themes[configStorage.CurrentTheme]
+	end
 end
 
 local function saveConfiguration()
@@ -103,7 +148,6 @@ local function initializeLightingEffects()
 			blurEffect.Size = 0
 			blurEffect.Parent = Lighting
 		end
-		
 		if not colorCorrection then
 			colorCorrection = Instance.new("ColorCorrectionEffect")
 			colorCorrection.Name = "SecEngine_CC"
@@ -116,14 +160,11 @@ end
 local function initializeGui(): ScreenGui
 	if screenGui then return screenGui end
 	initializeLightingEffects()
-	
 	screenGui = Instance.new("ScreenGui")
 	screenGui.Name = "SecureAdvancedModMenu"
 	screenGui.ResetOnSpawn = false
 	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	
-	-- Compatibilité maximale cross-exécuteurs (gethui -> CoreGui -> PlayerGui)
-	local success = pcall(function()
+	pcall(function()
 		if typeof(gethui) == "function" then
 			screenGui.Parent = gethui()
 		elseif game:GetService("CoreGui") then
@@ -132,19 +173,13 @@ local function initializeGui(): ScreenGui
 			screenGui.Parent = PlayerGui
 		end
 	end)
-	
-	if not success or not screenGui.Parent then
+	if not screenGui.Parent then
 		pcall(function()
 			screenGui.Parent = PlayerGui
 		end)
 	end
-	
 	return screenGui
 end
-
---[================================================================================]--
---|                        CONTAINER CLASS & SUB-SECTIONS                          |--
---[================================================================================]--
 
 export type ContainerObj = {
 	Instance: Frame,
@@ -190,7 +225,6 @@ function ContainerMeta:AddButton(text: string, callback: () -> ()): TextButton
 	stroke.Parent = btn
 	
 	local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-	
 	table.insert(self.Connections, btn.MouseButton1Click:Connect(function()
 		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Theme.Accent, TextColor3 = Theme.Background}):Play()
 		task.delay(0.15, function()
@@ -200,14 +234,12 @@ function ContainerMeta:AddButton(text: string, callback: () -> ()): TextButton
 		end)
 		if callback then task.spawn(callback) end
 	end))
-	
 	table.insert(self.Connections, btn.MouseEnter:Connect(function()
 		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(34, 34, 44)}):Play()
 	end))
 	table.insert(self.Connections, btn.MouseLeave:Connect(function()
 		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Theme.SecondaryBackground}):Play()
 	end))
-	
 	return btn
 end
 
@@ -221,10 +253,6 @@ function ContainerMeta:Destroy()
 	end
 end
 
---[================================================================================]--
---|                        WINDOW CLASS (OOP, FOCUS & CLEANUP)                     |--
---[================================================================================]--
-
 export type WindowObj = {
 	Title: string,
 	Size: UDim2,
@@ -234,12 +262,15 @@ export type WindowObj = {
 	TitleLabel: TextLabel,
 	Container: ScrollingFrame,
 	ResizeHandle: TextButton,
+	MinimizeButton: TextButton,
+	IsMinimized: boolean,
 	Connections: {RBXScriptConnection},
 	CreateGui: (self: WindowObj) -> (),
 	InitDragging: (self: WindowObj) -> (),
 	InitResizing: (self: WindowObj) -> (),
 	BringToFront: (self: WindowObj) -> (),
 	SetTransparency: (self: WindowObj, transparency: number) -> (),
+	ToggleMinimize: (self: WindowObj) -> (),
 	AddContainer: (self: WindowObj, titleText: string?) -> ContainerObj,
 	AddLabel: (self: WindowObj, text: string) -> TextLabel,
 	AddButton: (self: WindowObj, text: string, callback: () -> ()) -> TextButton,
@@ -254,9 +285,9 @@ Window.__index = Window
 
 function Window.new(titleText: string, size: UDim2?, position: UDim2?): WindowObj
 	local self = setmetatable({}, Window) :: any
-	
 	self.Title = titleText or "Panel"
 	self.Size = size or UDim2.new(0, 340, 0, 420)
+	self.IsMinimized = false
 	self.Connections = {}
 	
 	if position then
@@ -264,15 +295,28 @@ function Window.new(titleText: string, size: UDim2?, position: UDim2?): WindowOb
 	else
 		local windowCount = #activeWindows
 		local defaultWidth = 340
-		local spacing = 20
-		local startX = 40 + (windowCount * (defaultWidth + spacing))
-		local startY = 80
+		local defaultHeight = 420
+		local spacing = 15
+		local viewportSize = Camera and Camera.ViewportSize or Vector2.new(1920, 1080)
+		local maxPerRow = math.floor((viewportSize.X - 40) / (defaultWidth + spacing))
+		if maxPerRow < 1 then maxPerRow = 1 end
+		
+		local rowIndex = math.floor(windowCount / maxPerRow)
+		local colIndex = windowCount % maxPerRow
+		
+		local startX = 20 + colIndex * (defaultWidth + spacing)
+		local startY = 20 + rowIndex * (defaultHeight + spacing)
+		
+		if startY + defaultHeight > viewportSize.Y - 20 then
+			startY = 20 + (windowCount % 3) * 20
+			startX = 20 + (windowCount * 20)
+		end
+		
 		self.Position = UDim2.new(0, startX, 0, startY)
 	end
 	
 	self:CreateGui()
 	table.insert(activeWindows, self)
-	
 	return self
 end
 
@@ -303,6 +347,7 @@ function Window:CreateGui()
 	uiStroke.Parent = self.MainFrame
 	
 	local topAccent = Instance.new("Frame")
+	topAccent.Name = "TopAccent"
 	topAccent.Size = UDim2.new(1, 0, 0, 2)
 	topAccent.BackgroundColor3 = Theme.Accent
 	topAccent.BorderSizePixel = 0
@@ -322,7 +367,7 @@ function Window:CreateGui()
 	titleStroke.Parent = self.TitleBar
 	
 	self.TitleLabel = Instance.new("TextLabel")
-	self.TitleLabel.Size = UDim2.new(1, -16, 1, 0)
+	self.TitleLabel.Size = UDim2.new(1, -50, 1, 0)
 	self.TitleLabel.Position = UDim2.new(0, 12, 0, 0)
 	self.TitleLabel.BackgroundTransparency = 1
 	self.TitleLabel.Font = Enum.Font.Code
@@ -331,6 +376,28 @@ function Window:CreateGui()
 	self.TitleLabel.TextSize = 12
 	self.TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 	self.TitleLabel.Parent = self.TitleBar
+	
+	self.MinimizeButton = Instance.new("TextButton")
+	self.MinimizeButton.Name = "MinimizeButton"
+	self.MinimizeButton.Size = UDim2.new(0, 26, 0, 22)
+	self.MinimizeButton.Position = UDim2.new(1, -30, 0.5, -11)
+	self.MinimizeButton.BackgroundColor3 = Theme.SecondaryBackground
+	self.MinimizeButton.BorderSizePixel = 0
+	self.MinimizeButton.AutoButtonColor = false
+	self.MinimizeButton.Font = Enum.Font.GothamBold
+	self.MinimizeButton.Text = "-"
+	self.MinimizeButton.TextColor3 = Theme.Text
+	self.MinimizeButton.TextSize = 14
+	self.MinimizeButton.Parent = self.TitleBar
+	
+	local minStroke = Instance.new("UIStroke")
+	minStroke.Color = Theme.Border
+	minStroke.Thickness = 1
+	minStroke.Parent = self.MinimizeButton
+	
+	table.insert(self.Connections, self.MinimizeButton.MouseButton1Click:Connect(function()
+		self:ToggleMinimize()
+	end))
 	
 	self.Container = Instance.new("ScrollingFrame")
 	self.Container.Name = "Container"
@@ -367,6 +434,22 @@ function Window:CreateGui()
 	
 	self:InitDragging()
 	self:InitResizing()
+end
+
+function Window:ToggleMinimize()
+	self.IsMinimized = not self.IsMinimized
+	local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+	if self.IsMinimized then
+		self.MinimizeButton.Text = "+"
+		self.Container.Visible = false
+		self.ResizeHandle.Visible = false
+		TweenService:Create(self.MainFrame, tweenInfo, {Size = UDim2.new(self.MainFrame.Size.X.Scale, self.MainFrame.Size.X.Offset, 0, 36)}):Play()
+	else
+		self.MinimizeButton.Text = "-"
+		self.Container.Visible = true
+		self.ResizeHandle.Visible = true
+		TweenService:Create(self.MainFrame, tweenInfo, {Size = self.Size}):Play()
+	end
 end
 
 function Window:InitDragging()
@@ -438,8 +521,10 @@ function Window:InitResizing()
 			local delta = input.Position - resizeStart
 			local newWidth = math.clamp(startSize.X + delta.X, 240, 800)
 			local newHeight = math.clamp(startSize.Y + delta.Y, 180, 750)
-			
-			self.MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+			self.Size = UDim2.new(0, newWidth, 0, newHeight)
+			if not self.IsMinimized then
+				self.MainFrame.Size = self.Size
+			end
 		end
 	end))
 end
@@ -528,7 +613,6 @@ function Window:AddButton(text: string, callback: () -> ()): TextButton
 	stroke.Parent = btn
 	
 	local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-	
 	table.insert(self.Connections, btn.MouseButton1Click:Connect(function()
 		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Theme.Accent, TextColor3 = Theme.Background}):Play()
 		task.delay(0.15, function()
@@ -538,14 +622,12 @@ function Window:AddButton(text: string, callback: () -> ()): TextButton
 		end)
 		if callback then task.spawn(callback) end
 	end))
-	
 	table.insert(self.Connections, btn.MouseEnter:Connect(function()
 		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(34, 34, 44)}):Play()
 	end))
 	table.insert(self.Connections, btn.MouseLeave:Connect(function()
 		TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Theme.SecondaryBackground}):Play()
 	end))
-	
 	return btn
 end
 
@@ -592,11 +674,9 @@ function Window:AddToggle(text: string, defaultState: boolean, callback: (boolea
 	toggleCircle.Parent = toggleBg
 	
 	local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-	
 	local function updateVisual(instant: boolean)
 		local goalBgColor = state and Theme.Accent or Color3.fromRGB(38, 38, 48)
 		local goalCirclePos = state and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
-		
 		if instant then
 			toggleBg.BackgroundColor3 = goalBgColor
 			toggleCircle.Position = goalCirclePos
@@ -616,14 +696,12 @@ function Window:AddToggle(text: string, defaultState: boolean, callback: (boolea
 		updateVisual(false)
 		if callback then task.spawn(callback, state) end
 	end))
-	
 	table.insert(self.Connections, container.MouseEnter:Connect(function()
 		TweenService:Create(container, tweenInfo, {BackgroundColor3 = Color3.fromRGB(30, 30, 38)}):Play()
 	end))
 	table.insert(self.Connections, container.MouseLeave:Connect(function()
 		TweenService:Create(container, tweenInfo, {BackgroundColor3 = Theme.SecondaryBackground}):Play()
 	end))
-	
 	return container
 end
 
@@ -669,19 +747,15 @@ function Window:AddSlider(text: string, min: number, max: number, defaultVal: nu
 	sliderFill.Parent = sliderBar
 	
 	local sliding = false
-	
 	local function updateValue(inputPos: number)
 		local sizeX = sliderBar.AbsoluteSize.X
 		if sizeX <= 0 then return end
 		local posRelative = math.clamp((inputPos - sliderBar.AbsolutePosition.X) / sizeX, 0, 1)
 		val = math.floor((min + (max - min) * posRelative) * 10) / 10
-		
 		sliderFill.Size = UDim2.new(posRelative, 0, 1, 0)
 		label.Text = text .. ": " .. tostring(val)
-		
 		configStorage[id] = val
 		saveConfiguration()
-		
 		if callback then task.spawn(callback, val) end
 	end
 	
@@ -691,13 +765,11 @@ function Window:AddSlider(text: string, min: number, max: number, defaultVal: nu
 			updateValue(input.Position.X)
 		end
 	end))
-	
 	table.insert(self.Connections, UserInputService.InputEnded:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			sliding = false
 		end
 	end))
-	
 	table.insert(self.Connections, UserInputService.InputChanged:Connect(function(input)
 		if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 			updateValue(input.Position.X)
@@ -711,7 +783,6 @@ end
 function Window:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback: (Enum.KeyCode) -> ()): Frame
 	local id = self.Title .. "_" .. text
 	local currentKey = defaultKey
-	
 	if configStorage[id] then
 		local success, enumItem = pcall(function()
 			return (Enum.KeyCode :: any)[configStorage[id]]
@@ -753,13 +824,11 @@ function Window:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback: (En
 	bindButton.Parent = container
 	
 	local binding = false
-	
 	table.insert(self.Connections, bindButton.MouseButton1Click:Connect(function()
 		binding = true
 		bindButton.Text = "..."
 		bindButton.TextColor3 = Theme.Accent
 	end))
-	
 	table.insert(self.Connections, UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		if binding then
 			if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -767,7 +836,6 @@ function Window:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback: (En
 				bindButton.Text = currentKey.Name
 				bindButton.TextColor3 = Color3.fromRGB(200, 200, 215)
 				binding = false
-				
 				configStorage[id] = currentKey.Name
 				saveConfiguration()
 			end
@@ -775,7 +843,6 @@ function Window:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback: (En
 			if callback then task.spawn(callback, currentKey) end
 		end
 	end))
-	
 	return container
 end
 
@@ -784,22 +851,16 @@ function Window:Destroy()
 		conn:Disconnect()
 	end
 	table.clear(self.Connections)
-	
 	for i, win in ipairs(activeWindows) do
 		if win == self then
 			table.remove(activeWindows, i)
 			break
 		end
 	end
-	
 	if self.MainFrame then
 		self.MainFrame:Destroy()
 	end
 end
-
---[================================================================================]--
---|                       MANAGER & ANIMATIONS (FADE IN/OUT)                       |--
---[================================================================================]--
 
 function WindowManager.CreateWindow(title: string, size: UDim2?, position: UDim2?): WindowObj
 	return Window.new(title, size, position)
@@ -807,12 +868,9 @@ end
 
 local function toggleModMenu()
 	isMenuVisible = not isMenuVisible
-	
 	local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-	
 	local blurGoal = isMenuVisible and 30 or 0
 	local ccGoal = isMenuVisible and -0.1 or 0
-	
 	if blurEffect then TweenService:Create(blurEffect, tweenInfo, {Size = blurGoal}):Play() end
 	if colorCorrection then TweenService:Create(colorCorrection, tweenInfo, {Brightness = ccGoal}):Play() end
 	
@@ -821,7 +879,6 @@ local function toggleModMenu()
 		for _, window in ipairs(activeWindows) do
 			local frame = window.MainFrame
 			local targetTransparency = configStorage.WindowTransparency or 0
-			
 			if isMenuVisible then
 				frame.Visible = true
 				frame.BackgroundTransparency = 1
@@ -836,7 +893,6 @@ local function toggleModMenu()
 				end)
 			end
 		end
-		
 		if not isMenuVisible then
 			task.delay(0.4, function()
 				if not isMenuVisible then
@@ -849,17 +905,52 @@ end
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
-	
+	local toggleKeyStr = configStorage.ToggleKey or "F1"
 	local success, targetKeyCode = pcall(function()
-		return (Enum.KeyCode :: any)[configStorage.ToggleKey or "F1"]
+		return (Enum.KeyCode :: any)[toggleKeyStr]
+	end)
+	if success and targetKeyCode and input.KeyCode == targetKeyCode then
+		toggleModMenu()
+	end
+end)
+
+local function buildSettingsWindow()
+	local settingsWin = WindowManager.CreateWindow("Settings", UDim2.new(0, 340, 0, 380))
+	
+	local themeContainer = settingsWin:AddContainer("Theme Selection")
+	themeContainer:AddButton("Theme: Default", function()
+		configStorage.CurrentTheme = "Default"
+		Theme = Themes.Default
+		saveConfiguration()
+		print("Theme switched to Default. Please restart UI to apply fully.")
+	end)
+	themeContainer:AddButton("Theme: Halloween", function()
+		configStorage.CurrentTheme = "Halloween"
+		Theme = Themes.Halloween
+		saveConfiguration()
+		print("Theme switched to Halloween. Please restart UI to apply fully.")
+	end)
+	themeContainer:AddButton("Theme: Winter Arc", function()
+		configStorage.CurrentTheme = "WinterArc"
+		Theme = Themes.WinterArc
+		saveConfiguration()
+	end)
+	themeContainer:AddButton("Theme: Autumn", function()
+		configStorage.CurrentTheme = "Autumn"
+		Theme = Themes.Autumn
+		saveConfiguration()
 	end)
 	
-	if success and targetKeyCode and input.KeyCode == targetKeyCode then
-		local isAltPressed = not configStorage.RequireAlt or (UserInputService:IsKeyDown(Enum.KeyCode.LeftAlt) or UserInputService:IsKeyDown(Enum.KeyCode.RightAlt))
-		if isAltPressed then
-			toggleModMenu()
-		end
-	end
+	local bindContainer = settingsWin:AddContainer("UI Toggle Keybind")
+	bindContainer:AddKeybind("Toggle Key", Enum.KeyCode[configStorage.ToggleKey or "F1"], function(key)
+		configStorage.ToggleKey = key.Name
+		saveConfiguration()
+	end)
+end
+
+task.spawn(function()
+	task.wait(0.1)
+	buildSettingsWindow()
 end)
 
 return WindowManager

@@ -1,5 +1,12 @@
 --!strict
 
+--[[
+	================================================================================
+	Window Library Premium Window Library v2.2 - Ultimate Edition
+	Architecture Design & UI Consistency System Refactored
+	================================================================================
+]]
+
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
@@ -47,9 +54,9 @@ local function cleanupOldInstances()
 		
 		-- 4. Nettoyage des effets de lighting orphelins
 		if Lighting then
-			local oldBlur = Lighting:FindFirstChild("SecEngine_Blur")
+			local oldBlur = Lighting:FindFirstChild("Window Library_Blur")
 			if oldBlur then oldBlur:Destroy() end
-			local oldCC = Lighting:FindFirstChild("SecEngine_CC")
+			local oldCC = Lighting:FindFirstChild("Window Library_CC")
 			if oldCC then oldCC:Destroy() end
 		end
 	end)
@@ -58,24 +65,182 @@ end
 -- Exécution immédiate du nettoyage anti-multi-instance
 cleanupOldInstances()
 
-task.spawn(function()
-	local hasRConsole = (typeof(rconsoleprint) == "function")
-	if hasRConsole then
-		pcall(function() rconsoleprint("\27[33m") end)
-	end
-	for i = 1, 100, 5 do
-		local bar = "[" .. string.rep("=", math.floor(i/10)) .. string.rep("-", 10 - math.floor(i/10)) .. "] " .. tostring(i) .. "% Loading SecEngine Premium Window Library..."
-		if hasRConsole then
-			pcall(function() rconsoleprint(bar .. "\n") end)
+-- ================================================================================
+-- STANDALONE LOADING SCREEN SYSTEM (Plein écran, style UI unifié, ombres & animations)
+-- ================================================================================
+local function runStandaloneLoadingScreen()
+	pcall(function()
+		local loadingGui = Instance.new("ScreenGui")
+		loadingGui.Name = UI_NAME .. "_Loader"
+		loadingGui.ResetOnSpawn = false
+		loadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		
+		if typeof(gethui) == "function" then
+			loadingGui.Parent = gethui()
+		elseif CoreGui then
+			loadingGui.Parent = CoreGui
 		else
-			print("\27[33m" .. bar .. "\27[0m")
+			loadingGui.Parent = PlayerGui
 		end
-		task.wait(0.015)
-	end
-	if hasRConsole then
-		pcall(function() rconsoleprint("\27[0m") end)
-	end
-end)
+		
+		-- Fond plein écran flouté / obscurci
+		local bgOverlay = Instance.new("Frame")
+		bgOverlay.Size = UDim2.new(1, 0, 1, 0)
+		bgOverlay.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
+		bgOverlay.BackgroundTransparency = 1
+		bgOverlay.BorderSizePixel = 0
+		bgOverlay.Parent = loadingGui
+		
+		-- Ombre globale du conteneur de chargement
+		local loaderShadow = Instance.new("ImageLabel")
+		loaderShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+		loaderShadow.Position = UDim2.new(0.5, 0, 0.5, 6)
+		loaderShadow.Size = UDim2.new(0, 424, 0, 244)
+		loaderShadow.BackgroundTransparency = 1
+		loaderShadow.Image = "rbxassetid://1316045217"
+		loaderShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+		loaderShadow.ImageTransparency = 0.5
+		loaderShadow.ScaleType = Enum.ScaleType.Slice
+		loaderShadow.SliceCenter = Rect.new(10, 10, 118, 118)
+		loaderShadow.Parent = bgOverlay
+		
+		-- Fenêtre principale du loader
+		local loaderCard = Instance.new("Frame")
+		loaderCard.AnchorPoint = Vector2.new(0.5, 0.5)
+		loaderCard.Position = UDim2.new(0.5, 0, 0.5, 0)
+		loaderCard.Size = UDim2.new(0, 400, 0, 220)
+		loaderCard.BackgroundColor3 = Color3.fromRGB(15, 15, 19)
+		loaderCard.BackgroundTransparency = 1
+		loaderCard.BorderSizePixel = 0
+		loaderCard.Parent = bgOverlay
+		
+		local cardCorner = Instance.new("UICorner")
+		cardCorner.CornerRadius = UDim.new(0, 12)
+		cardCorner.Parent = loaderCard
+		
+		local cardStroke = Instance.new("UIStroke")
+		cardStroke.Color = Color3.fromRGB(40, 40, 52)
+		cardStroke.Transparency = 1
+		cardStroke.Thickness = 1
+		cardStroke.Parent = loaderCard
+		
+		-- Titre du Loader
+		local titleLabel = Instance.new("TextLabel")
+		titleLabel.Size = UDim2.new(1, 0, 0, 30)
+		titleLabel.Position = UDim2.new(0, 0, 0, 24)
+		titleLabel.BackgroundTransparency = 1
+		titleLabel.Font = Enum.Font.GothamBold
+		titleLabel.Text = "Window Library FRAMEWORK"
+		titleLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+		titleLabel.TextSize = 16
+		titleLabel.TextTransparency = 1
+		titleLabel.Parent = loaderCard
+		
+		-- Sous-titre
+		local subLabel = Instance.new("TextLabel")
+		subLabel.Size = UDim2.new(1, 0, 0, 20)
+		subLabel.Position = UDim2.new(0, 0, 0, 54)
+		subLabel.BackgroundTransparency = 1
+		subLabel.Font = Enum.Font.Gotham
+		subLabel.Text = "Initializing UI Design System & Components..."
+		subLabel.TextColor3 = Color3.fromRGB(170, 170, 185)
+		subLabel.TextSize = 12
+		subLabel.TextTransparency = 1
+		subLabel.Parent = loaderCard
+		
+		-- Barre de progression background
+		local barBg = Instance.new("Frame")
+		barBg.Size = UDim2.new(0, 340, 0, 8)
+		barBg.Position = UDim2.new(0.5, -170, 0, 110)
+		barBg.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+		barBg.BackgroundTransparency = 1
+		barBg.BorderSizePixel = 0
+		barBg.Parent = loaderCard
+		
+		local barBgCorner = Instance.new("UICorner")
+		barBgCorner.CornerRadius = UDim.new(1, 0)
+		barBgCorner.Parent = barBg
+		
+		-- Barre de progression fill
+		local barFill = Instance.new("Frame")
+		barFill.Size = UDim2.new(0, 0, 1, 0)
+		barFill.BackgroundColor3 = Color3.fromRGB(0, 225, 130)
+		barFill.BackgroundTransparency = 1
+		barFill.BorderSizePixel = 0
+		barFill.Parent = barBg
+		
+		local barFillCorner = Instance.new("UICorner")
+		barFillCorner.CornerRadius = UDim.new(1, 0)
+		barFillCorner.Parent = barFill
+		
+		-- Pourcentage texte
+		local percentLbl = Instance.new("TextLabel")
+		percentLbl.Size = UDim2.new(1, 0, 0, 20)
+		percentLbl.Position = UDim2.new(0, 0, 0, 134)
+		percentLbl.BackgroundTransparency = 1
+		percentLbl.Font = Enum.Font.Code
+		percentLbl.Text = "0%"
+		percentLbl.TextColor3 = Color3.fromRGB(0, 225, 130)
+		percentLbl.TextSize = 12
+		percentLbl.TextTransparency = 1
+		percentLbl.Parent = loaderCard
+		
+		-- Animation d'apparition du loader
+		local fadeInInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+		TweenService:Create(bgOverlay, fadeInInfo, {BackgroundTransparency = 0.35}):Play()
+		TweenService:Create(loaderCard, fadeInInfo, {BackgroundTransparency = 0.1}):Play()
+		TweenService:Create(cardStroke, fadeInInfo, {Transparency = 0}):Play()
+		TweenService:Create(titleLabel, fadeInInfo, {TextTransparency = 0}):Play()
+		TweenService:Create(subLabel, fadeInInfo, {TextTransparency = 0}):Play()
+		TweenService:Create(barBg, fadeInInfo, {BackgroundTransparency = 0}):Play()
+		TweenService:Create(barFill, fadeInInfo, {BackgroundTransparency = 0}):Play()
+		TweenService:Create(percentLbl, fadeInInfo, {TextTransparency = 0}):Play()
+		
+		-- Console / RConsole optionnelle
+		local hasRConsole = (typeof(rconsoleprint) == "function")
+		if hasRConsole then
+			pcall(function() rconsoleprint("\27[33m") end)
+		end
+		
+		for i = 1, 100, 4 do
+			local bar = "[" .. string.rep("=", math.floor(i/10)) .. string.rep("-", 10 - math.floor(i/10)) .. "] " .. tostring(i) .. "% Loading Window Library Premium Window Library..."
+			if hasRConsole then
+				pcall(function() rconsoleprint(bar .. "\n") end)
+			else
+				print("\27[33m" .. bar .. "\27[0m")
+			end
+			
+			local progressTween = TweenInfo.new(0.04, Enum.EasingStyle.Linear)
+			TweenService:Create(barFill, progressTween, {Size = UDim2.new(i / 100, 0, 1, 0)}):Play()
+			percentLbl.Text = tostring(i) .. "%"
+			task.wait(0.02)
+		end
+		
+		percentLbl.Text = "100%"
+		TweenService:Create(barFill, TweenInfo.new(0.1), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+		task.wait(0.15)
+		
+		-- Animation de fermeture du loader
+		local fadeOutInfo = TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+		TweenService:Create(bgOverlay, fadeOutInfo, {BackgroundTransparency = 1}):Play()
+		TweenService:Create(loaderCard, fadeOutInfo, {BackgroundTransparency = 1}):Play()
+		TweenService:Create(cardStroke, fadeOutInfo, {Transparency = 1}):Play()
+		TweenService:Create(titleLabel, fadeOutInfo, {TextTransparency = 1}):Play()
+		TweenService:Create(subLabel, fadeOutInfo, {TextTransparency = 1}):Play()
+		TweenService:Create(barBg, fadeOutInfo, {BackgroundTransparency = 1}):Play()
+		TweenService:Create(barFill, fadeOutInfo, {BackgroundTransparency = 1}):Play()
+		TweenService:Create(percentLbl, fadeOutInfo, {TextTransparency = 1}):Play()
+		
+		task.wait(0.35)
+		loadingGui:Destroy()
+		
+		if hasRConsole then
+			pcall(function() rconsoleprint("\27[0m") end)
+		end
+	end)
+end
+
+runStandaloneLoadingScreen()
 
 export type ThemeConfig = {
 	Background: Color3,
@@ -134,6 +299,17 @@ local Themes: {[string]: ThemeConfig} = {
 		Error = Color3.fromRGB(180, 70, 50),
 		GlassTransparency = 0.18,
 	}
+}
+
+-- Design System Constants pour éliminer les incohérences d'UI Strokes et Corner Radius
+local DESIGN_CONSTANTS = {
+	CornerRadiusWindow = UDim.new(0, 10),
+	CornerRadiusContainer = UDim.new(0, 8),
+	CornerRadiusButton = UDim.new(0, 6),
+	CornerRadiusToggle = UDim.new(1, 0),
+	CornerRadiusSlider = UDim.new(1, 0),
+	CornerRadiusResize = UDim.new(0, 4),
+	StrokeThickness = 1,
 }
 
 local WindowManager = {}
@@ -206,13 +382,13 @@ local function initializeLightingEffects()
 	pcall(function()
 		if not blurEffect then
 			blurEffect = Instance.new("BlurEffect")
-			blurEffect.Name = "SecEngine_Blur"
+			blurEffect.Name = "Window Library_Blur"
 			blurEffect.Size = 0
 			blurEffect.Parent = Lighting
 		end
 		if not colorCorrection then
 			colorCorrection = Instance.new("ColorCorrectionEffect")
-			colorCorrection.Name = "SecEngine_CC"
+			colorCorrection.Name = "Window Library_CC"
 			colorCorrection.Brightness = 0
 			colorCorrection.Parent = Lighting
 		end
@@ -283,13 +459,13 @@ function WindowManager.Notify(title: string, message: string, duration: number?)
 		notif.Parent = holder
 		
 		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 10)
+		corner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusContainer
 		corner.Parent = notif
 		
 		local stroke = Instance.new("UIStroke")
 		stroke.Color = Theme.Accent
 		stroke.Transparency = 0.3
-		stroke.Thickness = 1.5
+		stroke.Thickness = DESIGN_CONSTANTS.StrokeThickness
 		stroke.Parent = notif
 		
 		local shadow = Instance.new("ImageLabel")
@@ -385,12 +561,12 @@ function ContainerMeta:AddButton(text: string, callback: () -> ()): TextButton
 	btn.Parent = self.ParentContainer
 	
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
+	corner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusButton
 	corner.Parent = btn
 	
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Theme.Border
-	stroke.Thickness = 1
+	stroke.Thickness = DESIGN_CONSTANTS.StrokeThickness
 	stroke.Parent = btn
 	
 	local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
@@ -425,12 +601,12 @@ function ContainerMeta:AddToggle(text: string, defaultState: boolean, callback: 
 	container.Parent = self.ParentContainer
 	
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
+	corner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusButton
 	corner.Parent = container
 	
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Theme.Border
-	stroke.Thickness = 1
+	stroke.Thickness = DESIGN_CONSTANTS.StrokeThickness
 	stroke.Parent = container
 	
 	local label = Instance.new("TextLabel")
@@ -453,7 +629,7 @@ function ContainerMeta:AddToggle(text: string, defaultState: boolean, callback: 
 	toggleBg.Parent = container
 	
 	local toggleBgCorner = Instance.new("UICorner")
-	toggleBgCorner.CornerRadius = UDim.new(1, 0)
+	toggleBgCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusToggle
 	toggleBgCorner.Parent = toggleBg
 	
 	local toggleCircle = Instance.new("Frame")
@@ -464,7 +640,7 @@ function ContainerMeta:AddToggle(text: string, defaultState: boolean, callback: 
 	toggleCircle.Parent = toggleBg
 	
 	local circleCorner = Instance.new("UICorner")
-	circleCorner.CornerRadius = UDim.new(1, 0)
+	circleCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusToggle
 	circleCorner.Parent = toggleCircle
 	
 	local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
@@ -512,12 +688,12 @@ function ContainerMeta:AddSlider(text: string, min: number, max: number, default
 	container.Parent = self.ParentContainer
 	
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
+	corner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusButton
 	corner.Parent = container
 	
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Theme.Border
-	stroke.Thickness = 1
+	stroke.Thickness = DESIGN_CONSTANTS.StrokeThickness
 	stroke.Parent = container
 	
 	local label = Instance.new("TextLabel")
@@ -541,7 +717,7 @@ function ContainerMeta:AddSlider(text: string, min: number, max: number, default
 	sliderBar.Parent = container
 	
 	local barCorner = Instance.new("UICorner")
-	barCorner.CornerRadius = UDim.new(1, 0)
+	barCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusSlider
 	barCorner.Parent = sliderBar
 	
 	local sliderFill = Instance.new("Frame")
@@ -551,10 +727,9 @@ function ContainerMeta:AddSlider(text: string, min: number, max: number, default
 	sliderFill.Parent = sliderBar
 	
 	local fillCorner = Instance.new("UICorner")
-	fillCorner.CornerRadius = UDim.new(1, 0)
+	fillCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusSlider
 	fillCorner.Parent = sliderFill
 	
-	-- Pastille de curseur élégante
 	local thumb = Instance.new("Frame")
 	thumb.Size = UDim2.new(0, 12, 0, 12)
 	thumb.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -564,7 +739,7 @@ function ContainerMeta:AddSlider(text: string, min: number, max: number, default
 	thumb.Parent = sliderFill
 	
 	local thumbCorner = Instance.new("UICorner")
-	thumbCorner.CornerRadius = UDim.new(1, 0)
+	thumbCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusSlider
 	thumbCorner.Parent = thumb
 	
 	local sliding = false
@@ -619,12 +794,12 @@ function ContainerMeta:AddKeybind(text: string, defaultKey: Enum.KeyCode, callba
 	container.Parent = self.ParentContainer
 	
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
+	corner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusButton
 	corner.Parent = container
 	
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Theme.Border
-	stroke.Thickness = 1
+	stroke.Thickness = DESIGN_CONSTANTS.StrokeThickness
 	stroke.Parent = container
 	
 	local label = Instance.new("TextLabel")
@@ -650,7 +825,7 @@ function ContainerMeta:AddKeybind(text: string, defaultKey: Enum.KeyCode, callba
 	bindButton.Parent = container
 	
 	local bindCorner = Instance.new("UICorner")
-	bindCorner.CornerRadius = UDim.new(0, 6)
+	bindCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusButton
 	bindCorner.Parent = bindButton
 	
 	local binding = false
@@ -764,7 +939,7 @@ end
 function Window:CreateGui()
 	local parentGui = initializeGui()
 	
-	-- Ombre douce arrière (ImageLabel floue GTA V Style)
+	-- Ombre douce arrière avec exactement le même rayon de coins arrondis
 	local shadow = Instance.new("ImageLabel")
 	shadow.Name = self.Title .. "_Shadow"
 	shadow.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -790,15 +965,15 @@ function Window:CreateGui()
 	shadow.Parent = self.MainFrame
 	self.MainFrame.Parent = parentGui
 	
-	-- Effet Glassmorphism Gradient & Coins arrondis 10px
+	-- Glassmorphism & Coins arrondis unifiés (10px)
 	local mainCorner = Instance.new("UICorner")
-	mainCorner.CornerRadius = UDim.new(0, 10)
+	mainCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusWindow
 	mainCorner.Parent = self.MainFrame
 	
 	local uiStroke = Instance.new("UIStroke")
 	uiStroke.Name = "WindowStroke"
 	uiStroke.Color = Theme.Border
-	uiStroke.Thickness = 1
+	uiStroke.Thickness = DESIGN_CONSTANTS.StrokeThickness
 	uiStroke.Parent = self.MainFrame
 	
 	local uiGradient = Instance.new("UIGradient")
@@ -826,10 +1001,10 @@ function Window:CreateGui()
 	self.TitleBar.Parent = self.MainFrame
 	
 	local titleCorner = Instance.new("UICorner")
-	titleCorner.CornerRadius = UDim.new(0, 10)
+	titleCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusWindow
 	titleCorner.Parent = self.TitleBar
 	
-	-- Correcteur d'arrondi bas du titre
+	-- Correcteur d'arrondi bas du titre pour éviter les conflits d'UI Stroke
 	local coverFix = Instance.new("Frame")
 	coverFix.Size = UDim2.new(1, 0, 0, 10)
 	coverFix.Position = UDim2.new(0, 0, 1, -10)
@@ -842,7 +1017,7 @@ function Window:CreateGui()
 	local titleStroke = Instance.new("UIStroke")
 	titleStroke.Name = "TitleStroke"
 	titleStroke.Color = Theme.Border
-	titleStroke.Thickness = 1
+	titleStroke.Thickness = DESIGN_CONSTANTS.StrokeThickness
 	titleStroke.Parent = self.TitleBar
 	
 	self.TitleLabel = Instance.new("TextLabel")
@@ -870,13 +1045,13 @@ function Window:CreateGui()
 	self.MinimizeButton.Parent = self.TitleBar
 	
 	local minCorner = Instance.new("UICorner")
-	minCorner.CornerRadius = UDim.new(0, 6)
+	minCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusButton
 	minCorner.Parent = self.MinimizeButton
 	
 	local minStroke = Instance.new("UIStroke")
 	minStroke.Name = "MinStroke"
 	minStroke.Color = Theme.Border
-	minStroke.Thickness = 1
+	minStroke.Thickness = DESIGN_CONSTANTS.StrokeThickness
 	minStroke.Parent = self.MinimizeButton
 	
 	table.insert(self.Connections, self.MinimizeButton.MouseButton1Click:Connect(function()
@@ -912,7 +1087,7 @@ function Window:CreateGui()
 	self.ResizeHandle.Parent = self.MainFrame
 	
 	local resCorner = Instance.new("UICorner")
-	resCorner.CornerRadius = UDim.new(0, 4)
+	resCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusResize
 	resCorner.Parent = self.ResizeHandle
 	
 	table.insert(self.Connections, self.MainFrame.InputBegan:Connect(function(input)
@@ -1040,12 +1215,12 @@ function Window:AddContainer(titleText: string?): ContainerObj
 	containerFrame.Parent = self.Container
 	
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
+	corner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusContainer
 	corner.Parent = containerFrame
 	
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Theme.Border
-	stroke.Thickness = 1
+	stroke.Thickness = DESIGN_CONSTANTS.StrokeThickness
 	stroke.Parent = containerFrame
 	
 	local innerLayout = Instance.new("UIListLayout")
@@ -1109,12 +1284,12 @@ function Window:AddButton(text: string, callback: () -> ()): TextButton
 	btn.Parent = self.Container
 	
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
+	corner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusButton
 	corner.Parent = btn
 	
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Theme.Border
-	stroke.Thickness = 1
+	stroke.Thickness = DESIGN_CONSTANTS.StrokeThickness
 	stroke.Parent = btn
 	
 	local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
@@ -1149,12 +1324,12 @@ function Window:AddToggle(text: string, defaultState: boolean, callback: (boolea
 	container.Parent = self.Container
 	
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
+	corner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusButton
 	corner.Parent = container
 	
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Theme.Border
-	stroke.Thickness = 1
+	stroke.Thickness = DESIGN_CONSTANTS.StrokeThickness
 	stroke.Parent = container
 	
 	local label = Instance.new("TextLabel")
@@ -1177,7 +1352,7 @@ function Window:AddToggle(text: string, defaultState: boolean, callback: (boolea
 	toggleBg.Parent = container
 	
 	local toggleBgCorner = Instance.new("UICorner")
-	toggleBgCorner.CornerRadius = UDim.new(1, 0)
+	toggleBgCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusToggle
 	toggleBgCorner.Parent = toggleBg
 	
 	local toggleCircle = Instance.new("Frame")
@@ -1188,7 +1363,7 @@ function Window:AddToggle(text: string, defaultState: boolean, callback: (boolea
 	toggleCircle.Parent = toggleBg
 	
 	local circleCorner = Instance.new("UICorner")
-	circleCorner.CornerRadius = UDim.new(1, 0)
+	circleCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusToggle
 	circleCorner.Parent = toggleCircle
 	
 	local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
@@ -1236,12 +1411,12 @@ function Window:AddSlider(text: string, min: number, max: number, defaultVal: nu
 	container.Parent = self.Container
 	
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
+	corner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusButton
 	corner.Parent = container
 	
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Theme.Border
-	stroke.Thickness = 1
+	stroke.Thickness = DESIGN_CONSTANTS.StrokeThickness
 	stroke.Parent = container
 	
 	local label = Instance.new("TextLabel")
@@ -1266,7 +1441,7 @@ function Window:AddSlider(text: string, min: number, max: number, defaultVal: nu
 	sliderBar.Parent = container
 	
 	local barCorner = Instance.new("UICorner")
-	barCorner.CornerRadius = UDim.new(1, 0)
+	barCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusSlider
 	barCorner.Parent = sliderBar
 	
 	local sliderFill = Instance.new("Frame")
@@ -1277,7 +1452,7 @@ function Window:AddSlider(text: string, min: number, max: number, defaultVal: nu
 	sliderFill.Parent = sliderBar
 	
 	local fillCorner = Instance.new("UICorner")
-	fillCorner.CornerRadius = UDim.new(1, 0)
+	fillCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusSlider
 	fillCorner.Parent = sliderFill
 	
 	local thumb = Instance.new("Frame")
@@ -1289,7 +1464,7 @@ function Window:AddSlider(text: string, min: number, max: number, defaultVal: nu
 	thumb.Parent = sliderFill
 	
 	local thumbCorner = Instance.new("UICorner")
-	thumbCorner.CornerRadius = UDim.new(1, 0)
+	thumbCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusSlider
 	thumbCorner.Parent = thumb
 	
 	local sliding = false
@@ -1344,12 +1519,12 @@ function Window:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback: (En
 	container.Parent = self.Container
 	
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
+	corner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusButton
 	corner.Parent = container
 	
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Theme.Border
-	stroke.Thickness = 1
+	stroke.Thickness = DESIGN_CONSTANTS.StrokeThickness
 	stroke.Parent = container
 	
 	local label = Instance.new("TextLabel")
@@ -1375,7 +1550,7 @@ function Window:AddKeybind(text: string, defaultKey: Enum.KeyCode, callback: (En
 	bindButton.Parent = container
 	
 	local bindCorner = Instance.new("UICorner")
-	bindCorner.CornerRadius = UDim.new(0, 6)
+	bindCorner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusButton
 	bindCorner.Parent = bindButton
 	
 	local binding = false
@@ -1422,14 +1597,14 @@ function WindowManager.CreateWindow(title: string, size: UDim2?, position: UDim2
 	return Window.new(title, size, position)
 end
 
--- Barre d'état supérieure globale (SecEngine - FPS, Ping, Heure, User)
+-- Barre d'état supérieure globale (Window Library - FPS, Ping, Heure, User)
 local topStatusBar: Frame? = nil
 local function initializeStatusBar()
 	if topStatusBar and topStatusBar.Parent then return end
 	local gui = initializeGui()
 	
 	local bar = Instance.new("Frame")
-	bar.Name = "SecEngine_StatusBar"
+	bar.Name = "Window Library_StatusBar"
 	bar.Size = UDim2.new(0, 420, 0, 30)
 	bar.Position = UDim2.new(0.5, -210, 0, 12)
 	bar.BackgroundColor3 = Theme.SecondaryBackground
@@ -1439,12 +1614,12 @@ local function initializeStatusBar()
 	bar.Parent = gui
 	
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
+	corner.CornerRadius = DESIGN_CONSTANTS.CornerRadiusContainer
 	corner.Parent = bar
 	
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Theme.Border
-	stroke.Thickness = 1
+	stroke.Thickness = DESIGN_CONSTANTS.StrokeThickness
 	stroke.Parent = bar
 	
 	local lbl = Instance.new("TextLabel")
@@ -1453,7 +1628,7 @@ local function initializeStatusBar()
 	lbl.Font = Enum.Font.Code
 	lbl.TextColor3 = Theme.Text
 	lbl.TextSize = 11
-	lbl.Text = "SecEngine | FPS: 144 | Ping: 32ms | User: " .. Player.Name
+	lbl.Text = "Window Library | FPS: 144 | Ping: 32ms | User: " .. Player.Name
 	lbl.Parent = bar
 	
 	local frameCount = 0
@@ -1474,7 +1649,7 @@ local function initializeStatusBar()
 				ping = math.floor(Player:GetNetworkPing() * 1000)
 			end)
 			local timeStr = os.date("%H:%M")
-			lbl.Text = string.format("SecEngine | FPS: %d | Ping: %dms | %s | %s", fps, ping, timeStr, Player.Name)
+			lbl.Text = string.format("Window Library | FPS: %d | Ping: %dms | %s | %s", fps, ping, timeStr, Player.Name)
 			frameCount = 0
 			lastTick = currentTick
 		end
@@ -1639,7 +1814,7 @@ task.spawn(function()
 	task.wait(0.1)
 	initializeStatusBar()
 	buildSettingsWindow()
-	WindowManager.Notify("SecEngine Loaded", "Welcome back, " .. Player.Name .. "!", 4)
+	WindowManager.Notify("Window Library Loaded", "Welcome back, " .. Player.Name .. "!", 4)
 end)
 
 return WindowManager

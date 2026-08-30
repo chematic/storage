@@ -10,8 +10,8 @@
       "destination": "/api/slayer"
     },
     {
-      "source": "/checkslayer",
-      "destination": "/api/checkslayer"
+      "source": "/checkslayer2",
+      "destination": "/api/checkslayer2"
     }
   ]
 }

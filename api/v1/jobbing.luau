@@ -30,8 +30,9 @@ local jobModule = {}
 --[=[
     Starting work at 22:00 (10:00 PM)
 
-    Noticed:
-        The position was patched, because of a new update of MJ valley.
+    - The position was patched, because of a new update of MJ valley.
+    - I tried to edit via logic the wait(2) from the module Peets Coffee & Tea, to reduce the wait delay about the NPCs.
+      I used a bad executor, so I couldn't edit the module properly.
 --]=]  
 
 local workspace = game:GetService("Workspace")
@@ -66,7 +67,9 @@ jobModule.appSettings = {
 
 local function disableSeatsFolder()
     pcall(function()
-        local seats = workspace:FindFirstChild("Seats")
+        local mojave = workspace:FindFirstChild("Mojave")
+        local seats = mojave and mojave:FindFirstChild("Seats")
+
         if seats then
             for _, obj in ipairs(seats:GetDescendants()) do
                 pcall(function()

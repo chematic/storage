@@ -22,9 +22,17 @@ local jobModule = {}
         Handle NPC interactions and deliveries
         Track and manage job state, including earnings and session time (basically via jobModule.jobState, with the UI in-game)
 
+    
     Last Update: 
         2026-09-01
 --]=]
+
+--[=[
+    Starting work at 22:00 (10:00 PM)
+
+    Noticed:
+        The position was patched, because of a new update of MJ valley.
+--]=]  
 
 local workspace = game:GetService("Workspace")
 local players = game:GetService("Players")
@@ -291,7 +299,7 @@ end
 function jobModule.setJobState(state)
     jobModule.jobState.enabled = state
     if state then
-        smoothTeleport(CFrame.new(-3463, -102, -15432))
+        smoothTeleport(CFrame.new(1293, -102, -6274))
         jobModule.jobState.sessionStartTime = tick()
         jobModule.jobState.initialBalance = nil
         jobModule.jobState.totalEarned = 0
@@ -323,10 +331,10 @@ function jobModule.start()
 
         local function applyNpcSpeed(obj)
             if obj:IsA("Humanoid") then
-                obj.WalkSpeed = 150
+                obj.WalkSpeed = 200
             elseif obj:IsA("Model") then
                 local hum = obj:FindFirstChildOfClass("Humanoid")
-                if hum then hum.WalkSpeed = 150 end
+                if hum then hum.WalkSpeed = 200 end
             end
         end
 

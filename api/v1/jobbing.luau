@@ -108,7 +108,7 @@ local function setupPrompt(prompt)
         prompt.KeyboardKeyCode = Enum.KeyCode.E
         prompt.Style = Enum.ProximityPromptStyle.Default
         prompt.Exclusivity = Enum.ProximityPromptExclusivity.AlwaysShow
-        prompt.MaxActivationDistance = 3
+        prompt.MaxActivationDistance = 4
     end
 end
 

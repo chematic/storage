@@ -115,10 +115,8 @@ end
 local function triggerPrompt(prompt)
     if not prompt or not prompt.Parent or not prompt.Enabled then return end
 
-    if jobModule.appSettings.promptOverride then
-        prompt.HoldDuration = 0
-        prompt.RequiresLineOfSight = false
-    end
+    prompt.HoldDuration = 0
+    prompt.RequiresLineOfSight = false
 
     local character = localPlayer.Character
     local root = character and character:FindFirstChild("HumanoidRootPart")

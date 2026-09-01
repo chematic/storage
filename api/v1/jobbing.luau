@@ -72,8 +72,20 @@ end
 local function getBasePart(inst)
     if not inst then return nil end
     if inst:IsA("BasePart") then return inst end
-    if inst:IsA("Model") and inst.PrimaryPart then return inst.PrimaryPart end
+    if inst:IsA("Model") then
+        if inst.PrimaryPart then return inst.PrimaryPart end
+        local hrp = inst:FindFirstChild("HumanoidRootPart") or inst:FindFirstChild("Torso") or inst:FindFirstChild("UpperTorso")
+        if hrp then return hrp end
+    end
     return inst:FindFirstChildWhichIsA("BasePart", true)
+end
+
+local function getSafeCFrame(inst)
+    local targetPart = getBasePart(inst)
+    if not targetPart then return nil end
+    
+    -- Cadrage sécurisé : légèrement au-dessus et en retrait pour éviter de rentrer dans le décor
+    return targetPart.CFrame * CFrame.new(0, 1.2, 2.5)
 end
 
 local function getTool(toolName)
@@ -108,8 +120,33 @@ local function setupPrompt(prompt)
         prompt.KeyboardKeyCode = Enum.KeyCode.E
         prompt.Style = Enum.ProximityPromptStyle.Default
         prompt.Exclusivity = Enum.ProximityPromptExclusivity.AlwaysShow
-        prompt.MaxActivationDistance = 4
+        prompt.MaxActivationDistance = 5
     end
+end
+
+local function smoothTeleport(targetCFrame)
+    if not targetCFrame then return end
+    local character = localPlayer.Character
+    if not character then return end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
+
+    -- Désactivation des collisions pendant le tween
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+        end
+    end
+
+    rootPart.Anchored = true
+    -- Speed ultra-rapide (0.05 seconde)
+    local tweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+    local tween = tweenService:Create(rootPart, tweenInfo, {CFrame = targetCFrame})
+    
+    tween:Play()
+    tween.Completed:Wait()
+    
+    rootPart.Anchored = false
 end
 
 local function triggerPrompt(prompt)
@@ -120,17 +157,17 @@ local function triggerPrompt(prompt)
 
     local character = localPlayer.Character
     local root = character and character:FindFirstChild("HumanoidRootPart")
-    local parentPart = prompt.Parent:IsA("BasePart") and prompt.Parent or prompt.Parent:FindFirstChildWhichIsA("BasePart")
+    local parentPart = getBasePart(prompt.Parent)
 
-    if root and parentPart and (root.Position - parentPart.Position).Magnitude > (prompt.MaxActivationDistance or 8) then
-        root.CFrame = parentPart.CFrame * CFrame.new(0, 0, 2)
-        task.wait(0.08)
+    if root and parentPart and (root.Position - parentPart.Position).Magnitude > (prompt.MaxActivationDistance or 5) then
+        smoothTeleport(getSafeCFrame(parentPart))
+        task.wait(0.03)
     end
 
     local fired = false
     pcall(function()
         prompt:InputHoldBegin()
-        task.wait(0.02)
+        task.wait(0.01)
         prompt:InputHoldEnd()
         fired = true
     end)
@@ -139,29 +176,10 @@ local function triggerPrompt(prompt)
         pcall(function()
             local keyCode = (prompt.KeyboardKeyCode ~= Enum.KeyCode.Unknown) and prompt.KeyboardKeyCode or Enum.KeyCode.E
             virtualInputManager:SendKeyEvent(true, keyCode, false, game)
-            task.wait(0.05)
+            task.wait(0.02)
             virtualInputManager:SendKeyEvent(false, keyCode, false, game)
         end)
     end
-end
-
-local function smoothTeleport(targetCFrame)
-    local character = localPlayer.Character
-    if not character then return end
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then return end
-
-    for _, part in ipairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
-        end
-    end
-
-    rootPart.Anchored = true
-    local t = tweenService:Create(rootPart, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = targetCFrame})
-    t:Play()
-    t.Completed:Wait()
-    rootPart.Anchored = false
 end
 
 local function isWhitelistedPart(part)
@@ -297,7 +315,7 @@ end
 function jobModule.setJobState(state)
     jobModule.jobState.enabled = state
     if state then
-        smoothTeleport(CFrame.new(1293, -102, -6274))
+        smoothTeleport(CFrame.new(1293, -100, -6274))
         jobModule.jobState.sessionStartTime = tick()
         jobModule.jobState.initialBalance = nil
         jobModule.jobState.totalEarned = 0
@@ -355,23 +373,23 @@ function jobModule.start()
             local workPrompt = workHere:FindFirstChildWhichIsA("ProximityPrompt", true) or workHere:FindFirstChild("ProximityPrompt", true)
             if workPrompt then
                 setupPrompt(workPrompt)
-                local targetPart = getBasePart(workHere) or getBasePart(workPrompt.Parent)
-                if targetPart then
-                    smoothTeleport(targetPart.CFrame)
-                    task.wait(0.15)
+                local safeCF = getSafeCFrame(workHere) or getSafeCFrame(workPrompt.Parent)
+                if safeCF then
+                    smoothTeleport(safeCF)
+                    task.wait(0.05)
                     local startTime = tick()
-                    while (tick() - startTime) < 0.4 and not jobModule.jobState.destroyed do
+                    while (tick() - startTime) < 0.3 and not jobModule.jobState.destroyed do
                         triggerPrompt(workPrompt)
-                        task.wait(0.05)
+                        task.wait(0.04)
                     end
-                    task.wait(0.3)
+                    task.wait(0.1)
                 end
             end
         end
 
         while not jobModule.jobState.destroyed do
             if not jobModule.jobState.enabled then
-                task.wait(0.3)
+                task.wait(0.1)
                 continue
             end
 
@@ -426,42 +444,42 @@ function jobModule.start()
                                 setupPrompt(itemPrompt)
                                 if not itemPrompt.Enabled then
                                     doWorkHere()
-                                    task.wait(0.2)
+                                    task.wait(0.08)
                                 end
 
-                                local targetPart = getBasePart(itemPart) or getBasePart(itemPrompt.Parent)
-                                if targetPart then
-                                    smoothTeleport(targetPart.CFrame)
-                                    task.wait(0.1)
+                                local safeCF = getSafeCFrame(itemPart) or getSafeCFrame(itemPrompt.Parent)
+                                if safeCF then
+                                    smoothTeleport(safeCF)
+                                    task.wait(0.05)
                                 end
 
                                 local startTime = tick()
                                 local tool = getTool(toolName)
-                                while not tool and (tick() - startTime < 6) and not jobModule.jobState.destroyed and jobModule.jobState.enabled do
-                                    if targetPart then rootPart.CFrame = targetPart.CFrame end
+                                while not tool and (tick() - startTime < 4) and not jobModule.jobState.destroyed and jobModule.jobState.enabled do
+                                    if safeCF then rootPart.CFrame = safeCF end
                                     triggerPrompt(itemPrompt)
-                                    task.wait(0.25)
+                                    task.wait(0.08)
                                     tool = getTool(toolName)
                                 end
 
                                 equipOnlyTool(toolName)
-                                task.wait(0.2)
+                                task.wait(0.05)
 
                                 if handPrompt and handPrompt.Parent then
-                                    local npcPart = getBasePart(handPrompt.Parent)
-                                    if npcPart then
-                                        smoothTeleport(npcPart.CFrame)
-                                        task.wait(0.1)
+                                    local npcCF = getSafeCFrame(handPrompt.Parent)
+                                    if npcCF then
+                                        smoothTeleport(npcCF)
+                                        task.wait(0.05)
                                     end
 
                                     if handPrompt and handPrompt.Parent then
                                         triggerPrompt(handPrompt)
                                         local deliveryTime = tick()
-                                        while getTool(toolName) and (tick() - deliveryTime < 3) and not jobModule.jobState.destroyed and jobModule.jobState.enabled do
-                                            task.wait(0.15)
+                                        while getTool(toolName) and (tick() - deliveryTime < 2) and not jobModule.jobState.destroyed and jobModule.jobState.enabled do
+                                            task.wait(0.08)
                                         end
                                         jobModule.jobState.lastProcessedPrompt = handPrompt
-                                        task.wait(0.5)
+                                        task.wait(0.1)
                                     end
                                 end
                             end
@@ -469,7 +487,7 @@ function jobModule.start()
                     end
                 end
             end)
-            task.wait(0.3)
+            task.wait(0.08)
         end
     end)
 end
@@ -500,7 +518,5 @@ function jobModule.cleanup()
     end
     table.clear(jobModule.jobState.originalPartStates)
 end
-
-jobModule.start()
 
 return jobModule

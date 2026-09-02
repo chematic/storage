@@ -204,7 +204,7 @@ local function smoothTeleport(targetCFrame)
     end
 
     rootPart.Anchored = true
-    local t = tweenService:Create(rootPart, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = targetCFrame})
+    local t = tweenService:Create(rootPart, TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = targetCFrame})
     t:Play()
     t.Completed:Wait()
     rootPart.Anchored = false

@@ -133,10 +133,10 @@ local function equipOnlyTool(toolName)
 
         local start = tick()
         repeat
-            task.wait(0.05)
+            task.wait(0.1)
         until character:FindFirstChild(targetTool.Name) or (tick() - start) > 1.5
 
-        task.wait(0.05)
+        task.wait(0.1)
         return targetTool
     end
 
@@ -148,28 +148,44 @@ local function setupPrompt(prompt)
         pcall(function()
             prompt.HoldDuration = 0
             prompt.KeyboardKeyCode = Enum.KeyCode.E
-            prompt.MaxActivationDistance = 20
+            prompt.MaxActivationDistance = 5
+            prompt.RequiresLineOfSight = false
         end)
     end
 end
 
 local function triggerPrompt(prompt)
-    if not prompt or not prompt.Parent or not prompt:IsDescendantOf(workspace) or not prompt.Enabled then return end
+    if not prompt or not prompt.Parent or not prompt.Enabled then return end
 
-    -- Utilisation sécurisée de fireproximityprompt
-    if fireproximityprompt then
-        pcall(function()
-            fireproximityprompt(prompt)
-        end)
-        return
+    prompt.HoldDuration = 0
+    prompt.RequiresLineOfSight = false
+    prompt.MaxActivationDistance = 5
+
+    local character = localPlayer.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    local parentPart = prompt.Parent:IsA("BasePart") and prompt.Parent or prompt.Parent:FindFirstChildWhichIsA("BasePart")
+
+    if root and parentPart and (root.Position - parentPart.Position).Magnitude > (prompt.MaxActivationDistance or 5) then
+        root.CFrame = parentPart.CFrame * CFrame.new(0, 0, 2)
+        task.wait(0.1)
     end
 
-    -- Fallback si le téléporteur/exécuteur ne supporte pas fireproximityprompt
+    local fired = false
     pcall(function()
         prompt:InputHoldBegin()
-        task.wait(0.02)
+        task.wait(0.1)
         prompt:InputHoldEnd()
+        fired = true
     end)
+
+    if not fired then
+        pcall(function()
+            local keyCode = (prompt.KeyboardKeyCode ~= Enum.KeyCode.Unknown) and prompt.KeyboardKeyCode or Enum.KeyCode.E
+            virtualInputManager:SendKeyEvent(true, keyCode, false, game)
+            task.wait(0.1)
+            virtualInputManager:SendKeyEvent(false, keyCode, false, game)
+        end)
+    end
 end
 
 local function smoothTeleport(targetCFrame)
@@ -184,8 +200,7 @@ local function smoothTeleport(targetCFrame)
         end
     end
 
-    -- Offset de sécurité pour ne pas casser la physique du prompt
-    local safeCFrame = targetCFrame * CFrame.new(0, 0, 2.5)
+    local safeCFrame = targetCFrame * CFrame.new(0, 0, 2)
 
     rootPart.Anchored = true
     local t = tweenService:Create(rootPart, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = safeCFrame})
@@ -389,16 +404,16 @@ function jobModule.start()
                 local targetPart = getBasePart(workHere) or getBasePart(workPrompt.Parent)
                 if targetPart then
                     smoothTeleport(targetPart.CFrame)
-                    task.wait(0.1)
-                    triggerPrompt(workPrompt)
                     task.wait(0.2)
+                    triggerPrompt(workPrompt)
+                    task.wait(0.3)
                 end
             end
         end
 
         while not jobModule.jobState.destroyed do
             if not jobModule.jobState.enabled then
-                task.wait(0.3)
+                task.wait(0.4)
                 continue
             end
 
@@ -420,7 +435,7 @@ function jobModule.start()
                 if rawget(_G, "AutoDeliverPeetsOrder") then
                     local delivered = _G.AutoDeliverPeetsOrder()
                     if delivered then
-                        task.wait(0.15)
+                        task.wait(0.2)
                         return
                     end
                 end
@@ -461,20 +476,20 @@ function jobModule.start()
                                 setupPrompt(itemPrompt)
                                 if not itemPrompt.Enabled then
                                     doWorkHere()
-                                    task.wait(0.2)
+                                    task.wait(0.3)
                                 end
 
                                 local targetPart = getBasePart(itemPart) or getBasePart(itemPrompt.Parent)
                                 if targetPart then
                                     smoothTeleport(targetPart.CFrame)
-                                    task.wait(0.1)
+                                    task.wait(0.2)
                                 end
 
                                 local startTime = tick()
                                 local tool = getTool(toolName)
-                                while not tool and (tick() - startTime < 3) and not jobModule.jobState.destroyed and jobModule.jobState.enabled do
+                                while not tool and (tick() - startTime < 4) and not jobModule.jobState.destroyed and jobModule.jobState.enabled do
                                     triggerPrompt(itemPrompt)
-                                    task.wait(0.15)
+                                    task.wait(0.3)
                                     tool = getTool(toolName)
                                 end
 
@@ -484,14 +499,14 @@ function jobModule.start()
                                     local npcPart = getBasePart(handPrompt.Parent)
                                     if npcPart then
                                         smoothTeleport(npcPart.CFrame)
-                                        task.wait(0.1)
+                                        task.wait(0.2)
                                     end
 
                                     if rawget(_G, "AutoDeliverPeetsOrder") then
                                         local delivered = _G.AutoDeliverPeetsOrder()
                                         if delivered then
                                             jobModule.jobState.lastProcessedPrompt = handPrompt
-                                            task.wait(0.1)
+                                            task.wait(0.2)
                                             return
                                         end
                                     end
@@ -499,11 +514,11 @@ function jobModule.start()
                                     if handPrompt and handPrompt.Parent then
                                         triggerPrompt(handPrompt)
                                         local deliveryTime = tick()
-                                        while getTool(toolName) and (tick() - deliveryTime < 1.5) and not jobModule.jobState.destroyed and jobModule.jobState.enabled do
-                                            task.wait(0.1)
+                                        while getTool(toolName) and (tick() - deliveryTime < 2) and not jobModule.jobState.destroyed and jobModule.jobState.enabled do
+                                            task.wait(0.2)
                                         end
                                         jobModule.jobState.lastProcessedPrompt = handPrompt
-                                        task.wait(0.15)
+                                        task.wait(0.2)
                                     end
                                 end
                             end
@@ -511,7 +526,7 @@ function jobModule.start()
                     end
                 end
             end)
-            task.wait(0.2)
+            task.wait(0.3)
         end
     end)
 end

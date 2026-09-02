@@ -131,15 +131,17 @@ if PeetsModule then
             local npc = t2[1]
             local HandPrompt = npc.Model.HumanoidRootPart:FindFirstChild("HandPrompt")
             if not HandPrompt then
-                HandPrompt = Instance.new("ProximityPrompt", npc.Model.HumanoidRootPart)
+                HandPrompt = Instance.new("ProximityPrompt")
                 HandPrompt.Name = "HandPrompt"
                 HandPrompt.RequiresLineOfSight = false
                 HandPrompt.ActionText = "Hand Order Over"
                 HandPrompt.ObjectText = orderName
-                HandPrompt.Style = Enum.ProximityPromptStyle.Custom
+                HandPrompt.Style = Enum.ProximityPromptStyle.Default
                 HandPrompt.Exclusivity = Enum.ProximityPromptExclusivity.AlwaysShow
                 HandPrompt.HoldDuration = 0
-                HandPrompt.MaxActivationDistance = 4
+                HandPrompt.MaxActivationDistance = 25
+                HandPrompt.Enabled = true
+                HandPrompt.Parent = npc.Model.HumanoidRootPart
 
                 HandPrompt.TriggerEnded:Connect(function()
                     EquipItemForOrder(orderName)
@@ -162,6 +164,9 @@ if PeetsModule then
                         end
                     end
                 end)
+            else
+                HandPrompt.ObjectText = orderName
+                HandPrompt.Enabled = true
             end
 
             npc:Speak("Hey, Can I please get a <font color=\"#FFD700\">" .. orderName .. "</font>")

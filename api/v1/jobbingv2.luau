@@ -2,7 +2,7 @@
 local jobModule = {}
 
 --[=[
-    Separated module for autofarming. 
+    Separated module for autofarming - ULTRA FAST VERSION.
     Handles automatic tasks in Peets Coffee & Tea: tool fetching,
     replication-safe equipment, prompt interactions, and NPC deliveries.
 
@@ -17,7 +17,6 @@ local jobModule = {}
 
 local workspace = game:GetService("Workspace")
 local players = game:GetService("Players")
-local tweenService = game:GetService("TweenService")
 local runService = game:GetService("RunService")
 local virtualInputManager = game:GetService("VirtualInputManager")
 local lighting = game:GetService("Lighting")
@@ -101,27 +100,24 @@ local function getTool(toolName)
     return nil
 end
 
--- Équipement d'outil sécurisé avec délai de synchronisation réseau (Correction du bug "No Tool")
+-- Équipement ultra-rapide optimisé pour Solara
 local function equipOnlyTool(toolName)
     if not jobModule.appSettings.autoEquipTools then return nil end
     local backpack = localPlayer:FindFirstChildOfClass("Backpack") or localPlayer:FindFirstChild("Backpack")
     local character = localPlayer.Character
     if not character or not backpack then return nil end
 
-    -- Vérifier si l'outil est déjà équipé dans le Personnage
     local currentTool = character:FindFirstChildOfClass("Tool")
     if currentTool and (currentTool.Name == toolName or string.find(currentTool.Name:lower(), toolName:lower())) then
         return currentTool
     end
 
-    -- Ranger les autres outils
     for _, child in ipairs(character:GetChildren()) do
         if child:IsA("Tool") then
             child.Parent = backpack
         end
     end
 
-    -- Recherche de l'outil cible dans le Backpack
     local targetTool = backpack:FindFirstChild(toolName)
     if not targetTool then
         for _, item in ipairs(backpack:GetChildren()) do
@@ -135,13 +131,11 @@ local function equipOnlyTool(toolName)
     if targetTool then
         targetTool.Parent = character
 
-        -- Attente de réplication réseau serveur (1 à 2 ticks)
         local start = tick()
         repeat
-            task.wait(0.05)
-        until character:FindFirstChild(targetTool.Name) or (tick() - start) > 1.5
+            task.wait()
+        until character:FindFirstChild(targetTool.Name) or (tick() - start) > 0.4
 
-        task.wait(0.1) -- Marge de sécurité réseau
         return targetTool
     end
 
@@ -154,44 +148,38 @@ local function setupPrompt(prompt)
         prompt.KeyboardKeyCode = Enum.KeyCode.E
         prompt.Style = Enum.ProximityPromptStyle.Default
         prompt.Exclusivity = Enum.ProximityPromptExclusivity.AlwaysShow
-        prompt.MaxActivationDistance = 25
+        prompt.MaxActivationDistance = 30
     end
 end
 
+-- Déclenchement instantané du prompt sans latence
 local function triggerPrompt(prompt)
     if not prompt or not prompt.Parent or not prompt.Enabled then return end
 
     prompt.HoldDuration = 0
     prompt.RequiresLineOfSight = false
 
+    if fireproximityprompt then
+        fireproximityprompt(prompt)
+        return
+    end
+
     local character = localPlayer.Character
     local root = character and character:FindFirstChild("HumanoidRootPart")
     local parentPart = prompt.Parent:IsA("BasePart") and prompt.Parent or prompt.Parent:FindFirstChildWhichIsA("BasePart")
 
-    if root and parentPart and (root.Position - parentPart.Position).Magnitude > (prompt.MaxActivationDistance or 8) then
+    if root and parentPart and (root.Position - parentPart.Position).Magnitude > (prompt.MaxActivationDistance or 10) then
         root.CFrame = parentPart.CFrame * CFrame.new(0, 0, 2)
-        task.wait(0.08)
     end
 
-    local fired = false
     pcall(function()
         prompt:InputHoldBegin()
-        task.wait(0.02)
         prompt:InputHoldEnd()
-        fired = true
     end)
-
-    if not fired then
-        pcall(function()
-            local keyCode = (prompt.KeyboardKeyCode ~= Enum.KeyCode.Unknown) and prompt.KeyboardKeyCode or Enum.KeyCode.E
-            virtualInputManager:SendKeyEvent(true, keyCode, false, game)
-            task.wait(0.05)
-            virtualInputManager:SendKeyEvent(false, keyCode, false, game)
-        end)
-    end
 end
 
-local function smoothTeleport(targetCFrame)
+-- Téléportation instantanée sans Tween pour maximiser la vitesse
+local function fastTeleport(targetCFrame)
     local character = localPlayer.Character
     if not character then return end
     local rootPart = character:FindFirstChild("HumanoidRootPart")
@@ -203,11 +191,7 @@ local function smoothTeleport(targetCFrame)
         end
     end
 
-    rootPart.Anchored = true
-    local t = tweenService:Create(rootPart, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = targetCFrame})
-    t:Play()
-    t.Completed:Wait()
-    rootPart.Anchored = false
+    rootPart.CFrame = targetCFrame
 end
 
 local function isWhitelistedPart(part)
@@ -344,7 +328,7 @@ function jobModule.setJobState(state)
     jobModule.jobState.enabled = state
     if state then
         disableSeatsFolder()
-        smoothTeleport(CFrame.new(1293, -102, -6274))
+        fastTeleport(CFrame.new(1293, -102, -6274))
         jobModule.jobState.sessionStartTime = tick()
         jobModule.jobState.initialBalance = nil
         jobModule.jobState.totalEarned = 0
@@ -376,10 +360,10 @@ function jobModule.start()
 
         local function applyNpcSpeed(obj)
             if obj:IsA("Humanoid") then
-                obj.WalkSpeed = 200
+                obj.WalkSpeed = 300
             elseif obj:IsA("Model") then
                 local hum = obj:FindFirstChildOfClass("Humanoid")
-                if hum then hum.WalkSpeed = 200 end
+                if hum then hum.WalkSpeed = 300 end
             end
         end
 
@@ -404,21 +388,15 @@ function jobModule.start()
                 setupPrompt(workPrompt)
                 local targetPart = getBasePart(workHere) or getBasePart(workPrompt.Parent)
                 if targetPart then
-                    smoothTeleport(targetPart.CFrame)
-                    task.wait(0.1)
-                    local startTime = tick()
-                    while (tick() - startTime) < 0.4 and not jobModule.jobState.destroyed do
-                        triggerPrompt(workPrompt)
-                        task.wait(0.05)
-                    end
-                    task.wait(0.2)
+                    fastTeleport(targetPart.CFrame)
+                    triggerPrompt(workPrompt)
                 end
             end
         end
 
         while not jobModule.jobState.destroyed do
             if not jobModule.jobState.enabled then
-                task.wait(0.3)
+                task.wait(0.1)
                 continue
             end
 
@@ -428,7 +406,6 @@ function jobModule.start()
                 local rootPart = character and character:FindFirstChild("HumanoidRootPart")
                 if not rootPart then return end
 
-                -- Prise de poste si les prompts sont désactivés
                 local anyDisabled = false
                 for _, desc in ipairs(interactiveFolder:GetDescendants()) do
                     if desc:IsA("ProximityPrompt") and not desc.Enabled then
@@ -438,16 +415,14 @@ function jobModule.start()
                 end
                 if anyDisabled then doWorkHere() end
 
-                -- Utilisation directe de l'Engine AutoJob patché si disponible
                 if rawget(_G, "AutoDeliverPeetsOrder") then
-                    local delivered, msg = _G.AutoDeliverPeetsOrder()
+                    local delivered = _G.AutoDeliverPeetsOrder()
                     if delivered then
-                        task.wait(0.15)
+                        task.wait(0.01)
                         return
                     end
                 end
 
-                -- Fallback / Traitement manuel du HandPrompt
                 local handPrompt = nil
                 for _, desc in ipairs(npcsFolder:GetDescendants()) do
                     if desc:IsA("ProximityPrompt") and desc.Name == "HandPrompt" and desc ~= jobModule.jobState.lastProcessedPrompt then
@@ -484,55 +459,41 @@ function jobModule.start()
                                 setupPrompt(itemPrompt)
                                 if not itemPrompt.Enabled then
                                     doWorkHere()
-                                    task.wait(0.2)
                                 end
 
-                                -- Téléportation au comptoir pour récupérer l'item
                                 local targetPart = getBasePart(itemPart) or getBasePart(itemPrompt.Parent)
                                 if targetPart then
-                                    smoothTeleport(targetPart.CFrame)
-                                    task.wait(0.1)
+                                    fastTeleport(targetPart.CFrame)
                                 end
 
-                                -- Interaction jusqu'à l'obtention de l'outil
                                 local startTime = tick()
                                 local tool = getTool(toolName)
-                                while not tool and (tick() - startTime < 4) and not jobModule.jobState.destroyed and jobModule.jobState.enabled do
+                                while not tool and (tick() - startTime < 1.5) and not jobModule.jobState.destroyed and jobModule.jobState.enabled do
                                     if targetPart then rootPart.CFrame = targetPart.CFrame end
                                     triggerPrompt(itemPrompt)
-                                    task.wait(0.2)
+                                    task.wait(0.02)
                                     tool = getTool(toolName)
                                 end
 
-                                -- Équipement sécurisé avec synchronisation réseau serveur
                                 equipOnlyTool(toolName)
 
                                 if handPrompt and handPrompt.Parent then
                                     local npcPart = getBasePart(handPrompt.Parent)
                                     if npcPart then
-                                        smoothTeleport(npcPart.CFrame)
-                                        task.wait(0.05)
+                                        fastTeleport(npcPart.CFrame)
                                     end
 
-                                    -- Si l'Engine AutoJob est chargé, on l'exécute directement
                                     if rawget(_G, "AutoDeliverPeetsOrder") then
                                         local delivered = _G.AutoDeliverPeetsOrder()
                                         if delivered then
                                             jobModule.jobState.lastProcessedPrompt = handPrompt
-                                            task.wait(0.1)
                                             return
                                         end
                                     end
 
-                                    -- Fallback : déclenchement manuel du Prompt
                                     if handPrompt and handPrompt.Parent then
                                         triggerPrompt(handPrompt)
-                                        local deliveryTime = tick()
-                                        while getTool(toolName) and (tick() - deliveryTime < 2) and not jobModule.jobState.destroyed and jobModule.jobState.enabled do
-                                            task.wait(0.1)
-                                        end
                                         jobModule.jobState.lastProcessedPrompt = handPrompt
-                                        task.wait(0.2)
                                     end
                                 end
                             end
@@ -540,7 +501,7 @@ function jobModule.start()
                     end
                 end
             end)
-            task.wait(0.2)
+            task.wait(0.01)
         end
     end)
 end

@@ -99,9 +99,9 @@ local function EquipItemForOrder(orderName)
         local start = tick()
         repeat
             task.wait(0.05)
-        until character:FindFirstChild(targetTool.Name) or (tick() - start) > 1.5
+        until character:FindFirstChild(targetTool.Name) or (tick() - start) > 1
         
-        task.wait(0.1)
+        task.wait(0.05)
         return targetTool
     end
 

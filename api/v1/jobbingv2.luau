@@ -39,9 +39,7 @@ if getgc then
     pcall(function()
         for _, v in pairs(getgc(true)) do
             if type(v) == "table" then
-                if rawget(v, "CustomerAdded") and rawget(v, "CreateLine") then
-                    PeetsModule = v
-                elseif rawget(v, "StartPatience") and rawget(v, "MoveTo") and rawget(v, "Speak") then
+                if rawget(v, "StartPatience") and rawget(v, "MoveTo") and rawget(v, "Speak") then
                     NPCHandlerModule = v
                 end
             end

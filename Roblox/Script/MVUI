@@ -1,17 +1,3 @@
---[=
-    MVUI - Dark compact Roblox UI Library
-    Visual language based on the supplied main.luau reference.
-    Single-file library, intended to be loaded with loadstring.
-
-    Example:
-        local Library = loadstring(game:HttpGet("RAW_URL"))()
-        local Window = Library:CreateWindow({Title = "My Script", Version = "1.0.0"})
-        local Main = Window:CreateTab({Name = "Dashboard"})
-        local Section = Main:CreateSection({Name = "General"})
-        Section:CreateToggle({Name = "Enabled", Description = "Example toggle.", Default = false, Callback = print})
-
-    The library contains UI only. It does not include gameplay logic.
-]=]
 
 local Services = {
     Players = game:GetService("Players"),
@@ -506,7 +492,6 @@ function Library:CreateWindow(options)
 
     local sidebar = trackInstance(Instance.new("Frame"))
     sidebar.Name = "Sidebar"
-    sidebar.Size = UDim2.fromOffset(140, 1)
     sidebar.Size = UDim2.new(0, 140, 1, 0)
     sidebar.BackgroundColor3 = self.Theme.Sidebar
     sidebar.BorderSizePixel = 0
@@ -514,7 +499,6 @@ function Library:CreateWindow(options)
     window.Sidebar = sidebar
 
     local divider = trackInstance(Instance.new("Frame"))
-    divider.Size = UDim2.fromOffset(1, 1)
     divider.Size = UDim2.new(0, 1, 1, 0)
     divider.Position = UDim2.new(1, -1, 0, 0)
     divider.BackgroundColor3 = self.Theme.Stroke
@@ -563,7 +547,6 @@ function Library:CreateWindow(options)
 
     local toast = trackInstance(Instance.new("Frame"))
     toast.Name = "Toasts"
-    toast.Size = UDim2.fromOffset(250, 1)
     toast.Size = UDim2.new(0, 250, 0, 140)
     toast.Position = UDim2.new(1, -270, 1, -150)
     toast.BackgroundTransparency = 1
@@ -601,9 +584,6 @@ function Library:CreateWindow(options)
 
     local function startDrag(input)
         if window.Minimized then return end
-        if getDeviceType() == "Mobile" and input.UserInputType == Enum.UserInputType.Touch then
-            -- On mobile, the header remains a drag zone.
-        end
         dragging = true
         dragStart = input.Position
         startPosition = root.Position
@@ -626,11 +606,8 @@ function Library:CreateWindow(options)
         local absolute = root.AbsoluteSize
         local newX = startPosition.X.Offset + delta.X / scaleValue
         local newY = startPosition.Y.Offset + delta.Y / scaleValue
-        local visibleWidth = math.min(absolute.X, viewport.X)
-        local visibleHeight = math.min(absolute.Y, viewport.Y)
         newX = math.clamp(newX, -absolute.X + 64, viewport.X - 64)
         newY = math.clamp(newY, -absolute.Y + 44, viewport.Y - 44)
-        if visibleWidth <= 0 or visibleHeight <= 0 then return end
         root.Position = UDim2.new(0, newX, 0, newY)
     end))
 
@@ -891,17 +868,6 @@ function Library:CreateWindow(options)
         uiScale.Scale = math.max(scaleValue, self.Library.Settings.MinimumScale)
         root.Size = UDim2.fromOffset(targetWidth, self.Minimized and 50 or targetHeight)
 
-        if not dragging then
-            local rootSize = Vector2.new(targetWidth * uiScale.Scale, targetHeight * uiScale.Scale)
-            local centerX = math.max(8, (viewport.X - rootSize.X) / 2)
-            local centerY = math.max(8, (viewport.Y - rootSize.Y) / 2)
-            local pos = root.AbsolutePosition
-            local onScreen = pos.X > -root.AbsoluteSize.X + 80 and pos.X < viewport.X - 20 and pos.Y > -root.AbsoluteSize.Y + 50 and pos.Y < viewport.Y - 20
-            if not onScreen then
-                root.Position = UDim2.fromOffset(centerX, centerY)
-            end
-        end
-
         for _, tab in ipairs(self.Tabs) do
             if tab._responsiveUpdate then tab:_responsiveUpdate(device) end
         end
@@ -951,8 +917,6 @@ end
 function Tab:_responsiveUpdate(device)
     if device == "Mobile" then
         padding(self.Scroll, 12, 12, 10, 10)
-    elseif device == "Tablet" then
-        padding(self.Scroll, 14, 14, 14, 14)
     else
         padding(self.Scroll, 14, 14, 14, 14)
     end
@@ -1010,7 +974,7 @@ function Section:CreateToggle(options)
     local active = options.Default == true
     local row = createRow(self, tonumber(options.Height) or 56, options.Order)
 
-    local title = addText(row, {
+    addText(row, {
         Size = UDim2.new(1, -82, 0, 18),
         Position = UDim2.fromOffset(15, 7),
         BackgroundTransparency = 1,
@@ -1022,7 +986,7 @@ function Section:CreateToggle(options)
         TextTruncate = Enum.TextTruncate.AtEnd,
     })
 
-    local description = addText(row, {
+    addText(row, {
         Size = UDim2.new(1, -82, 0, 17),
         Position = UDim2.fromOffset(15, 27),
         BackgroundTransparency = 1,

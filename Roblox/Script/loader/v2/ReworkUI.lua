@@ -22,11 +22,14 @@
 --   tog:set(true); print(tog.v); print(T:Get("Auto X").v)
 --   UI:SaveSettings(); UI:LoadSettings(); UI:ResetTheme()
 
--- Changelogs: Améliorer la responsive mobile, pour que les mobiles/ipad puissent correctement utiliser les slide bar, juste besoin de passer leurs doigts, et j'ai ajouté une barre de recherche également, avec 3 themes
--- Prochain: theme halloween, et fixé des bugs si certainne personne report un bug.
+-- Changelogs: ameliorer la responsive mobile, pour que les mobiles/ipad puissent correctement utiliser les slide bar, juste besoin de passer leurs doigts, et j'ai ajouté une barre de recherche également, avec 3 themes
+-- 2.5.1 : Fix zindex des popups (dropdown menu + colorpicker popup) qui passaient sous les rows suivantes.
+--         - reparent a 'win' + zindex 1000 a l'ouverture, retour au parent d'origine a la fermeture.
+--         - close au clic exterieur, close au switch de tab, close au Window:SetVisible(false).
+-- Prochainnement: theme halloween, et fixer des bugs si certainne personne report un bug.
 
 local Library = {}
-Library.Version = "2.5.0"
+Library.Version = "2.5.1"
 Library.__index = Library
 Library._errors = {}
 Library._registry = {}
@@ -254,6 +257,13 @@ function Library:CreateWindow(cfg)
     local conns = {}
     local function Connect(sig, fn) local c = sig:Connect(fn); table.insert(conns, c); return c end
 
+    -- [FIX z-index] single "active popup closer" so only one popup at a time,
+    -- and so tab-switch / hide / destroy can close it cleanly.
+    local activeCloser = nil
+    local function closeActivePopup()
+        if activeCloser then pcall(activeCloser); activeCloser = nil end
+    end
+
     local gui = mk("ScreenGui", {Name = rn(), ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 2147483647, ZIndexBehavior = Enum.ZIndexBehavior.Sibling})
     if syn and syn.protect_gui then pcall(syn.protect_gui, gui) end
     gui.Parent = CG:FindFirstChild("RobloxGui") or CG
@@ -324,7 +334,7 @@ function Library:CreateWindow(cfg)
     if opts.SearchEnabled then
         local sb = mk("Frame", {Size = UDim2.new(1, -20, 0, 24), Position = UDim2.new(0, 10, 0, 68), BackgroundColor3 = K.sf, Parent = side})
         rc(sb, 6); sk(sb, K.ln, 1)
-        mk("ImageLabel", {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(0, 8, .5, -6), BackgroundTransparency = 1, Image = "rbxassetid://9608131918", ImageColor3 = K.dm, Parent = sb})
+        mk("ImageLabel", {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(0, 8, .5, -6), BackgroundTransparency = 1, Image = "rbxassetid://118685771787843", ImageColor3 = K.dm, Parent = sb})
         srchInp = mk("TextBox", {Size = UDim2.new(1, -30, 1, 0), Position = UDim2.new(0, 26, 0, 0), BackgroundTransparency = 1, Text = "", PlaceholderText = "Search", PlaceholderColor3 = K.dm, TextColor3 = K.tx, Font = K.fontMed, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Parent = sb})
         navOffset = 100
         navSizeOffset = -106
@@ -380,6 +390,8 @@ function Library:CreateWindow(cfg)
 
     local tbs, cur = {}, nil
     local function pk(o)
+        -- [FIX z-index] close any open popup on tab switch
+        closeActivePopup()
         for _, d in ipairs(tbs) do
             local on_ = d.o == o
             d.pg.Visible = on_
@@ -434,6 +446,7 @@ function Library:CreateWindow(cfg)
         function o:Get(label) return self._handles[label] end
 
         function o:Clear()
+            closeActivePopup()
             for _, c in ipairs(self.pg:GetChildren()) do
                 if not c:IsA("UIListLayout") and not c:IsA("UIPadding") then c:Destroy() end
             end
@@ -715,8 +728,55 @@ function Library:CreateWindow(cfg)
             local dd = mk("TextButton", {Size = UDim2.new(0, 120, 0, 26), Position = UDim2.new(1, -134, .5, -13), BackgroundColor3 = K.sb, Text = current .. "  ▾", TextColor3 = K.ac, Font = K.fontBold, TextSize = 11, AutoButtonColor = false, ZIndex = 3, Parent = f})
             rc(dd, 6); sk(dd, K.ln, 1); hf(c, f)
             local h = {v = current, _default = current, options = options}
-            local menu = mk("Frame", {Size = UDim2.new(0, 120, 0, 0), Position = UDim2.new(0, 0, 1, 2), BackgroundColor3 = K.sb, Visible = false, ZIndex = 100, Parent = dd})
+            local menu = mk("Frame", {Size = UDim2.new(0, 120, 0, 0), Position = UDim2.new(0, 0, 1, 2), BackgroundColor3 = K.sb, Visible = false, ZIndex = 1000, Parent = dd})
             rc(menu, 6); sk(menu, K.ac, 1, .3)
+
+            -- [FIX z-index] state + close/open helpers
+            local menuOpen = false
+            local outsideConn = nil
+            local function closeMenu()
+                if not menuOpen then return end
+                menuOpen = false
+                menu.Visible = false
+                -- reparent back to dd so it's cleaned up when dd/tab is destroyed
+                menu.Parent = dd
+                menu.Position = UDim2.new(0, 0, 1, 2)
+                if outsideConn then outsideConn:Disconnect(); outsideConn = nil end
+                if activeCloser == closeMenu then activeCloser = nil end
+            end
+            local function openMenu()
+                if menuOpen then return end
+                closeActivePopup() -- close any other open popup first
+                menuOpen = true
+                activeCloser = closeMenu
+                local s = us.Scale
+                local menuAbsX = dd.AbsolutePosition.X
+                local menuAbsY = dd.AbsolutePosition.Y + dd.AbsoluteSize.Y + 2 * s
+                menu.Parent = win
+                menu.ZIndex = 1000
+                menu.Position = UDim2.fromOffset(
+                    (menuAbsX - win.AbsolutePosition.X) / s,
+                    (menuAbsY - win.AbsolutePosition.Y) / s
+                )
+                menu.Visible = true
+                -- outside click: close if click is outside menu AND outside dd
+                task.defer(function()
+                    outsideConn = UIS.InputBegan:Connect(function(i)
+                        if not menuOpen or not menu.Parent then
+                            if outsideConn then outsideConn:Disconnect(); outsideConn = nil end
+                            return
+                        end
+                        if i.UserInputType ~= Enum.UserInputType.MouseButton1 and i.UserInputType ~= Enum.UserInputType.Touch then return end
+                        local pos = i.Position
+                        local dAbs, dSz = dd.AbsolutePosition, dd.AbsoluteSize
+                        if pos.X >= dAbs.X and pos.X <= dAbs.X + dSz.X and pos.Y >= dAbs.Y and pos.Y <= dAbs.Y + dSz.Y then return end
+                        local mAbs, mSz = menu.AbsolutePosition, menu.AbsoluteSize
+                        if pos.X >= mAbs.X and pos.X <= mAbs.X + mSz.X and pos.Y >= mAbs.Y and pos.Y <= mAbs.Y + mSz.Y then return end
+                        closeMenu()
+                    end)
+                end)
+            end
+
             local function buildMenu()
                 for _, ch in ipairs(menu:GetChildren()) do
                     if ch:IsA("TextButton") or ch:IsA("UIListLayout") or ch:IsA("UIPadding") then ch:Destroy() end
@@ -732,7 +792,7 @@ function Library:CreateWindow(cfg)
                     b.MouseButton1Click:Connect(function()
                         h.v = opt
                         dd.Text = tostring(opt) .. "  ▾"
-                        menu.Visible = false
+                        closeMenu()
                         if cb then
                             local ok, e = pcall(cb, opt)
                             if not ok then logError("Dropdown/" .. t, e); ntf("error", tostring(e), 5, "err") end
@@ -742,12 +802,12 @@ function Library:CreateWindow(cfg)
                 menu.Size = UDim2.new(0, 120, 0, math.min(#options * 26 + 8, 200))
             end
             buildMenu()
-            local open = false
+
             dd.MouseButton1Click:Connect(function()
-                open = not open
-                menu.Visible = open
                 sn(K.soundClick, .3)
+                if menuOpen then closeMenu() else openMenu() end
             end)
+
             function h.get(_) return h.v end
             function h.set(_, val) h.v = val; dd.Text = tostring(val) .. "  ▾" end
             h._serialize = function() return h.v end
@@ -774,11 +834,31 @@ function Library:CreateWindow(cfg)
                 {Color3.fromRGB(155,89,182), "Purple"}, {Color3.fromRGB(26,188,156), "Teal"},
                 {Color3.fromRGB(230,126,34), "Orange"}, {Color3.fromRGB(149,165,166), "Gray"},
             }
-            local popup
+            -- [FIX z-index] popup reparented to win, ZIndex 1000, closes on outside click
+            local popup, outsideConn
+            local function closePopup()
+                if not popup then return end
+                local inst = popup
+                popup = nil
+                inst:Destroy()
+                if outsideConn then outsideConn:Disconnect(); outsideConn = nil end
+                if activeCloser == closePopup then activeCloser = nil end
+            end
             btn.MouseButton1Click:Connect(function()
                 sn(K2.soundClick, .3)
-                if popup then popup:Destroy(); popup = nil; return end
-                popup = mk("Frame", {Size = UDim2.new(0, 220, 0, 88), Position = UDim2.new(1, -110, 1, 4), BackgroundColor3 = K2.sb, ZIndex = 500, Parent = swatch})
+                if popup then closePopup(); return end
+                closeActivePopup()
+                activeCloser = closePopup
+
+                local s = us.Scale
+                local popupAbsX = swatch.AbsolutePosition.X + swatch.AbsoluteSize.X - 110 * s
+                local popupAbsY = swatch.AbsolutePosition.Y + swatch.AbsoluteSize.Y + 4 * s
+
+                popup = mk("Frame", {Size = UDim2.new(0, 220, 0, 88), BackgroundColor3 = K2.sb, ZIndex = 1000, Parent = win})
+                popup.Position = UDim2.fromOffset(
+                    (popupAbsX - win.AbsolutePosition.X) / s,
+                    (popupAbsY - win.AbsolutePosition.Y) / s
+                )
                 rc(popup, 8); sk(popup, K2.ac, 1, .3)
                 mk("UIPadding", {PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6), PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6), Parent = popup})
                 for i, p in ipairs(presets) do
@@ -792,23 +872,39 @@ function Library:CreateWindow(cfg)
                             local ok, e = pcall(cb, col)
                             if not ok then logError("ColorPicker/" .. t, e); ntf("error", tostring(e), 5, "err") end
                         end
-                        popup:Destroy(); popup = nil
+                        closePopup()
                     end)
                 end
                 local hex = mk("TextBox", {Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 1, -22), BackgroundColor3 = K2.bg, Text = "", PlaceholderText = "#RRGGBB", PlaceholderColor3 = K2.dm, TextColor3 = K2.tx, Font = K2.fontMed, TextSize = 10, ClearTextOnFocus = false, Parent = popup})
                 rc(hex, 4); sk(hex, K2.ln, 1)
                 hex.FocusLost:Connect(function(enter)
                     if not enter then return end
-                    local s = hex.Text:gsub("#", "")
-                    if #s == 6 then
-                        local r = tonumber(s:sub(1,2), 16); local g = tonumber(s:sub(3,4), 16); local b = tonumber(s:sub(5,6), 16)
+                    local s2 = hex.Text:gsub("#", "")
+                    if #s2 == 6 then
+                        local r = tonumber(s2:sub(1,2), 16); local g = tonumber(s2:sub(3,4), 16); local b = tonumber(s2:sub(5,6), 16)
                         if r and g and b then
                             local c = Color3.fromRGB(r,g,b)
                             h.v = c; swatch.BackgroundColor3 = c
                             if cb then pcall(cb, c) end
-                            popup:Destroy(); popup = nil
+                            closePopup()
                         end
                     end
+                end)
+
+                task.defer(function()
+                    outsideConn = UIS.InputBegan:Connect(function(i)
+                        if not popup or not popup.Parent then
+                            if outsideConn then outsideConn:Disconnect(); outsideConn = nil end
+                            return
+                        end
+                        if i.UserInputType ~= Enum.UserInputType.MouseButton1 and i.UserInputType ~= Enum.UserInputType.Touch then return end
+                        local pos = i.Position
+                        local sAbs, sSz = swatch.AbsolutePosition, swatch.AbsoluteSize
+                        if pos.X >= sAbs.X and pos.X <= sAbs.X + sSz.X and pos.Y >= sAbs.Y and pos.Y <= sAbs.Y + sSz.Y then return end
+                        local pAbs, pSz = popup.AbsolutePosition, popup.AbsoluteSize
+                        if pos.X >= pAbs.X and pos.X <= pAbs.X + pSz.X and pos.Y >= pAbs.Y and pos.Y <= pAbs.Y + pSz.Y then return end
+                        closePopup()
+                    end)
                 end)
             end)
             function h.get(_) return h.v end
@@ -1046,6 +1142,8 @@ function Library:CreateWindow(cfg)
             tw(us, .28, {Scale = tgt})
             sn(K.soundOpen, .25)
         else
+            -- [FIX z-index] close any open popup when hiding the window
+            closeActivePopup()
             win.Visible = false
             if srchDrop then srchDrop.Visible = false end
         end
@@ -1055,6 +1153,8 @@ function Library:CreateWindow(cfg)
 
     function Window:Destroy()
         if self._onClose then pcall(self._onClose) end
+        -- [FIX z-index] close any open popup before tearing down
+        closeActivePopup()
         for id, h in pairs(Library._registry) do
             if h and h._id and h._id:sub(1, #opts.PersistId) == opts.PersistId then
                 Library._registry[id] = nil

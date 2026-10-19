@@ -1,4 +1,4 @@
--- Standalone UI V2.5 | For rework scripts
+-- Standalone UI V2.5.1 | For rework scripts
 -- Directed by: Azuno
 
 -- FEATURES:
@@ -9,12 +9,12 @@
 --   - Error log + auto pcall on all callbacks
 --   - Compact mode (hide sidebar)
 --   - Keybind conflict detection
---   - Notification progress + close button
+--   - Notification system (bigger, auto-wrap, per-kind icon, title + body, progress bar, close button)
 --   - Window:Destroy, Tab:Clear, Tab:Get
 --
 -- USAGE:
 --   local UI = loadstring(game:HttpGet("URL"))()
---   UI:SetTheme("dark" | "black" | "light")   -- or pass a table
+--   UI:SetTheme("dark" | "black" | "light")
 --   UI:SetAccent(Color3.fromRGB(120, 60, 255))
 --   local W = UI:CreateWindow({Title="My Wolf Hub", Subtitle="v1.0"})
 --   local T = W:CreateTab("Home", 107739421502217)
@@ -22,14 +22,15 @@
 --   tog:set(true); print(tog.v); print(T:Get("Auto X").v)
 --   UI:SaveSettings(); UI:LoadSettings(); UI:ResetTheme()
 
--- Changelogs: ameliorer la responsive mobile, pour que les mobiles/ipad puissent correctement utiliser les slide bar, juste besoin de passer leurs doigts, et j'ai ajouté une barre de recherche également, avec 3 themes
--- 2.5.1 : Fix zindex des popups (dropdown menu + colorpicker popup) qui passaient sous les rows suivantes.
---         - reparent a 'win' + zindex 1000 a l'ouverture, retour au parent d'origine a la fermeture.
---         - close au clic exterieur, close au switch de tab, close au Window:SetVisible(false).
--- Prochainnement: theme halloween, et fixer des bugs si certainne personne report un bug.
+-- Changelogs:
+-- 2.5.1 : Fix zindex des popups (dropdown menu + colorpicker popup).
+-- 2.5.2 : Icon system (chevrons, arrows, close, notification kinds).
+--         Notification system overhaul : bigger, auto-wrap, title + body, icon per kind,
+--         progress bar and close button. Fix bind/button arrows using ImageLabel.
+--         Improved dark/black/light themes.
 
 local Library = {}
-Library.Version = "2.5.1"
+Library.Version = "2.5.2"
 Library.__index = Library
 Library._errors = {}
 Library._registry = {}
@@ -39,11 +40,19 @@ Library._shortcuts = {
 Library._currentTheme = "dark"
 
 Library.Defaults = {
-    bg = Color3.fromRGB(12,12,14), sb = Color3.fromRGB(16,16,20), sf = Color3.fromRGB(22,22,26),
-    hv = Color3.fromRGB(30,30,35), ln = Color3.fromRGB(35,35,42), tx = Color3.fromRGB(240,240,245),
-    dm = Color3.fromRGB(140,140,150), d2 = Color3.fromRGB(95,95,108), ac = Color3.fromRGB(88,101,242),
-    ag = Color3.fromRGB(120,132,255), ok = Color3.fromRGB(46,204,113), dg = Color3.fromRGB(231,76,60),
-    wn = Color3.fromRGB(241,196,15),
+    bg = Color3.fromRGB(10,12,16),
+    sb = Color3.fromRGB(14,17,22),
+    sf = Color3.fromRGB(20,24,30),
+    hv = Color3.fromRGB(28,33,42),
+    ln = Color3.fromRGB(38,44,55),
+    tx = Color3.fromRGB(232,236,242),
+    dm = Color3.fromRGB(138,147,165),
+    d2 = Color3.fromRGB(92,100,118),
+    ac = Color3.fromRGB(88,101,242),
+    ag = Color3.fromRGB(120,132,255),
+    ok = Color3.fromRGB(52,211,130),
+    dg = Color3.fromRGB(239,68,68),
+    wn = Color3.fromRGB(245,180,40),
 }
 Library.Config = {}
 for k, v in pairs(Library.Defaults) do Library.Config[k] = v end
@@ -55,18 +64,61 @@ Library.Config.soundOpen = "9125402735"
 Library.Config.soundNote = "4590657391"
 Library.Config.soundErr = "9120386436"
 
+Library.Icons = {
+    arrowRight   = "73793633589587",
+    arrowLeft    = "95914482122535",
+    chevronDown  = "80813996117360",
+    chevronUp    = "139029907586032",
+    close        = "10152135063",
+    trash        = "137246078911422",
+    grid         = "134855699168308",
+    dashboard    = "131195306876003",
+    keyboardRet  = "73469154520504",
+    mic          = "103024617507153",
+    runRight     = "70523947915342",
+    walkRight    = "128150736818436",
+    save         = "88852210207454",
+    warning      = "104463236123312",
+    info         = "106847273191219",
+    error        = "75052404705382",
+    flashlight   = "127214341614238",
+    cursor       = "73128140256723",
+    euro         = "137035282500521",
+    checkSmall   = "79181104803162",
+    check        = "87635036041287",
+    trophy       = "111619666750400",
+    launchPage   = "86308989595310",
+    heart        = "105291564639239",
+    search       = "118685771787843",
+}
+
 Library.Themes = {
     dark = {},
     black = {
-        bg=Color3.fromRGB(0,0,0), sb=Color3.fromRGB(8,8,8), sf=Color3.fromRGB(14,14,14),
-        hv=Color3.fromRGB(22,22,22), ln=Color3.fromRGB(28,28,28), tx=Color3.fromRGB(255,255,255),
-        dm=Color3.fromRGB(160,160,160), d2=Color3.fromRGB(100,100,100),
+        bg = Color3.fromRGB(0,0,0),
+        sb = Color3.fromRGB(6,6,8),
+        sf = Color3.fromRGB(12,12,15),
+        hv = Color3.fromRGB(20,20,24),
+        ln = Color3.fromRGB(30,30,36),
+        tx = Color3.fromRGB(255,255,255),
+        dm = Color3.fromRGB(160,160,170),
+        d2 = Color3.fromRGB(100,100,110),
+        ok = Color3.fromRGB(74,222,128),
+        dg = Color3.fromRGB(248,113,113),
+        wn = Color3.fromRGB(250,204,21),
     },
     light = {
-        bg=Color3.fromRGB(245,245,248), sb=Color3.fromRGB(235,235,240), sf=Color3.fromRGB(255,255,255),
-        hv=Color3.fromRGB(228,228,235), ln=Color3.fromRGB(210,210,220), tx=Color3.fromRGB(20,20,30),
-        dm=Color3.fromRGB(90,90,110), d2=Color3.fromRGB(130,130,150),
-        ok=Color3.fromRGB(30,180,90), dg=Color3.fromRGB(220,60,50), wn=Color3.fromRGB(220,170,20),
+        bg = Color3.fromRGB(247,248,252),
+        sb = Color3.fromRGB(238,240,246),
+        sf = Color3.fromRGB(255,255,255),
+        hv = Color3.fromRGB(236,239,246),
+        ln = Color3.fromRGB(220,224,233),
+        tx = Color3.fromRGB(15,18,26),
+        dm = Color3.fromRGB(95,102,122),
+        d2 = Color3.fromRGB(140,147,165),
+        ok = Color3.fromRGB(22,163,74),
+        dg = Color3.fromRGB(220,38,38),
+        wn = Color3.fromRGB(217,119,6),
     },
 }
 for k, v in pairs(Library.Defaults) do Library.Themes.dark[k] = v end
@@ -239,6 +291,7 @@ TabMethods.__index = TabMethods
 function Library:CreateWindow(cfg)
     cfg = cfg or {}
     local K = Library.Config
+    local I = Library.Icons
     local opts = {
         Title = cfg.Title or "UI",
         Subtitle = cfg.Subtitle or "",
@@ -257,8 +310,6 @@ function Library:CreateWindow(cfg)
     local conns = {}
     local function Connect(sig, fn) local c = sig:Connect(fn); table.insert(conns, c); return c end
 
-    -- [FIX z-index] single "active popup closer" so only one popup at a time,
-    -- and so tab-switch / hide / destroy can close it cleanly.
     local activeCloser = nil
     local function closeActivePopup()
         if activeCloser then pcall(activeCloser); activeCloser = nil end
@@ -268,36 +319,74 @@ function Library:CreateWindow(cfg)
     if syn and syn.protect_gui then pcall(syn.protect_gui, gui) end
     gui.Parent = CG:FindFirstChild("RobloxGui") or CG
 
-    local nh = mk("Frame", {AnchorPoint = Vector2.new(.5, 0), Position = UDim2.new(.5, 0, 0, 14), Size = UDim2.new(0, mob and 280 or 360, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 100, Parent = gui})
+    local nh = mk("Frame", {AnchorPoint = Vector2.new(.5, 0), Position = UDim2.new(.5, 0, 0, 14), Size = UDim2.new(0, mob and 300 or 400, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 100, Parent = gui})
     mk("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 8)}, nh)
 
     local function ntf(t, c, d, k)
+        t = t or "Notification"
+        c = c or ""
         sn(k == "err" and K.soundErr or K.soundNote, .25)
-        local col = k == "err" and K.dg or (k == "warn" and K.wn or K.ac)
-        local f = mk("Frame", {Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = K.sf, BackgroundTransparency = 1, Parent = nh})
-        rc(f, 10)
+        local col = k == "err" and K.dg or (k == "warn" and K.wn or K.ok)
+        local icon = k == "err" and I.error or (k == "warn" and I.warning or I.check)
+
+        local f = mk("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = K.sf, BackgroundTransparency = 1, Parent = nh})
+        rc(f, 12)
         local s = sk(f, col, 1, 1)
-        local b = mk("Frame", {Size = UDim2.new(0, 4, 1, -16), Position = UDim2.new(0, 10, 0, 8), BackgroundColor3 = col, BackgroundTransparency = 1, Parent = f})
-        rc(b, 4)
-        local t1 = mk("TextLabel", {Size = UDim2.new(1, -60, 0, 18), Position = UDim2.new(0, 22, 0, 8), BackgroundTransparency = 1, Text = t or "", TextColor3 = K.tx, Font = K.fontBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, TextTransparency = 1, Parent = f})
-        local d1 = mk("TextLabel", {Size = UDim2.new(1, -60, 0, 18), Position = UDim2.new(0, 22, 0, 26), BackgroundTransparency = 1, Text = c or "", TextColor3 = K.dm, Font = K.fontMed, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, TextTransparency = 1, Parent = f})
-        local prog = mk("Frame", {Size = UDim2.new(1, -8, 0, 2), Position = UDim2.new(0, 4, 1, -6), BackgroundColor3 = col, BackgroundTransparency = .7, Parent = f})
-        rc(prog, 1)
-        local closeBtn = mk("TextButton", {Size = UDim2.new(0, 20, 0, 20), Position = UDim2.new(1, -26, 0, 6), BackgroundColor3 = K.sf, Text = "×", TextColor3 = K.dm, Font = K.fontBold, TextSize = 12, AutoButtonColor = false, Parent = f})
-        rc(closeBtn, 4)
+
+        local content = mk("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = f})
+        mk("UIPadding", {PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 16), PaddingLeft = UDim.new(0, 14), PaddingRight = UDim.new(0, 14), Parent = content})
+        mk("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8)}, content)
+
+        local header = mk("Frame", {Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1, LayoutOrder = 1, Parent = content})
+
+        local iconFrame = mk("Frame", {Size = UDim2.new(0, 34, 0, 34), BackgroundColor3 = col, BackgroundTransparency = .85, Parent = header})
+        rc(iconFrame, 9)
+        local iconImg = mk("ImageLabel", {Size = UDim2.new(0, 18, 0, 18), Position = UDim2.new(.5, -9, .5, -9), BackgroundTransparency = 1, Image = "rbxassetid://" .. icon, ImageColor3 = col, ImageTransparency = 1, Parent = iconFrame})
+
+        local t1 = mk("TextLabel", {Size = UDim2.new(1, -104, 0, 34), Position = UDim2.new(0, 44, 0, 0), BackgroundTransparency = 1, Text = t, TextColor3 = K.tx, Font = K.fontBold, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Center, TextTruncate = Enum.TextTruncate.AtEnd, TextTransparency = 1, Parent = header})
+
+        local closeBtn = mk("TextButton", {Size = UDim2.new(0, 26, 0, 26), Position = UDim2.new(1, -26, 0, 4), BackgroundColor3 = K.sb, BackgroundTransparency = 1, Text = "", AutoButtonColor = false, Parent = header})
+        rc(closeBtn, 6)
+        local closeImg = mk("ImageLabel", {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(.5, -6, .5, -6), BackgroundTransparency = 1, Image = "rbxassetid://" .. I.close, ImageColor3 = K.dm, ImageTransparency = 1, Parent = closeBtn})
+
+        local d1 = mk("TextLabel", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Text = c, TextColor3 = K.dm, Font = K.fontMed, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, TextWrapped = true, LineHeight = 1.2, LayoutOrder = 2, TextTransparency = 1, Parent = content})
+
+        local progBg = mk("Frame", {Size = UDim2.new(1, 0, 0, 3), BackgroundColor3 = K.ln, BackgroundTransparency = .3, LayoutOrder = 3, Parent = content})
+        rc(progBg, 2)
+        local prog = mk("Frame", {Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = col, Parent = progBg})
+        rc(prog, 2)
+
         local dur = d or 4
+        local dismissed = false
         local function dismiss()
-            if not f.Parent then return end
-            tw(f, .2, {BackgroundTransparency = 1})
-            tw(s, .2, {Transparency = 1}); tw(b, .2, {BackgroundTransparency = 1})
-            tw(t1, .2, {TextTransparency = 1}); tw(d1, .2, {TextTransparency = 1})
-            tw(prog, .2, {BackgroundTransparency = 1}); tw(closeBtn, .2, {BackgroundTransparency = 1, TextTransparency = 1})
-            task.delay(.25, function() f:Destroy() end)
+            if dismissed or not f.Parent then return end
+            dismissed = true
+            tw(f, .25, {BackgroundTransparency = 1})
+            tw(s, .25, {Transparency = 1})
+            tw(iconFrame, .25, {BackgroundTransparency = 1})
+            tw(iconImg, .25, {ImageTransparency = 1})
+            tw(t1, .25, {TextTransparency = 1})
+            tw(d1, .25, {TextTransparency = 1})
+            tw(progBg, .25, {BackgroundTransparency = 1})
+            tw(prog, .25, {BackgroundTransparency = 1})
+            tw(closeBtn, .25, {BackgroundTransparency = 1})
+            tw(closeImg, .25, {ImageTransparency = 1})
+            task.delay(.3, function() if f.Parent then f:Destroy() end end)
         end
+
+        closeBtn.MouseEnter:Connect(function() tw(closeImg, .15, {ImageColor3 = K.tx}); tw(closeBtn, .15, {BackgroundTransparency = 0}) end)
+        closeBtn.MouseLeave:Connect(function() tw(closeImg, .15, {ImageColor3 = K.dm}); tw(closeBtn, .15, {BackgroundTransparency = 1}) end)
         closeBtn.MouseButton1Click:Connect(dismiss)
-        tw(f, .3, {BackgroundTransparency = 0}); tw(s, .3, {Transparency = 0}); tw(b, .3, {BackgroundTransparency = 0})
-        tw(t1, .3, {TextTransparency = 0}); tw(d1, .3, {TextTransparency = 0})
-        tw(prog, dur, {Size = UDim2.new(0, 0, 0, 2)})
+
+        tw(f, .3, {BackgroundTransparency = 0}); tw(s, .3, {Transparency = 0})
+        tw(iconFrame, .3, {BackgroundTransparency = .85})
+        tw(iconImg, .3, {ImageTransparency = 0})
+        tw(closeBtn, .3, {BackgroundTransparency = 1})
+        tw(closeImg, .3, {ImageTransparency = 0})
+        tw(t1, .3, {TextTransparency = 0})
+        tw(d1, .3, {TextTransparency = 0})
+        tw(progBg, .3, {BackgroundTransparency = .3})
+        tw(prog, dur, {Size = UDim2.new(0, 0, 1, 0)})
         task.delay(dur, dismiss)
     end
 
@@ -309,7 +398,6 @@ function Library:CreateWindow(cfg)
     mk("Frame", {Size = UDim2.new(0, 12, 1, 0), Position = UDim2.new(1, -12, 0, 0), BackgroundColor3 = K.sb, Parent = side})
     local cont = mk("Frame", {Size = UDim2.new(1, -150, 1, 0), Position = UDim2.new(0, 150, 0, 0), BackgroundTransparency = 1, Parent = win})
 
-    -- loading screen
     local ld = mk("Frame", {AnchorPoint = Vector2.new(.5, .5), Position = UDim2.new(.5, 0, .5, 0), Size = UDim2.new(0, 300, 0, 116), BackgroundColor3 = K.sb, ZIndex = 10, Parent = gui})
     rc(ld, 12); sk(ld, K.ln, 1)
     local ldt = mk("TextLabel", {Size = UDim2.new(1, 0, 0, 28), Position = UDim2.new(0, 0, 0, 18), BackgroundTransparency = 1, Text = opts.LoadingTitle, TextColor3 = K.tx, Font = K.fontBold, TextSize = 20, ZIndex = 10, Parent = ld})
@@ -319,7 +407,6 @@ function Library:CreateWindow(cfg)
     local lfl = mk("Frame", {Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = K.ac, ZIndex = 10, Parent = lbg})
     rc(lfl, 2); gr(lfl, K.ac, K.ag, 0)
 
-    -- recherche + nav
     local brand = mk("Frame", {Size = UDim2.new(1, 0, 0, 66), BackgroundTransparency = 1, Parent = side})
     mk("TextLabel", {Size = UDim2.new(1, -24, 0, 22), Position = UDim2.new(0, 14, 0, 16), BackgroundTransparency = 1, Text = opts.Title, TextColor3 = K.tx, Font = K.fontBold, TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, TextScaled = true, Parent = brand})
     if opts.Subtitle ~= "" then
@@ -334,7 +421,7 @@ function Library:CreateWindow(cfg)
     if opts.SearchEnabled then
         local sb = mk("Frame", {Size = UDim2.new(1, -20, 0, 24), Position = UDim2.new(0, 10, 0, 68), BackgroundColor3 = K.sf, Parent = side})
         rc(sb, 6); sk(sb, K.ln, 1)
-        mk("ImageLabel", {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(0, 8, .5, -6), BackgroundTransparency = 1, Image = "rbxassetid://118685771787843", ImageColor3 = K.dm, Parent = sb})
+        mk("ImageLabel", {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(0, 8, .5, -6), BackgroundTransparency = 1, Image = "rbxassetid://" .. I.search, ImageColor3 = K.dm, Parent = sb})
         srchInp = mk("TextBox", {Size = UDim2.new(1, -30, 1, 0), Position = UDim2.new(0, 26, 0, 0), BackgroundTransparency = 1, Text = "", PlaceholderText = "Search", PlaceholderColor3 = K.dm, TextColor3 = K.tx, Font = K.fontMed, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Parent = sb})
         navOffset = 100
         navSizeOffset = -106
@@ -390,7 +477,6 @@ function Library:CreateWindow(cfg)
 
     local tbs, cur = {}, nil
     local function pk(o)
-        -- [FIX z-index] close any open popup on tab switch
         closeActivePopup()
         for _, d in ipairs(tbs) do
             local on_ = d.o == o
@@ -406,11 +492,23 @@ function Library:CreateWindow(cfg)
         c.MouseEnter:Connect(function()
             sn(K.soundHover, .1)
             tw(f, .15, {BackgroundColor3 = K.hv})
-            if a then tw(a, .15, {TextColor3 = K.ag}) end
+            if a then
+                if a:IsA("ImageLabel") then
+                    tw(a, .15, {ImageColor3 = K.ag})
+                else
+                    tw(a, .15, {TextColor3 = K.ag})
+                end
+            end
         end)
         c.MouseLeave:Connect(function()
             tw(f, .15, {BackgroundColor3 = K.sf})
-            if a then tw(a, .15, {TextColor3 = K.dm}) end
+            if a then
+                if a:IsA("ImageLabel") then
+                    tw(a, .15, {ImageColor3 = K.dm})
+                else
+                    tw(a, .15, {TextColor3 = K.dm})
+                end
+            end
         end)
     end
 
@@ -464,13 +562,13 @@ function Library:CreateWindow(cfg)
             local open = defaultOpen ~= false
             local children = {}
             local f = self:_row(30)
-            local chevron = mk("TextLabel", {Size = UDim2.new(0, 16, 1, 0), Position = UDim2.new(0, 14, 0, 0), BackgroundTransparency = 1, Text = open and "▼" or "▶", TextColor3 = K.dm, Font = K.fontBold, TextSize = 10, Parent = f})
+            local chevron = mk("ImageLabel", {Size = UDim2.new(0, 10, 0, 10), Position = UDim2.new(0, 16, .5, -5), BackgroundTransparency = 1, Image = "rbxassetid://" .. (open and I.chevronUp or I.chevronDown), ImageColor3 = K.dm, Parent = f})
             mk("TextLabel", {Size = UDim2.new(1, -40, 1, 0), Position = UDim2.new(0, 34, 0, 0), BackgroundTransparency = 1, Text = string.upper(t), TextColor3 = K.tx, Font = K.fontBold, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, Parent = f})
             local click = mk("TextButton", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", AutoButtonColor = false, Parent = f})
             local section = {open = open, children = children}
             local function setOpen(v)
                 open = v; section.open = v
-                chevron.Text = v and "▼" or "▶"
+                chevron.Image = "rbxassetid://" .. (v and I.chevronUp or I.chevronDown)
                 for _, child in ipairs(children) do if child and child.Parent then child.Visible = v end end
             end
             click.MouseButton1Click:Connect(function()
@@ -495,7 +593,7 @@ function Library:CreateWindow(cfg)
             local f = self:_row(44, t)
             local c = mk("TextButton", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", AutoButtonColor = false, Parent = f})
             mk("TextLabel", {Size = UDim2.new(1, -50, 1, 0), Position = UDim2.new(0, 18, 0, 0), BackgroundTransparency = 1, Text = t, TextColor3 = K.tx, Font = K.fontBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, Parent = f})
-            local a = mk("TextLabel", {Size = UDim2.new(0, 20, 1, 0), Position = UDim2.new(1, -30, 0, 0), BackgroundTransparency = 1, Text = ">", TextColor3 = K.dm, Font = K.fontBold, TextSize = 14, Parent = f})
+            local a = mk("ImageLabel", {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(1, -28, .5, -6), BackgroundTransparency = 1, Image = "rbxassetid://" .. I.arrowRight, ImageColor3 = K.dm, Parent = f})
             hf(c, f, a)
             c.MouseButton1Click:Connect(function()
                 sn(K.soundClick, .3)
@@ -510,17 +608,19 @@ function Library:CreateWindow(cfg)
             local f = self:_row(44, t)
             local c = mk("TextButton", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", AutoButtonColor = false, Parent = f})
             local lbl = mk("TextLabel", {Size = UDim2.new(1, -50, 1, 0), Position = UDim2.new(0, 18, 0, 0), BackgroundTransparency = 1, Text = t, TextColor3 = K.tx, Font = K.fontBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, Parent = f})
-            local a = mk("TextLabel", {Size = UDim2.new(0, 20, 1, 0), Position = UDim2.new(1, -30, 0, 0), BackgroundTransparency = 1, Text = ">", TextColor3 = K.dm, Font = K.fontBold, TextSize = 14, Parent = f})
+            local a = mk("ImageLabel", {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(1, -28, .5, -6), BackgroundTransparency = 1, Image = "rbxassetid://" .. I.arrowRight, ImageColor3 = K.dm, Parent = f})
             hf(c, f, a)
             local busy = false
             c.MouseButton1Click:Connect(function()
                 if busy then return end
                 busy = true; sn(K.soundClick, .3)
-                lbl.Text = "Loading..."; lbl.TextColor3 = K.wn; a.Text = "..."
+                lbl.Text = "Loading..."; lbl.TextColor3 = K.wn
+                a.ImageTransparency = 1
                 task.spawn(function()
                     local ok, e = pcall(cb)
                     if not ok then logError("LoadingButton/" .. t, e); ntf("error", tostring(e), 5, "err") end
-                    lbl.Text = t; lbl.TextColor3 = K.tx; a.Text = ">"
+                    lbl.Text = t; lbl.TextColor3 = K.tx
+                    a.ImageTransparency = 0
                     busy = false
                 end)
             end)
@@ -731,14 +831,12 @@ function Library:CreateWindow(cfg)
             local menu = mk("Frame", {Size = UDim2.new(0, 120, 0, 0), Position = UDim2.new(0, 0, 1, 2), BackgroundColor3 = K.sb, Visible = false, ZIndex = 1000, Parent = dd})
             rc(menu, 6); sk(menu, K.ac, 1, .3)
 
-            -- [FIX z-index] state + close/open helpers
             local menuOpen = false
             local outsideConn = nil
             local function closeMenu()
                 if not menuOpen then return end
                 menuOpen = false
                 menu.Visible = false
-                -- reparent back to dd so it's cleaned up when dd/tab is destroyed
                 menu.Parent = dd
                 menu.Position = UDim2.new(0, 0, 1, 2)
                 if outsideConn then outsideConn:Disconnect(); outsideConn = nil end
@@ -746,7 +844,7 @@ function Library:CreateWindow(cfg)
             end
             local function openMenu()
                 if menuOpen then return end
-                closeActivePopup() -- close any other open popup first
+                closeActivePopup()
                 menuOpen = true
                 activeCloser = closeMenu
                 local s = us.Scale
@@ -759,7 +857,6 @@ function Library:CreateWindow(cfg)
                     (menuAbsY - win.AbsolutePosition.Y) / s
                 )
                 menu.Visible = true
-                -- outside click: close if click is outside menu AND outside dd
                 task.defer(function()
                     outsideConn = UIS.InputBegan:Connect(function(i)
                         if not menuOpen or not menu.Parent then
@@ -834,7 +931,6 @@ function Library:CreateWindow(cfg)
                 {Color3.fromRGB(155,89,182), "Purple"}, {Color3.fromRGB(26,188,156), "Teal"},
                 {Color3.fromRGB(230,126,34), "Orange"}, {Color3.fromRGB(149,165,166), "Gray"},
             }
-            -- [FIX z-index] popup reparented to win, ZIndex 1000, closes on outside click
             local popup, outsideConn
             local function closePopup()
                 if not popup then return end
@@ -999,13 +1095,13 @@ function Library:CreateWindow(cfg)
             rc(row, 10); local stroke = sk(row, K.ln, 1)
             mk("ImageLabel", {Size = UDim2.new(0, 18, 0, 18), Position = UDim2.new(0, 14, 0.5, -9), BackgroundTransparency = 1, Image = cfg2.Icon or "rbxassetid://84828491431270", ImageColor3 = K.ac, Parent = row})
             mk("TextLabel", {Size = UDim2.new(1, -60, 1, 0), Position = UDim2.new(0, 42, 0, 0), BackgroundTransparency = 1, Text = cfg2.Text or "Join our Discord", TextColor3 = K.tx, Font = K.fontBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, Parent = row})
-            local arrow = mk("TextLabel", {Size = UDim2.new(0, 20, 1, 0), Position = UDim2.new(1, -30, 0, 0), BackgroundTransparency = 1, Text = ">", TextColor3 = K.dm, Font = K.fontBold, TextSize = 14, Parent = row})
+            local arrow = mk("ImageLabel", {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(1, -28, .5, -6), BackgroundTransparency = 1, Image = "rbxassetid://" .. I.launchPage, ImageColor3 = K.dm, Parent = row})
             local click = mk("TextButton", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", AutoButtonColor = false, Parent = row})
             click.MouseEnter:Connect(function()
-                sn(K.soundHover, .1); tw(row, .15, {BackgroundColor3 = K.hv}); tw(stroke, .15, {Color = K.ac}); tw(arrow, .15, {TextColor3 = K.ac, Position = UDim2.new(1, -24, 0, 0)})
+                sn(K.soundHover, .1); tw(row, .15, {BackgroundColor3 = K.hv}); tw(stroke, .15, {Color = K.ac}); tw(arrow, .15, {ImageColor3 = K.ac, Position = UDim2.new(1, -24, .5, -6)})
             end)
             click.MouseLeave:Connect(function()
-                tw(row, .15, {BackgroundColor3 = K.sf}); tw(stroke, .15, {Color = K.ln}); tw(arrow, .15, {TextColor3 = K.dm, Position = UDim2.new(1, -30, 0, 0)})
+                tw(row, .15, {BackgroundColor3 = K.sf}); tw(stroke, .15, {Color = K.ln}); tw(arrow, .15, {ImageColor3 = K.dm, Position = UDim2.new(1, -28, .5, -6)})
             end)
             click.MouseButton1Click:Connect(function()
                 sn(K.soundClick, .3)
@@ -1060,7 +1156,6 @@ function Library:CreateWindow(cfg)
         return o
     end
 
-    -- recherche
     local srchDrop
     if opts.SearchEnabled and srchInp then
         srchDrop = mk("Frame", {Size = UDim2.new(1, -20, 0, 0), Position = UDim2.new(0, 10, 0, 100), BackgroundColor3 = K.sb, Visible = false, ZIndex = 50, Parent = win})
@@ -1104,9 +1199,8 @@ function Library:CreateWindow(cfg)
         end)
     end
 
-    -- controles
-    local function ctl(t, x, hc, cb, tooltip)
-        local b = mk("TextButton", {Position = UDim2.new(1, x, 0, 12), Size = UDim2.new(0, 26, 0, 26), BackgroundColor3 = K.sf, Text = t, TextColor3 = K.dm, Font = K.fontBold, TextSize = 14, AutoButtonColor = false, ZIndex = 10, Parent = win})
+    local function ctl(t, x, hc, cb)
+        local b = mk("TextButton", {Position = UDim2.new(1, x, 0, 12), Size = UDim2.new(0, 26, 0, 26), BackgroundColor3 = K.sf, Text = t or "", TextColor3 = K.dm, Font = K.fontBold, TextSize = 14, AutoButtonColor = false, ZIndex = 10, Parent = win})
         rc(b, 6); sk(b, K.ln, 1)
         b.MouseEnter:Connect(function() sn(K.soundHover, .08); tw(b, .15, {BackgroundColor3 = hc, TextColor3 = K.tx}) end)
         b.MouseLeave:Connect(function() tw(b, .15, {BackgroundColor3 = K.sf, TextColor3 = K.dm}) end)
@@ -1119,11 +1213,17 @@ function Library:CreateWindow(cfg)
     Window._onClose = nil
     Window._isCompact = false
 
-    local compactBtn = ctl("□", -98, K.hv, function()
-        Window:SetCompact(not isCompact)
-    end)
+    local compactBtn = ctl("", -98, K.hv, function() Window:SetCompact(not isCompact) end)
+    local compactImg = mk("ImageLabel", {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(.5, -6, .5, -6), BackgroundTransparency = 1, Image = "rbxassetid://" .. I.grid, ImageColor3 = K.dm, Parent = compactBtn})
+    compactBtn.MouseEnter:Connect(function() tw(compactImg, .15, {ImageColor3 = K.tx}) end)
+    compactBtn.MouseLeave:Connect(function() tw(compactImg, .15, {ImageColor3 = K.dm}) end)
+
     ctl("-", -66, K.hv, function() Window:SetVisible(false) end)
-    ctl("×", -34, K.dg, function() Window:Destroy() end)
+
+    local closeBtn = ctl("", -34, K.dg, function() Window:Destroy() end)
+    local closeImg = mk("ImageLabel", {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(.5, -6, .5, -6), BackgroundTransparency = 1, Image = "rbxassetid://" .. I.close, ImageColor3 = K.dm, Parent = closeBtn})
+    closeBtn.MouseEnter:Connect(function() tw(closeImg, .15, {ImageColor3 = K.tx}) end)
+    closeBtn.MouseLeave:Connect(function() tw(closeImg, .15, {ImageColor3 = K.dm}) end)
 
     function Window:SetCompact(on)
         isCompact = on; self._isCompact = on
@@ -1142,7 +1242,6 @@ function Library:CreateWindow(cfg)
             tw(us, .28, {Scale = tgt})
             sn(K.soundOpen, .25)
         else
-            -- [FIX z-index] close any open popup when hiding the window
             closeActivePopup()
             win.Visible = false
             if srchDrop then srchDrop.Visible = false end
@@ -1153,7 +1252,6 @@ function Library:CreateWindow(cfg)
 
     function Window:Destroy()
         if self._onClose then pcall(self._onClose) end
-        -- [FIX z-index] close any open popup before tearing down
         closeActivePopup()
         for id, h in pairs(Library._registry) do
             if h and h._id and h._id:sub(1, #opts.PersistId) == opts.PersistId then
@@ -1192,7 +1290,6 @@ function Library:CreateWindow(cfg)
         Window:SetCompact(not Window._isCompact)
     end)
 
-    -- bouton qui flote
     if opts.ShowFloatingButton then
         local mbtn = mk("TextButton", {AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 14, 1, -14), Size = UDim2.new(0, 40, 0, 40), BackgroundColor3 = K.sb, Text = opts.FloatingButtonText, TextColor3 = K.ac, Font = K.fontBold, TextSize = 16, AutoButtonColor = false, ZIndex = 20, Parent = gui})
         rc(mbtn, 20); sk(mbtn, K.ln, 1)

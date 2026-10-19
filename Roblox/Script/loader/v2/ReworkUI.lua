@@ -1,4 +1,4 @@
--- Standalone UI V2.5.1 | For rework scripts
+-- Standalone UI V2.5.3 | For rework scripts
 -- Directed by: Azuno
 
 -- FEATURES:
@@ -24,13 +24,15 @@
 
 -- Changelogs:
 -- 2.5.1 : Fix zindex des popups (dropdown menu + colorpicker popup).
--- 2.5.2 : Icon system (chevrons, arrows, close, notification kinds).
---         Notification system overhaul : bigger, auto-wrap, title + body, icon per kind,
---         progress bar and close button. Fix bind/button arrows using ImageLabel.
---         Improved dark/black/light themes.
+-- 2.5.2 : Icon system + notification overhaul.
+-- 2.5.3 : Fix unicode tofu (▾) in dropdown — replaced by ImageLabel chevron.
+--         Fix stuck bind (lis state + kb.Text restore on all exit paths).
+--         Fix bind lost on outside click (cancel lis on outside click).
+--         Anti memory leak: themed prune, _bindRegistry cleanup, safe _registry iteration,
+--         windowEls cleanup on Tab:Clear/Destroy, handles cleanup on Tab:Clear.
 
 local Library = {}
-Library.Version = "2.5.2"
+Library.Version = "2.5.3"
 Library.__index = Library
 Library._errors = {}
 Library._registry = {}
@@ -190,9 +192,25 @@ local function logError(ctx, err)
     pcall(function() warn("[NinjaUI/" .. ctx .. "] " .. tostring(err)) end)
 end
 
+local function pruneThemed()
+    local i = 1
+    while i <= #themed do
+        local e = themed[i]
+        if not e.inst or not e.inst.Parent then
+            table.remove(themed, i)
+        else
+            i = i + 1
+        end
+    end
+end
+
 local function applyThemeAll()
-    for _, e in ipairs(themed) do
-        if e.inst and e.inst.Parent then
+    local i = 1
+    while i <= #themed do
+        local e = themed[i]
+        if not e.inst or not e.inst.Parent then
+            table.remove(themed, i)
+        else
             if e.isGradient then
                 local a = e.fixedA and e.key.a or Library.Config[e.key.a]
                 local b = Library.Config[e.key.b]
@@ -200,9 +218,12 @@ local function applyThemeAll()
             else
                 pcall(function() e.inst[e.prop] = Library.Config[e.key] end)
             end
+            i = i + 1
         end
     end
 end
+
+function Library:PruneThemed() pruneThemed() end
 
 function Library:SetTheme(theme)
     if type(theme) == "string" then
@@ -545,6 +566,13 @@ function Library:CreateWindow(cfg)
 
         function o:Clear()
             closeActivePopup()
+            for _, h in pairs(self._handles) do
+                if h._id then Library._registry[h._id] = nil end
+                if h.k and Library._bindRegistry then Library._bindRegistry[h.k] = nil end
+            end
+            for idx = #windowEls, 1, -1 do
+                if windowEls[idx].tab == self then table.remove(windowEls, idx) end
+            end
             for _, c in ipairs(self.pg:GetChildren()) do
                 if not c:IsA("UIListLayout") and not c:IsA("UIPadding") then c:Destroy() end
             end
@@ -743,20 +771,30 @@ function Library:CreateWindow(cfg)
             rc(kb, 6); sk(kb, K.ln, 1); hf(c, f)
             local h = {k = dk, _default = dk, v = dk, name = t}
             local lis = false
+
+            local function restoreKb()
+                kb.Text = h.k and h.k.Name or "NONE"
+                kb.TextColor3 = K.ac
+            end
+
             local function setKey(newKey, announce)
-                if newKey == h.k then return end
+                if newKey == h.k then
+                    restoreKb()
+                    return
+                end
                 if newKey and Library._bindRegistry and Library._bindRegistry[newKey] and Library._bindRegistry[newKey] ~= h then
                     ntf("Bind conflict", newKey.Name .. " already bound to: " .. (Library._bindRegistry[newKey].name or "?"), 4, "warn")
+                    restoreKb()
                     return
                 end
                 if h.k and Library._bindRegistry then Library._bindRegistry[h.k] = nil end
                 h.k = newKey
                 h.v = newKey
                 if h.k and Library._bindRegistry then Library._bindRegistry[h.k] = h end
-                kb.Text = h.k and h.k.Name or "NONE"
-                kb.TextColor3 = K.ac
+                restoreKb()
                 if announce then ntf("Bind", t .. " -> " .. (h.k and h.k.Name or "NONE"), 3, "ok") end
             end
+
             c.MouseButton1Click:Connect(function()
                 sn(K.soundClick, .3)
                 if cb then
@@ -764,12 +802,35 @@ function Library:CreateWindow(cfg)
                     if not ok then logError("Bind/" .. t, e); ntf("error", tostring(e), 5, "err") end
                 end
             end)
-            kb.MouseButton1Click:Connect(function() lis = true; kb.Text = "press key"; kb.TextColor3 = K.wn end)
+
+            kb.MouseButton1Click:Connect(function()
+                if lis then
+                    lis = false
+                    restoreKb()
+                else
+                    lis = true
+                    kb.Text = "press key"
+                    kb.TextColor3 = K.wn
+                end
+            end)
+
             Connect(UIS.InputBegan, function(i, p)
                 if lis then
-                    if i.UserInputType ~= Enum.UserInputType.Keyboard then return end
-                    lis = false
-                    setKey(i.KeyCode == Enum.KeyCode.Escape and nil or i.KeyCode, false)
+                    if i.UserInputType == Enum.UserInputType.Keyboard then
+                        lis = false
+                        setKey(i.KeyCode == Enum.KeyCode.Escape and nil or i.KeyCode, false)
+                        return
+                    end
+                    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+                        local pos = i.Position
+                        local a = kb.AbsolutePosition
+                        local z = kb.AbsoluteSize
+                        local inside = pos.X >= a.X and pos.X <= a.X + z.X and pos.Y >= a.Y and pos.Y <= a.Y + z.Y
+                        if not inside then
+                            lis = false
+                            restoreKb()
+                        end
+                    end
                     return
                 end
                 if not p and h.k and i.KeyCode == h.k and isReady and cb then
@@ -825,8 +886,10 @@ function Library:CreateWindow(cfg)
             local f = self:_row(44, t)
             local c = mk("TextButton", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", AutoButtonColor = false, Parent = f})
             mk("TextLabel", {Size = UDim2.new(1, -140, 1, 0), Position = UDim2.new(0, 18, 0, 0), BackgroundTransparency = 1, Text = t, TextColor3 = K.tx, Font = K.fontBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, Parent = f})
-            local dd = mk("TextButton", {Size = UDim2.new(0, 120, 0, 26), Position = UDim2.new(1, -134, .5, -13), BackgroundColor3 = K.sb, Text = current .. "  ▾", TextColor3 = K.ac, Font = K.fontBold, TextSize = 11, AutoButtonColor = false, ZIndex = 3, Parent = f})
+            local dd = mk("TextButton", {Size = UDim2.new(0, 120, 0, 26), Position = UDim2.new(1, -134, .5, -13), BackgroundColor3 = K.sb, Text = "", AutoButtonColor = false, ZIndex = 3, Parent = f})
             rc(dd, 6); sk(dd, K.ln, 1); hf(c, f)
+            local ddLabel = mk("TextLabel", {Size = UDim2.new(1, -22, 1, 0), Position = UDim2.new(0, 8, 0, 0), BackgroundTransparency = 1, Text = tostring(current), TextColor3 = K.ac, Font = K.fontBold, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = dd})
+            mk("ImageLabel", {Size = UDim2.new(0, 8, 0, 8), Position = UDim2.new(1, -14, .5, -4), BackgroundTransparency = 1, Image = "rbxassetid://" .. I.chevronDown, ImageColor3 = K.ac, Parent = dd})
             local h = {v = current, _default = current, options = options}
             local menu = mk("Frame", {Size = UDim2.new(0, 120, 0, 0), Position = UDim2.new(0, 0, 1, 2), BackgroundColor3 = K.sb, Visible = false, ZIndex = 1000, Parent = dd})
             rc(menu, 6); sk(menu, K.ac, 1, .3)
@@ -888,7 +951,7 @@ function Library:CreateWindow(cfg)
                     b.MouseLeave:Connect(function() b.BackgroundTransparency = .3; lbl.TextColor3 = K.tx end)
                     b.MouseButton1Click:Connect(function()
                         h.v = opt
-                        dd.Text = tostring(opt) .. "  ▾"
+                        ddLabel.Text = tostring(opt)
                         closeMenu()
                         if cb then
                             local ok, e = pcall(cb, opt)
@@ -906,7 +969,7 @@ function Library:CreateWindow(cfg)
             end)
 
             function h.get(_) return h.v end
-            function h.set(_, val) h.v = val; dd.Text = tostring(val) .. "  ▾" end
+            function h.set(_, val) h.v = val; ddLabel.Text = tostring(val) end
             h._serialize = function() return h.v end
             h._deserialize = function(val) if type(val) == "string" or type(val) == "number" then h:set(val) end end
             h._reset = function() h:set(h._default) end
@@ -1253,13 +1316,32 @@ function Library:CreateWindow(cfg)
     function Window:Destroy()
         if self._onClose then pcall(self._onClose) end
         closeActivePopup()
+
+        local toRemove = {}
         for id, h in pairs(Library._registry) do
             if h and h._id and h._id:sub(1, #opts.PersistId) == opts.PersistId then
-                Library._registry[id] = nil
+                table.insert(toRemove, id)
             end
         end
+        for _, id in ipairs(toRemove) do Library._registry[id] = nil end
+
+        if Library._bindRegistry then
+            local bindKeys = {}
+            for k, h in pairs(Library._bindRegistry) do
+                if h and h._id and h._id:sub(1, #opts.PersistId) == opts.PersistId then
+                    table.insert(bindKeys, k)
+                end
+            end
+            for _, k in ipairs(bindKeys) do Library._bindRegistry[k] = nil end
+        end
+
+        windowEls = {}
+
         for _, c in ipairs(conns) do pcall(function() c:Disconnect() end) end
+
         if gui then gui:Destroy() end
+
+        pruneThemed()
     end
 
     function Window:SetTheme(theme) return Library:SetTheme(theme) end

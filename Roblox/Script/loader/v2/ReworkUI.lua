@@ -32,8 +32,8 @@ Library._errors = {}
 Library._registry = {}
 Library._shortcuts = {
     Toggle = Enum.KeyCode.RightShift,
-    Compact = Enum.KeyCode.C,
 }
+Library._currentTheme = "dark"
 
 Library.Defaults = {
     bg = Color3.fromRGB(12,12,14), sb = Color3.fromRGB(16,16,20), sf = Color3.fromRGB(22,22,26),
@@ -67,6 +67,8 @@ Library.Themes = {
     },
 }
 for k, v in pairs(Library.Defaults) do Library.Themes.dark[k] = v end
+Library.Themes.dark.ac = nil
+Library.Themes.dark.ag = nil
 
 local Pl = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
@@ -149,9 +151,15 @@ end
 
 function Library:SetTheme(theme)
     if type(theme) == "string" then
-        theme = Library.Themes[theme]
+        local name = theme
+        theme = Library.Themes[name]
         if not theme then return false end
-    elseif type(theme) ~= "table" then return false end
+        Library._currentTheme = name
+    elseif type(theme) == "table" then
+        Library._currentTheme = "custom"
+    else
+        return false
+    end
     for k, v in pairs(theme) do
         if typeof(v) == "Color3" and Library.Config[k] then Library.Config[k] = v end
     end
@@ -394,7 +402,7 @@ function Library:CreateWindow(cfg)
         end)
     end
 
-    local function tab(nm, icn)
+    local function tab(nm, icn, order)
         local pg = mk("ScrollingFrame", {
             Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
             ScrollBarThickness = 4, ScrollBarImageColor3 = K.ac,
@@ -404,7 +412,7 @@ function Library:CreateWindow(cfg)
         })
         mk("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8)}, pg)
         mk("UIPadding", {PaddingTop = UDim.new(0, 52), PaddingLeft = UDim.new(0, 18), PaddingRight = UDim.new(0, 20), PaddingBottom = UDim.new(0, 18)}, pg)
-        local b = mk("TextButton", {Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = K.hv, BackgroundTransparency = 1, Text = "", AutoButtonColor = false, Parent = nav})
+        local b = mk("TextButton", {Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = K.hv, BackgroundTransparency = 1, Text = "", AutoButtonColor = false, LayoutOrder = order or 1, Parent = nav})
         rc(b, 8)
         local i = mk("ImageLabel", {Size = UDim2.new(0, 16, 0, 16), Position = UDim2.new(0, 12, .5, -8), BackgroundTransparency = 1, Image = "rbxassetid://" .. tostring(icn or 0), ImageColor3 = K.dm, Parent = b})
         local l = mk("TextLabel", {Size = UDim2.new(1, -40, 1, 0), Position = UDim2.new(0, 36, 0, 0), BackgroundTransparency = 1, Text = nm, TextColor3 = K.dm, Font = K.fontMed, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, Parent = b})
@@ -1024,7 +1032,6 @@ function Library:CreateWindow(cfg)
     function Window:SetCompact(on)
         isCompact = on; self._isCompact = on
         lay()
-        if compactBtn then compactBtn.Text = on and "▣" or "□" end
     end
 
     function Window:CreateTab(name, icon) return tab(name, icon) end
@@ -1062,6 +1069,29 @@ function Library:CreateWindow(cfg)
     function Window:SaveSettings() return Library:SaveSettings() end
     function Window:LoadSettings() return Library:LoadSettings() end
 
+    local uiTab = tab("UI", 103950363563606, 100)
+    uiTab:Section("Appearance")
+    local themeDropdown
+    themeDropdown = uiTab:Dropdown("Theme", {"dark", "black", "light"}, Library._currentTheme or "dark", function(v)
+        Library:SetTheme(v)
+        Window:Notify("UI", "Theme set to: " .. tostring(v), 3, "ok")
+    end)
+    local accentPicker
+    accentPicker = uiTab:ColorPicker("Accent Color", Library.Config.ac, function(c)
+        Library:SetAccent(c)
+    end)
+    uiTab:Section("Quick Actions")
+    uiTab:Button("Reset Appearance", function()
+        Library:ResetTheme()
+        Library._currentTheme = "dark"
+        if themeDropdown and themeDropdown.set then themeDropdown:set("dark") end
+        if accentPicker and accentPicker.set then accentPicker:set(Library.Config.ac) end
+        Window:Notify("UI", "Appearance reset to defaults.", 3, "ok")
+    end)
+    uiTab:Button("Toggle Compact Mode", function()
+        Window:SetCompact(not Window._isCompact)
+    end)
+
     -- bouton qui flote
     if opts.ShowFloatingButton then
         local mbtn = mk("TextButton", {AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 14, 1, -14), Size = UDim2.new(0, 40, 0, 40), BackgroundColor3 = K.sb, Text = opts.FloatingButtonText, TextColor3 = K.ac, Font = K.fontBold, TextSize = 16, AutoButtonColor = false, ZIndex = 20, Parent = gui})
@@ -1070,7 +1100,6 @@ function Library:CreateWindow(cfg)
     end
     Connect(UIS.InputBegan, function(i, p)
         if not p and i.KeyCode == opts.Keybind and isReady then Window:Toggle() end
-        if not p and i.KeyCode == Library._shortcuts.Compact and isReady then Window:SetCompact(not isCompact) end
     end)
 
     task.spawn(function()

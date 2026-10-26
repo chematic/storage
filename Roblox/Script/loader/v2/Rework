@@ -1,17 +1,32 @@
--- Standalone UI V3.0.0 | Ember Edition (Orange / Transparent)
--- Rewritten from Azuno's NinjaUI | Same API, totally new UI
-
--- FEATURES:
---   - 3 themes (orange/black/light) + custom accent color
---   - Transparent glass design, orange accents
---   - Top horizontal pill tabs (no sidebar)
---   - Search (right of tabs), Persistence, Components, Error log
---   - Compact mode, Keybind conflict detection
---   - Notifications top-right with orange glow
---   - Same API as v2.5.4
+-- Standalone UI V3.1.0 | Ember Edition (Optimized & Enhanced)
+-- Rewritten from Azuno's NinjaUI | Same API, refined UI
+--
+-- APPLIED IMPROVEMENTS:
+--   - CanvasGroup notifications (single-tween fade)
+--   - Sound pool (no more Instance churn per click)
+--   - Slider drag via RunService.RenderStepped + cached abs
+--   - Search debounce (80ms) + lowercase cache
+--   - Cached TweenInfo constants
+--   - Real glassmorphism (tint layer + soft shadow)
+--   - Toggle spring (Back easing overshoot)
+--   - Slider knob scale on grab
+--   - Dropdown animated open
+--   - Keycap style binds
+--   - Animated HOT badge gradient
+--   - Window entrance squash
+--   - Drag feedback (shadow grow + window opacity)
+--   - Tab switching fade-in (CanvasGroup wrapper)
+--   - Hero gradient rotation + hover lift
+--   - TextBox focus ring
+--   - Empty search state
+--   - Gradient dividers
+--   - Contextual toggle sounds (ON vs OFF pitch)
+--   - Rate-limited error notifications
+--   - Mobile/low-graphics animation guard
+--   - fadeDestroy helper (used for loading screen)
 
 local Library = {}
-Library.Version = "3.0.0"
+Library.Version = "3.1.0"
 Library.__index = Library
 Library._errors = {}
 Library._registry = {}
@@ -46,71 +61,66 @@ Library.Config.soundNote = "4590657391"
 Library.Config.soundErr = "9120386436"
 
 Library.Icons = {
-	arrowRight = "73793633589587",
-	arrowLeft = "95914482122535",
-	chevronDown = "80813996117360",
-	chevronUp = "139029907586032",
-	close = "10152135063",
-	trash = "137246078911422",
-	grid = "134855699168308",
-	dashboard = "131195306876003",
-	keyboardRet = "73469154520504",
-	mic = "103024617507153",
-	runRight = "70523947915342",
-	walkRight = "128150736818436",
-	save = "88852210207454",
-	warning = "104463236123312",
-	info = "106847273191219",
-	error = "75052404705382",
-	flashlight = "127214341614238",
-	cursor = "73128140256723",
-	euro = "137035282500521",
-	checkSmall = "79181104803162",
-	check = "87635036041287",
-	trophy = "111619666750400",
-	launchPage = "86308989595310",
-	heart = "105291564639239",
+	arrowRight = "73793633589587", arrowLeft = "95914482122535",
+	chevronDown = "80813996117360", chevronUp = "139029907586032",
+	close = "10152135063", trash = "137246078911422",
+	grid = "134855699168308", dashboard = "131195306876003",
+	keyboardRet = "73469154520504", mic = "103024617507153",
+	runRight = "70523947915342", walkRight = "128150736818436",
+	save = "88852210207454", warning = "104463236123312",
+	info = "106847273191219", error = "75052404705382",
+	flashlight = "127214341614238", cursor = "73128140256723",
+	euro = "137035282500521", checkSmall = "79181104803162",
+	check = "87635036041287", trophy = "111619666750400",
+	launchPage = "86308989595310", heart = "105291564639239",
 	search = "118685771787843",
 }
 
 Library.Themes = {
 	orange = {},
 	black = {
-		bg = Color3.fromRGB(0, 0, 0),
-		sb = Color3.fromRGB(8, 5, 4),
-		sf = Color3.fromRGB(14, 10, 8),
-		hv = Color3.fromRGB(26, 16, 10),
-		ln = Color3.fromRGB(46, 28, 18),
-		tx = Color3.fromRGB(255, 245, 235),
-		dm = Color3.fromRGB(175, 145, 125),
-		d2 = Color3.fromRGB(112, 88, 72),
+		bg = Color3.fromRGB(0, 0, 0), sb = Color3.fromRGB(8, 5, 4),
+		sf = Color3.fromRGB(14, 10, 8), hv = Color3.fromRGB(26, 16, 10),
+		ln = Color3.fromRGB(46, 28, 18), tx = Color3.fromRGB(255, 245, 235),
+		dm = Color3.fromRGB(175, 145, 125), d2 = Color3.fromRGB(112, 88, 72),
 	},
 	light = {
-		bg = Color3.fromRGB(252, 247, 242),
-		sb = Color3.fromRGB(247, 238, 230),
-		sf = Color3.fromRGB(255, 253, 250),
-		hv = Color3.fromRGB(242, 228, 216),
-		ln = Color3.fromRGB(224, 205, 190),
-		tx = Color3.fromRGB(32, 22, 16),
-		dm = Color3.fromRGB(112, 88, 72),
-		d2 = Color3.fromRGB(162, 140, 124),
+		bg = Color3.fromRGB(252, 247, 242), sb = Color3.fromRGB(247, 238, 230),
+		sf = Color3.fromRGB(255, 253, 250), hv = Color3.fromRGB(242, 228, 216),
+		ln = Color3.fromRGB(224, 205, 190), tx = Color3.fromRGB(32, 22, 16),
+		dm = Color3.fromRGB(112, 88, 72), d2 = Color3.fromRGB(162, 140, 124),
 	},
 }
-for k, v in pairs(Library.Defaults) do
-	Library.Themes.orange[k] = v
-end
+for k, v in pairs(Library.Defaults) do Library.Themes.orange[k] = v end
 
 local Pl = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TS = game:GetService("TweenService")
 local CG = game:GetService("CoreGui")
 local SS = game:GetService("SoundService")
-local DB = game:GetService("Debris")
 local HS = game:GetService("HttpService")
+local RS = game:GetService("RunService")
 local lp = Pl.LocalPlayer
 local cam = workspace.CurrentCamera
 repeat task.wait() cam = workspace.CurrentCamera until cam
 local mob = UIS.TouchEnabled and not UIS.KeyboardEnabled
+
+-- Low-end detection (mobile or low graphics)
+local lowEnd = mob
+pcall(function()
+	if not lowEnd and settings then
+		local s = settings()
+		if s and s.SavedQualityLevel and s.SavedQualityLevel.Value <= 2 then
+			lowEnd = true
+		end
+	end
+end)
+
+-- Cached TweenInfo constants
+local TI_FAST = TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local TI_MED = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local TI_SLOW = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local TI_SPRING = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
 local themed = {}
 local colorKeyMap = {}
@@ -162,11 +172,65 @@ local function tw(o, t, p)
 		return a
 	end
 end
-local function sn(id, v)
-	local s = mk("Sound", { SoundId = "rbxassetid://" .. tostring(id), Volume = v or 0.3 }, SS)
+
+-- Sound pool (reuses Sound instances, no per-click allocation)
+local soundPools = {}
+local function sn(id, v, pitch)
+	local key = tostring(id)
+	local pool = soundPools[key]
+	if not pool then
+		pool = {}
+		soundPools[key] = pool
+	end
+	local s = nil
+	for i = 1, #pool do
+		if not pool[i].IsPlaying then s = pool[i]; break end
+	end
+	if not s then
+		if #pool < 3 then
+			s = Instance.new("Sound")
+			s.SoundId = "rbxassetid://" .. key
+			s.Parent = SS
+			table.insert(pool, s)
+		else
+			s = pool[1]
+		end
+	end
+	s.Volume = v or 0.3
+	s.PlaybackSpeed = pitch or 1
+	s.TimePosition = 0
 	s:Play()
-	DB:AddItem(s, 3)
 end
+
+-- Fade-then-destroy (handles text, backgrounds, strokes)
+local function fadeDestroy(inst, dur)
+	if not inst or not inst.Parent then return end
+	dur = dur or 0.25
+	local tInfo = TweenInfo.new(dur, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+	pcall(function()
+		for _, c in ipairs(inst:GetDescendants()) do
+			if c:IsA("GuiObject") then
+				if c.BackgroundTransparency ~= 1 then
+					TS:Create(c, tInfo, { BackgroundTransparency = 1 }):Play()
+				end
+				if c:IsA("TextLabel") or c:IsA("TextButton") or c:IsA("TextBox") then
+					TS:Create(c, tInfo, { TextTransparency = 1 }):Play()
+				end
+			elseif c:IsA("UIStroke") then
+				TS:Create(c, tInfo, { Transparency = 1 }):Play()
+			end
+		end
+	end)
+	if inst:IsA("GuiObject") then
+		pcall(function()
+			TS:Create(inst, tInfo, { BackgroundTransparency = 1 }):Play()
+		end)
+	end
+	task.delay(dur + 0.05, function()
+		if inst and inst.Parent then inst:Destroy() end
+	end)
+end
+
 local function rn()
 	local c = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	local s = ""
@@ -189,15 +253,18 @@ local function applyThemeAll()
 	local i = 1
 	while i <= #themed do
 		local e = themed[i]
-		if not e.inst or not e.inst.Parent then table.remove(themed, i)
+		if not e.inst or not e.inst.Parent then
+			table.remove(themed, i)
 		else
-			if e.isGradient then
-				local a = e.fixedA and e.key.a or Library.Config[e.key.a]
-				local b = Library.Config[e.key.b]
-				pcall(function() e.inst.Color = ColorSequence.new(a, b) end)
-			else
-				pcall(function() e.inst[e.prop] = Library.Config[e.key] end)
-			end
+			pcall(function()
+				if e.isGradient then
+					local a = e.fixedA and e.key.a or Library.Config[e.key.a]
+					local b = Library.Config[e.key.b]
+					e.inst.Color = ColorSequence.new(a, b)
+				else
+					e.inst[e.prop] = Library.Config[e.key]
+				end
+			end)
 			i = i + 1
 		end
 	end
@@ -324,7 +391,7 @@ function Library:CreateWindow(cfg)
 	if syn and syn.protect_gui then pcall(syn.protect_gui, gui) end
 	gui.Parent = CG:FindFirstChild("RobloxGui") or CG
 
-	-- ===================== NOTIFICATIONS (TOP RIGHT) =====================
+	-- ===================== NOTIFICATIONS (CanvasGroup) =====================
 	local nh = mk("Frame", {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -14, 0, 14),
@@ -345,9 +412,10 @@ function Library:CreateWindow(cfg)
 		local col = k == "err" and K.dg or (k == "warn" and K.wn or K.ok)
 		local icon = k == "err" and I.error or (k == "warn" and I.warning or I.check)
 
-		local f = mk("Frame", {
+		local f = mk("CanvasGroup", {
 			Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
-			BackgroundColor3 = K.sf, BackgroundTransparency = 1, Parent = nh,
+			BackgroundColor3 = K.sf, BackgroundTransparency = 0.05,
+			GroupTransparency = 1, Parent = nh,
 		})
 		rc(f, 14)
 		local s = sk(f, col, 1, 1)
@@ -369,16 +437,16 @@ function Library:CreateWindow(cfg)
 			BackgroundTransparency = 0.8, Parent = header,
 		})
 		rc(iconFrame, 8)
-		local iconImg = mk("ImageLabel", {
+		mk("ImageLabel", {
 			Size = UDim2.new(0, 16, 0, 16), Position = UDim2.new(0.5, -8, 0.5, -8),
 			BackgroundTransparency = 1, Image = "rbxassetid://" .. icon,
-			ImageColor3 = col, ImageTransparency = 1, Parent = iconFrame,
+			ImageColor3 = col, Parent = iconFrame,
 		})
-		local t1 = mk("TextLabel", {
+		mk("TextLabel", {
 			Size = UDim2.new(1, -80, 0, 28), Position = UDim2.new(0, 38, 0, 0),
 			BackgroundTransparency = 1, Text = t, TextColor3 = K.tx, Font = K.fontBold,
 			TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Center,
-			TextTruncate = Enum.TextTruncate.AtEnd, TextTransparency = 1, Parent = header,
+			TextTruncate = Enum.TextTruncate.AtEnd, Parent = header,
 		})
 		local closeBtn = mk("TextButton", {
 			Size = UDim2.new(0, 22, 0, 22), Position = UDim2.new(1, -22, 0, 3),
@@ -386,16 +454,16 @@ function Library:CreateWindow(cfg)
 			AutoButtonColor = false, Parent = header,
 		})
 		rc(closeBtn, 6)
-		local closeImg = mk("ImageLabel", {
+		mk("ImageLabel", {
 			Size = UDim2.new(0, 10, 0, 10), Position = UDim2.new(0.5, -5, 0.5, -5),
 			BackgroundTransparency = 1, Image = "rbxassetid://" .. I.close,
-			ImageColor3 = K.dm, ImageTransparency = 1, Parent = closeBtn,
+			ImageColor3 = K.dm, Parent = closeBtn,
 		})
-		local d1 = mk("TextLabel", {
+		mk("TextLabel", {
 			Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
 			BackgroundTransparency = 1, Text = c, TextColor3 = K.dm, Font = K.fontMed,
 			TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top,
-			TextWrapped = true, LineHeight = 1.2, LayoutOrder = 2, TextTransparency = 1, Parent = content,
+			TextWrapped = true, LineHeight = 1.2, LayoutOrder = 2, Parent = content,
 		})
 		local progBg = mk("Frame", {
 			Size = UDim2.new(1, 0, 0, 3), BackgroundColor3 = K.ln,
@@ -410,42 +478,45 @@ function Library:CreateWindow(cfg)
 		local function dismiss()
 			if dismissed or not f.Parent then return end
 			dismissed = true
-			tw(f, 0.25, { BackgroundTransparency = 1 })
-			tw(s, 0.25, { Transparency = 1 })
-			tw(iconFrame, 0.25, { BackgroundTransparency = 1 })
-			tw(iconImg, 0.25, { ImageTransparency = 1 })
-			tw(t1, 0.25, { TextTransparency = 1 })
-			tw(d1, 0.25, { TextTransparency = 1 })
-			tw(progBg, 0.25, { BackgroundTransparency = 1 })
-			tw(prog, 0.25, { BackgroundTransparency = 1 })
-			tw(closeBtn, 0.25, { BackgroundTransparency = 1 })
-			tw(closeImg, 0.25, { ImageTransparency = 1 })
-			task.delay(0.3, function()
+			TS:Create(f, TI_SLOW, { GroupTransparency = 1 }):Play()
+			task.delay(0.35, function()
 				if f.Parent then f:Destroy() end
 			end)
 		end
 		closeBtn.MouseEnter:Connect(function()
-			tw(closeImg, 0.15, { ImageColor3 = K.tx }); tw(closeBtn, 0.15, { BackgroundTransparency = 0 })
+			tw(closeBtn, 0.15, { BackgroundTransparency = 0 })
 		end)
 		closeBtn.MouseLeave:Connect(function()
-			tw(closeImg, 0.15, { ImageColor3 = K.dm }); tw(closeBtn, 0.15, { BackgroundTransparency = 1 })
+			tw(closeBtn, 0.15, { BackgroundTransparency = 1 })
 		end)
 		closeBtn.MouseButton1Click:Connect(dismiss)
 
-		tw(f, 0.3, { BackgroundTransparency = 0.05 })
-		tw(s, 0.3, { Transparency = 0.5 })
-		tw(iconFrame, 0.3, { BackgroundTransparency = 0.8 })
-		tw(iconImg, 0.3, { ImageTransparency = 0 })
-		tw(closeBtn, 0.3, { BackgroundTransparency = 1 })
-		tw(closeImg, 0.3, { ImageTransparency = 0 })
-		tw(t1, 0.3, { TextTransparency = 0 })
-		tw(d1, 0.3, { TextTransparency = 0 })
-		tw(progBg, 0.3, { BackgroundTransparency = 0.3 })
+		TS:Create(f, TI_SLOW, { GroupTransparency = 0 }):Play()
+		TS:Create(s, TI_SLOW, { Transparency = 0.5 }):Play()
 		tw(prog, dur, { Size = UDim2.new(0, 0, 1, 0) })
 		task.delay(dur, dismiss)
 	end
 
+	local lastErrNotif = 0
+	local function safeNotifyError(msg)
+		local now = tick()
+		if now - lastErrNotif < 2 then return end
+		lastErrNotif = now
+		ntf("Error", msg, 5, "err")
+	end
+
 	-- ===================== WINDOW =====================
+	-- Soft shadow behind window
+	local shadow = mk("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, 6),
+		Size = UDim2.new(0, 732, 0, 472),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.7,
+		ZIndex = 4, Parent = gui,
+	})
+	rc(shadow, 24)
+
 	local win = mk("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0.5, 0),
@@ -456,10 +527,37 @@ function Library:CreateWindow(cfg)
 	rc(win, 18)
 	sk(win, K.ac, 1.2, 0.55)
 
+	local function syncShadow()
+		shadow.Position = UDim2.new(
+			win.Position.X.Scale, win.Position.X.Offset,
+			win.Position.Y.Scale, win.Position.Y.Offset + 6
+		)
+		shadow.Size = UDim2.new(
+			win.Size.X.Scale, win.Size.X.Offset + 12,
+			win.Size.Y.Scale, win.Size.Y.Offset + 12
+		)
+	end
+	syncShadow()
+
+	-- Glass tint layer (accent-tinted, over base win)
+	local tintLayer = mk("Frame", {
+		Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = K.ac,
+		BackgroundTransparency = 0.93, ZIndex = 1, Parent = win,
+	})
+	rc(tintLayer, 18)
+	mk("UIGradient", {
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.85),
+			NumberSequenceKeypoint.new(0.5, 0.95),
+			NumberSequenceKeypoint.new(1, 1),
+		}),
+		Rotation = 135,
+	}, tintLayer)
+
 	-- Soft top glow
 	local topGlow = mk("Frame", {
 		Size = UDim2.new(1, 0, 0, 140), BackgroundColor3 = K.ac,
-		BackgroundTransparency = 1, ZIndex = 1, Parent = win,
+		BackgroundTransparency = 1, ZIndex = 2, Parent = win,
 	})
 	rc(topGlow, 18)
 	mk("UIGradient", {
@@ -469,33 +567,32 @@ function Library:CreateWindow(cfg)
 		}),
 		Rotation = 90,
 	}, topGlow)
-	task.spawn(function()
-		while topGlow.Parent do
-			tw(topGlow, 3, { BackgroundTransparency = 0.15 })
-			task.wait(3)
-			tw(topGlow, 3, { BackgroundTransparency = 1 })
-			task.wait(3)
-		end
-	end)
+	if not lowEnd then
+		task.spawn(function()
+			while topGlow.Parent do
+				tw(topGlow, 3, { BackgroundTransparency = 0.15 })
+				task.wait(3)
+				tw(topGlow, 3, { BackgroundTransparency = 1 })
+				task.wait(3)
+			end
+		end)
+	end
 
 	local us = mk("UIScale", { Scale = 1 }, win)
 
 	local isVis, isReady, isCompact = false, false, false
 	local dg, dsp, sp
 
-	-- ===================== HEADER =====================
+	-- Header
 	local header = mk("Frame", {
 		Size = UDim2.new(1, 0, 0, 110), BackgroundTransparency = 1,
 		ZIndex = 10, Parent = win,
 	})
-
-	-- Title row
 	local titleRow = mk("Frame", {
 		Size = UDim2.new(1, 0, 0, 60), BackgroundTransparency = 1,
 		ZIndex = 10, Parent = header,
 	})
 
-	-- Logo / brand
 	local brandWrap = mk("Frame", {
 		Size = UDim2.new(0, 0, 0, 60), AutomaticSize = Enum.AutomaticSize.X,
 		Position = UDim2.new(0, 20, 0, 0), BackgroundTransparency = 1,
@@ -519,16 +616,14 @@ function Library:CreateWindow(cfg)
 		Text = opts.Title, TextColor3 = K.tx, Font = K.fontBold, TextSize = 18,
 		TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 10, Parent = brandWrap,
 	})
-	local subtitleLbl
 	if opts.Subtitle ~= "" then
-		subtitleLbl = mk("TextLabel", {
+		mk("TextLabel", {
 			Size = UDim2.new(1, 0, 0, 14), Position = UDim2.new(0, 42, 0.5, 2),
 			BackgroundTransparency = 1, Text = opts.Subtitle, TextColor3 = K.ac,
 			Font = K.fontMed, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left,
 			ZIndex = 10, Parent = brandWrap,
 		})
 	end
-	-- Fix: brandWrap auto-size with padding
 	task.defer(function()
 		if brandWrap.Parent then
 			local sz = titleLbl.AbsoluteSize.X + 42 + 10
@@ -536,7 +631,6 @@ function Library:CreateWindow(cfg)
 		end
 	end)
 
-	-- Controls (right)
 	local ctlHolder = mk("Frame", {
 		Size = UDim2.new(0, 92, 0, 60), Position = UDim2.new(1, -96, 0, 0),
 		BackgroundTransparency = 1, ZIndex = 10, Parent = titleRow,
@@ -597,7 +691,7 @@ function Library:CreateWindow(cfg)
 		VerticalAlignment = Enum.VerticalAlignment.Center,
 	}, tabsScroll)
 
-	-- Search
+	-- Search (with debounce + focus ring)
 	local srchInp
 	if opts.SearchEnabled then
 		local sb = mk("Frame", {
@@ -606,7 +700,7 @@ function Library:CreateWindow(cfg)
 			ZIndex = 10, Parent = tabRow,
 		})
 		rc(sb, 17)
-		sk(sb, K.ln, 1, 0.5)
+		local sbStroke = sk(sb, K.ln, 1, 0.5)
 		mk("ImageLabel", {
 			Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(0, 12, 0.5, -6),
 			BackgroundTransparency = 1, Image = "rbxassetid://" .. I.search,
@@ -618,6 +712,12 @@ function Library:CreateWindow(cfg)
 			PlaceholderColor3 = K.dm, TextColor3 = K.tx, Font = K.fontMed, TextSize = 12,
 			TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Parent = sb,
 		})
+		srchInp.Focused:Connect(function()
+			tw(sbStroke, 0.15, { Color = K.ac, Transparency = 0 })
+		end)
+		srchInp.FocusLost:Connect(function()
+			tw(sbStroke, 0.15, { Color = K.ln, Transparency = 0.5 })
+		end)
 	end
 
 	-- Content area
@@ -626,33 +726,48 @@ function Library:CreateWindow(cfg)
 		BackgroundTransparency = 1, ZIndex = 5, Parent = win,
 	})
 
-	-- Divider line under tabs
+	-- Gradient divider
 	local divider = mk("Frame", {
 		Size = UDim2.new(1, -32, 0, 1), Position = UDim2.new(0, 16, 0, 109),
 		BackgroundColor3 = K.ln, BackgroundTransparency = 0.5,
 		ZIndex = 10, Parent = win,
 	})
+	mk("UIGradient", {
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.2, 0.5),
+			NumberSequenceKeypoint.new(0.8, 0.5),
+			NumberSequenceKeypoint.new(1, 1),
+		}),
+	}, divider)
 
-	-- Compact / minimize / close buttons
+	-- Controls
 	local compactBtn = ctl(I.grid, K.hv, function() Window:SetCompact(not isCompact) end, 1)
 	ctl(I.runRight, K.hv, function() Window:SetVisible(false) end, 2)
 	local closeBtn = ctl(I.close, K.dg, function() Window:Destroy() end, 3)
 
-	-- Drag handle
+	-- Drag handle (with feedback)
 	Connect(titleRow.InputBegan, function(i)
 		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
 			dg = true; dsp = i.Position; sp = win.Position
+			tw(shadow, 0.15, { BackgroundTransparency = 0.55 })
+			tw(win, 0.15, { BackgroundTransparency = 0.1 })
 		end
 	end)
 	Connect(UIS.InputChanged, function(i)
 		if dg and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
 			local d = (i.Position - dsp) / us.Scale
 			win.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y)
+			syncShadow()
 		end
 	end)
 	Connect(UIS.InputEnded, function(i)
 		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-			dg = false
+			if dg then
+				dg = false
+				tw(shadow, 0.15, { BackgroundTransparency = 0.7 })
+				tw(win, 0.15, { BackgroundTransparency = 0.15 })
+			end
 		end
 	end)
 
@@ -668,8 +783,7 @@ function Library:CreateWindow(cfg)
 			h = math.min(460, v.Y - 60)
 		end
 		win.Size = UDim2.new(0, w, 0, h)
-		local scale = math.clamp(math.min(w / 720, h / 460), 0.5, 1)
-		if isVis then us.Scale = scale else us.Scale = scale end
+		syncShadow()
 	end
 	lay()
 	Connect(cam:GetPropertyChangedSignal("ViewportSize"), lay)
@@ -682,16 +796,28 @@ function Library:CreateWindow(cfg)
 		closeActivePopup()
 		for _, d in ipairs(tbs) do
 			local on_ = d.o == o
-			d.pg.Visible = on_
+			if on_ then
+				d.pgWrap.Visible = true
+				d.pgWrap.GroupTransparency = 1
+				TS:Create(d.pgWrap, TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+					{ GroupTransparency = 0 }):Play()
+			else
+				d.pgWrap.Visible = false
+			end
 			tw(d.b, 0.22, { BackgroundTransparency = on_ and 0 or 1, BackgroundColor3 = on_ and K.ac or K.sf })
-			tw(d.l, 0.22, { TextColor3 = on_ and Color3.new(1,1,1) or K.dm })
-			if d.i then tw(d.i, 0.22, { ImageColor3 = on_ and Color3.new(1,1,1) or K.dm }) end
+			tw(d.l, 0.22, { TextColor3 = on_ and Color3.new(1, 1, 1) or K.dm })
+			if d.i then tw(d.i, 0.22, { ImageColor3 = on_ and Color3.new(1, 1, 1) or K.dm }) end
 			if d.stroke then tw(d.stroke, 0.22, { Transparency = on_ and 0.2 or 1 }) end
 		end
 		cur = o
 	end
 
 	local function tab(nm, icn, order)
+		-- CanvasGroup wrapper for fade-in
+		local pgWrap = mk("CanvasGroup", {
+			Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
+			GroupTransparency = 1, Visible = false, ZIndex = 5, Parent = cont,
+		})
 		local pg = mk("ScrollingFrame", {
 			Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
 			ScrollBarThickness = 4, ScrollBarImageColor3 = K.ac,
@@ -699,7 +825,7 @@ function Library:CreateWindow(cfg)
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ScrollingEnabled = true, ScrollingDirection = Enum.ScrollingDirection.Y,
 			ElasticBehavior = Enum.ElasticBehavior.WhenScrollable,
-			Visible = false, ZIndex = 5, Parent = cont,
+			ZIndex = 5, Parent = pgWrap,
 		})
 		mk("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8) }, pg)
 		mk("UIPadding", {
@@ -707,7 +833,7 @@ function Library:CreateWindow(cfg)
 			PaddingRight = UDim.new(0, 20), PaddingBottom = UDim.new(0, 20),
 		}, pg)
 
-		-- Tab button (pill)
+		-- Tab pill
 		local b = mk("TextButton", {
 			Size = UDim2.new(0, 0, 0, 34), AutomaticSize = Enum.AutomaticSize.X,
 			BackgroundColor3 = K.sf, BackgroundTransparency = 1,
@@ -751,7 +877,9 @@ function Library:CreateWindow(cfg)
 			})
 			rc(f, 12)
 			sk(f, K.ln, 1, 0.6)
-			if label then table.insert(windowEls, { tab = self, frame = f, label = label }) end
+			if label then
+				table.insert(windowEls, { tab = self, frame = f, label = label, lower = label:lower() })
+			end
 			if self._activeSection then
 				if not self._activeSection.open then f.Visible = false end
 				table.insert(self._activeSection.children, f)
@@ -880,7 +1008,7 @@ function Library:CreateWindow(cfg)
 				sn(K.soundClick, 0.3)
 				if cb then
 					local ok, e = pcall(cb)
-					if not ok then logError("Button/" .. t, e); ntf("error", tostring(e), 5, "err") end
+					if not ok then logError("Button/" .. t, e); safeNotifyError(tostring(e)) end
 				end
 			end)
 		end
@@ -909,7 +1037,7 @@ function Library:CreateWindow(cfg)
 				lbl.Text = "Loading..."; lbl.TextColor3 = K.wn; a.ImageTransparency = 1
 				task.spawn(function()
 					local ok, e = pcall(cb)
-					if not ok then logError("LoadingButton/" .. t, e); ntf("error", tostring(e), 5, "err") end
+					if not ok then logError("LoadingButton/" .. t, e); safeNotifyError(tostring(e)) end
 					lbl.Text = t; lbl.TextColor3 = K.tx; a.ImageTransparency = 0; busy = false
 				end)
 			end)
@@ -959,11 +1087,17 @@ function Library:CreateWindow(cfg)
 			local function ap(x, q)
 				h.v = x
 				tw(swt, 0.22, { BackgroundColor3 = x and K.ac or K.ln, BackgroundTransparency = x and 0 or 0.3 })
-				tw(kn, 0.22, { Position = x and UDim2.new(0, 25, 0.5, -8) or UDim2.new(0, 3, 0.5, -8) })
-				if q then sn(K.soundClick, 0.3) end
+				-- Spring with overshoot
+				TS:Create(kn, TI_SPRING,
+					{ Position = x and UDim2.new(0, 25, 0.5, -8) or UDim2.new(0, 3, 0.5, -8) }):Play()
+				if q then
+					-- Contextual sound: ON louder/higher, OFF softer/lower
+					if x then sn(K.soundClick, 0.35, 1.0)
+					else sn(K.soundClick, 0.22, 0.85) end
+				end
 				if cb then
 					local ok, e = pcall(cb, x)
-					if not ok then logError("Toggle/" .. t, e); ntf("error", tostring(e), 5, "err") end
+					if not ok then logError("Toggle/" .. t, e); safeNotifyError(tostring(e)) end
 				end
 			end
 			c.MouseButton1Click:Connect(function() ap(not h.v, true) end)
@@ -973,20 +1107,31 @@ function Library:CreateWindow(cfg)
 			h._deserialize = function(val) if type(val) == "boolean" then ap(val, false) end end
 			h._reset = function() ap(h._default, false) end
 			if hot then
-				-- "HOT" badge
 				local badge = mk("Frame", {
 					Size = UDim2.new(0, 0, 0, 18), AutomaticSize = Enum.AutomaticSize.X,
 					Position = UDim2.new(1, -150, hasDesc and 10 or 13),
 					BackgroundColor3 = Color3.fromRGB(255, 90, 30), Parent = f,
 				})
 				rc(badge, 9)
-				gr(badge, Color3.fromRGB(255, 130, 45), Color3.fromRGB(190, 35, 10), 90)
+				local badgeGradient = gr(badge, Color3.fromRGB(255, 130, 45), Color3.fromRGB(190, 35, 10), 90)
+				sk(badge, Color3.fromRGB(255, 150, 70), 1, 0.35)
 				mk("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 8), Parent = badge })
 				mk("TextLabel", {
 					Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
 					Text = "HOT", TextColor3 = Color3.fromRGB(255, 248, 240),
 					Font = K.fontBold, TextSize = 9, Parent = badge,
 				})
+				-- Animated gradient rotation (skipped on low-end)
+				if not lowEnd then
+					task.spawn(function()
+						while badgeGradient.Parent do
+							TS:Create(badgeGradient, TweenInfo.new(2, Enum.EasingStyle.Linear), { Rotation = 180 }):Play()
+							task.wait(2)
+							TS:Create(badgeGradient, TweenInfo.new(2, Enum.EasingStyle.Linear), { Rotation = 90 }):Play()
+							task.wait(2)
+						end
+					end)
+				end
 			end
 			local pid = opts.PersistId .. "/" .. (id or t)
 			Library._registry[pid] = h
@@ -1020,7 +1165,7 @@ function Library:CreateWindow(cfg)
 				Position = UDim2.new(0, 0, 0.5, 0), BackgroundColor3 = Color3.new(1, 1, 1),
 				Parent = tr,
 			})
-			rc(kn, 7)
+			rc(kn, 9)  -- radius 9 handles both 14 and 18 sizes as circular
 			sk(kn, K.ac, 1.5)
 			local hit = mk("TextButton", {
 				Size = UDim2.new(1, -36, 0, 24), Position = UDim2.new(0, 18, 0, 28),
@@ -1037,24 +1182,45 @@ function Library:CreateWindow(cfg)
 				vl.Text = string.format("%g", val)
 				if q and cb then
 					local ok, e = pcall(cb, val)
-					if not ok then logError("Slider/" .. t, e); ntf("error", tostring(e), 5, "err") end
+					if not ok then logError("Slider/" .. t, e); safeNotifyError(tostring(e)) end
 				end
 			end
 			local dr = false
-			local function fx(x) return (x - tr.AbsolutePosition.X) / tr.AbsoluteSize.X end
+			local pendingPos = nil
+			local cachedAbsX, cachedAbsW = 0, 1
+			local function fx(x)
+				if cachedAbsW == 0 then return 0 end
+				return (x - cachedAbsX) / cachedAbsW
+			end
 			hit.InputBegan:Connect(function(i)
 				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-					dr = true; ap(fx(i.Position.X), true)
+					dr = true
+					cachedAbsX = tr.AbsolutePosition.X
+					cachedAbsW = tr.AbsoluteSize.X
+					pendingPos = i.Position.X
+					-- Knob grow on grab
+					tw(kn, 0.15, { Size = UDim2.new(0, 18, 0, 18) })
+					ap(fx(pendingPos), true)
 				end
 			end)
 			Connect(UIS.InputChanged, function(i)
 				if dr and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-					ap(fx(i.Position.X), true)
+					pendingPos = i.Position.X
+				end
+			end)
+			-- Single RenderStepped driver (max 1 update per frame)
+			Connect(RS.RenderStepped, function()
+				if dr and pendingPos then
+					ap(fx(pendingPos), true)
 				end
 			end)
 			Connect(UIS.InputEnded, function(i)
 				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-					dr = false
+					if dr then
+						dr = false
+						pendingPos = nil
+						tw(kn, 0.15, { Size = UDim2.new(0, 14, 0, 14) })
+					end
 				end
 			end)
 			ap((v - mn) / (mx - mn), false)
@@ -1083,14 +1249,29 @@ function Library:CreateWindow(cfg)
 				BackgroundTransparency = 1, Text = t, TextColor3 = K.tx,
 				Font = K.fontBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, Parent = f,
 			})
+			-- Keycap style bind button
 			local kb = mk("TextButton", {
 				Size = UDim2.new(0, 96, 0, 24), Position = UDim2.new(1, -110, 0.5, -12),
-				BackgroundColor3 = K.sb, BackgroundTransparency = 0.3,
+				BackgroundColor3 = K.sb, BackgroundTransparency = 0.15,
 				Text = dk and dk.Name or "NONE", TextColor3 = K.ac, Font = K.fontBold,
 				TextSize = 11, AutoButtonColor = false, ZIndex = 3, Parent = f,
 			})
 			rc(kb, 6)
-			sk(kb, K.ln, 1, 0.5)
+			sk(kb, K.ln, 1, 0.4)
+			-- Keycap top highlight
+			local highlight = mk("Frame", {
+				Size = UDim2.new(1, -8, 0, 1), Position = UDim2.new(0, 4, 0, 1),
+				BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.75,
+				Parent = kb,
+			})
+			rc(highlight, 1)
+			-- Keycap bottom shadow
+			local bottomShadow = mk("Frame", {
+				Size = UDim2.new(1, -8, 0, 2), Position = UDim2.new(0, 4, 1, -2),
+				BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.6,
+				Parent = kb,
+			})
+			rc(bottomShadow, 1)
 			local h = { k = dk, _default = dk, v = dk, name = t }
 			local lis = false
 			local function restoreKb() kb.Text = h.k and h.k.Name or "NONE"; kb.TextColor3 = K.ac end
@@ -1110,7 +1291,7 @@ function Library:CreateWindow(cfg)
 				sn(K.soundClick, 0.3)
 				if cb then
 					local ok, e = pcall(cb)
-					if not ok then logError("Bind/" .. t, e); ntf("error", tostring(e), 5, "err") end
+					if not ok then logError("Bind/" .. t, e); safeNotifyError(tostring(e)) end
 				end
 			end)
 			kb.MouseButton1Click:Connect(function()
@@ -1128,7 +1309,7 @@ function Library:CreateWindow(cfg)
 				end
 				if not p and h.k and i.KeyCode == h.k and isReady and cb then
 					local ok, e = pcall(cb)
-					if not ok then logError("Bind/" .. t, e); ntf("error", tostring(e), 5, "err") end
+					if not ok then logError("Bind/" .. t, e); safeNotifyError(tostring(e)) end
 				end
 			end)
 			Library._bindRegistry = Library._bindRegistry or {}
@@ -1163,14 +1344,21 @@ function Library:CreateWindow(cfg)
 				TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Parent = f,
 			})
 			rc(tb, 8)
-			sk(tb, K.ln, 1, 0.5)
+			local tbStroke = sk(tb, K.ln, 1, 0.5)
 			mk("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = tb })
+			-- Focus ring
+			tb.Focused:Connect(function()
+				tw(tbStroke, 0.15, { Color = K.ac, Transparency = 0 })
+			end)
+			tb.FocusLost:Connect(function()
+				tw(tbStroke, 0.15, { Color = K.ln, Transparency = 0.5 })
+			end)
 			local h = { v = "", _default = "" }
 			tb.FocusLost:Connect(function(enter)
 				h.v = tb.Text
 				if enter and cb then
 					local ok, e = pcall(cb, tb.Text)
-					if not ok then logError("TextBox/" .. t, e); ntf("error", tostring(e), 5, "err") end
+					if not ok then logError("TextBox/" .. t, e); safeNotifyError(tostring(e)) end
 				end
 			end)
 			tb:GetPropertyChangedSignal("Text"):Connect(function() h.v = tb.Text end)
@@ -1240,7 +1428,11 @@ function Library:CreateWindow(cfg)
 				local absY = dd.AbsolutePosition.Y + dd.AbsoluteSize.Y + 2 * s
 				menu.Parent = win; menu.ZIndex = 1000
 				menu.Position = UDim2.fromOffset((absX - win.AbsolutePosition.X) / s, (absY - win.AbsolutePosition.Y) / s)
+				-- Animated open (height grows)
+				local targetH = math.min(#options * 26 + 8, 200)
+				menu.Size = UDim2.new(0, 120, 0, 0)
 				menu.Visible = true
+				TS:Create(menu, TI_FAST, { Size = UDim2.new(0, 120, 0, targetH) }):Play()
 				task.defer(function()
 					outsideConn = UIS.InputBegan:Connect(function(i)
 						if not menuOpen or not menu.Parent then
@@ -1281,11 +1473,10 @@ function Library:CreateWindow(cfg)
 						h.v = opt; ddLabel.Text = tostring(opt); closeMenu()
 						if cb then
 							local ok, e = pcall(cb, opt)
-							if not ok then logError("Dropdown/" .. t, e); ntf("error", tostring(e), 5, "err") end
+							if not ok then logError("Dropdown/" .. t, e); safeNotifyError(tostring(e)) end
 						end
 					end)
 				end
-				menu.Size = UDim2.new(0, 120, 0, math.min(#options * 26 + 8, 200))
 			end
 			buildMenu()
 			dd.MouseButton1Click:Connect(function()
@@ -1369,7 +1560,7 @@ function Library:CreateWindow(cfg)
 						h.v = col; swatch.BackgroundColor3 = col
 						if cb then
 							local ok, e = pcall(cb, col)
-							if not ok then logError("ColorPicker/" .. t, e); ntf("error", tostring(e), 5, "err") end
+							if not ok then logError("ColorPicker/" .. t, e); safeNotifyError(tostring(e)) end
 						end
 						closePopup()
 					end)
@@ -1435,7 +1626,18 @@ function Library:CreateWindow(cfg)
 			})
 			rc(hero, 14)
 			sk(hero, K.ac, 1, 0.6)
-			gr(hero, Color3.fromRGB(40, 22, 14), K.sf, 90)
+			local heroGradient = gr(hero, Color3.fromRGB(40, 22, 14), K.sf, 90)
+
+			-- Slow gradient rotation (skipped on low-end)
+			if not lowEnd then
+				task.spawn(function()
+					while heroGradient.Parent do
+						TS:Create(heroGradient, TweenInfo.new(15, Enum.EasingStyle.Linear), { Rotation = 270 }):Play()
+						task.wait(15)
+						heroGradient.Rotation = 90
+					end
+				end)
+			end
 
 			local badgeGlow = mk("Frame", {
 				Size = UDim2.new(0, 88, 0, 88), Position = UDim2.new(0, 22, 0.5, -44),
@@ -1521,7 +1723,7 @@ function Library:CreateWindow(cfg)
 					task.wait(0.07)
 				end
 			end)
-			if cfg2.AnimateIcon ~= false then
+			if cfg2.AnimateIcon ~= false and not lowEnd then
 				task.spawn(function()
 					while not isReady do task.wait(0.1) end
 					task.wait(1.2)
@@ -1609,7 +1811,7 @@ function Library:CreateWindow(cfg)
 					BackgroundTransparency = 0.3, LayoutOrder = self.n, Parent = self.pg,
 				})
 				rc(row, 12)
-				local stroke = sk(row, K.ln, 1, 0.5)
+				sk(row, K.ln, 1, 0.5)
 				local cap = mk("Frame", {
 					Size = UDim2.new(0, 0, 0, 24), AutomaticSize = Enum.AutomaticSize.X,
 					Position = UDim2.new(0, 14, 0.5, -12),
@@ -1673,12 +1875,12 @@ function Library:CreateWindow(cfg)
 			sn(K.soundClick, 0.3)
 			pk(o)
 		end)
-		tbs[#tbs + 1] = { o = o, pg = pg, b = b, l = l, i = img, stroke = stroke }
+		tbs[#tbs + 1] = { o = o, pg = pg, pgWrap = pgWrap, b = b, l = l, i = img, stroke = stroke }
 		if not cur then pk(o) end
 		return o
 	end
 
-	-- ===================== SEARCH DROPDOWN =====================
+	-- ===================== SEARCH (debounced + empty state) =====================
 	local srchDrop
 	if opts.SearchEnabled and srchInp then
 		srchDrop = mk("Frame", {
@@ -1687,19 +1889,32 @@ function Library:CreateWindow(cfg)
 		})
 		rc(srchDrop, 10)
 		sk(srchDrop, K.ac, 1, 0.3)
+
 		local function updateSearch()
 			for _, c in ipairs(srchDrop:GetChildren()) do
-				if c:IsA("TextButton") then c:Destroy() end
+				if c:IsA("TextButton") or c:IsA("TextLabel") then c:Destroy() end
 			end
-			local q = srchInp.Text:lower()
-			if q == "" then srchDrop.Visible = false; return end
+			local qRaw = srchInp.Text
+			if qRaw == "" then srchDrop.Visible = false; return end
+			local qLower = qRaw:lower()
 			local matches = {}
 			for _, el in ipairs(windowEls) do
-				if el.frame and el.frame.Parent and el.label:lower():find(q, 1, true) then
+				if el.frame and el.frame.Parent and el.lower:find(qLower, 1, true) then
 					table.insert(matches, el)
 				end
 			end
-			if #matches == 0 then srchDrop.Visible = false; return end
+			if #matches == 0 then
+				-- Empty state
+				mk("TextLabel", {
+					Size = UDim2.new(1, -16, 0, 32), Position = UDim2.new(0, 8, 0, 4),
+					BackgroundTransparency = 1, Text = "No results for \"" .. qRaw .. "\"",
+					TextColor3 = K.dm, Font = K.fontMed, TextSize = 11,
+					TextXAlignment = Enum.TextXAlignment.Center, Parent = srchDrop,
+				})
+				srchDrop.Size = UDim2.new(0, 220, 0, 40)
+				srchDrop.Visible = true
+				return
+			end
 			local shown = math.min(#matches, 6)
 			for i = 1, shown do
 				local el = matches[i]
@@ -1727,14 +1942,24 @@ function Library:CreateWindow(cfg)
 			srchDrop.Size = UDim2.new(0, 220, 0, shown * 24 + 8)
 			srchDrop.Visible = true
 		end
-		srchInp:GetPropertyChangedSignal("Text"):Connect(updateSearch)
+
+		-- Debounced input
+		local searchToken = 0
+		srchInp:GetPropertyChangedSignal("Text"):Connect(function()
+			searchToken = searchToken + 1
+			local myToken = searchToken
+			task.delay(0.08, function()
+				if myToken ~= searchToken then return end
+				updateSearch()
+			end)
+		end)
 		srchInp.Focused:Connect(updateSearch)
 		srchInp.FocusLost:Connect(function()
 			task.wait(0.15); srchDrop.Visible = false
 		end)
 	end
 
-	-- ===================== LOADING SCREEN =====================
+	-- ===================== LOADING (fadeDestroy) =====================
 	local ld = mk("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, 0),
 		Size = UDim2.new(0, 340, 0, 130), BackgroundColor3 = K.sb,
@@ -1742,7 +1967,7 @@ function Library:CreateWindow(cfg)
 	})
 	rc(ld, 16)
 	sk(ld, K.ac, 1.5, 0.35)
-	local ldt = mk("TextLabel", {
+	mk("TextLabel", {
 		Size = UDim2.new(1, 0, 0, 28), Position = UDim2.new(0, 0, 0, 24),
 		BackgroundTransparency = 1, Text = opts.LoadingTitle, TextColor3 = K.tx,
 		Font = K.fontBold, TextSize = 20, ZIndex = 10, Parent = ld,
@@ -1780,16 +2005,20 @@ function Library:CreateWindow(cfg)
 		isVis = v
 		if v then
 			win.Visible = true
+			shadow.Visible = true
 			local v_ = cam.ViewportSize
 			local targetScale = isCompact
 				and math.clamp(math.min(math.min(520, v_.X - 40) / 720, math.min(380, v_.Y - 60) / 460), 0.5, 1)
 				or math.clamp(math.min(math.min(720, v_.X - 40) / 720, math.min(460, v_.Y - 60) / 460), 0.5, 1)
-			us.Scale = targetScale * 0.92
-			tw(us, 0.28, { Scale = targetScale })
+			-- Entrance: start small, overshoot, settle (squash)
+			us.Scale = targetScale * 0.88
+			TS:Create(us, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+				{ Scale = targetScale }):Play()
 			sn(K.soundOpen, 0.25)
 		else
 			closeActivePopup()
 			win.Visible = false
+			shadow.Visible = false
 			if srchDrop then srchDrop.Visible = false end
 		end
 	end
@@ -1859,7 +2088,7 @@ function Library:CreateWindow(cfg)
 		sk(mbtn, K.ac, 1.2, 0.35)
 		mbtn.MouseEnter:Connect(function()
 			tw(mbtn, 0.15, { BackgroundColor3 = K.ac })
-			tw(mbtn, 0.15, { TextColor3 = Color3.new(1,1,1) })
+			tw(mbtn, 0.15, { TextColor3 = Color3.new(1, 1, 1) })
 		end)
 		mbtn.MouseLeave:Connect(function()
 			tw(mbtn, 0.15, { BackgroundColor3 = K.sf })
@@ -1881,18 +2110,8 @@ function Library:CreateWindow(cfg)
 			task.wait(0.42)
 		end
 		task.wait(0.15)
-		for _, c in ipairs(ld:GetDescendants()) do
-			if c:IsA("GuiObject") then
-				tw(c, 0.3, { BackgroundTransparency = 1 })
-				if c:IsA("TextLabel") or c:IsA("TextButton") then
-					tw(c, 0.3, { TextTransparency = 1 })
-				end
-			elseif c:IsA("UIStroke") then
-				tw(c, 0.3, { Transparency = 1 })
-			end
-		end
-		task.wait(0.3)
-		ld:Destroy()
+		fadeDestroy(ld, 0.3)
+		task.wait(0.35)
 		isReady = true
 		Window:SetVisible(true)
 	end)

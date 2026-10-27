@@ -38,24 +38,10 @@ local Library = {
 			StrongText = Color3.fromHSV(0, 0, 1),
 			WeakText = Color3.fromHSV(0, 0, 172/255)
 		},
-		Serika = {
-			Main = Color3.fromRGB(50, 52, 55),
-			Secondary = Color3.fromRGB(80, 82, 85),
-			Tertiary = Color3.fromRGB(226, 183, 20),
-			StrongText = Color3.fromHSV(0, 0, 1),
-			WeakText = Color3.fromHSV(0, 0, 172/255)
-		},
 		Dark = {
 			Main = Color3.fromRGB(30, 30, 35),
 			Secondary = Color3.fromRGB(50, 50, 55),
 			Tertiary = Color3.fromRGB(70, 130, 180),
-			StrongText = Color3.fromHSV(0, 0, 1),
-			WeakText = Color3.fromHSV(0, 0, 172/255)
-		},
-		Rust = {
-			Main = Color3.fromRGB(37, 35, 33),
-			Secondary = Color3.fromRGB(65, 63, 63),
-			Tertiary = Color3.fromRGB(237, 94, 38),
 			StrongText = Color3.fromHSV(0, 0, 1),
 			WeakText = Color3.fromHSV(0, 0, 172/255)
 		},
@@ -70,27 +56,6 @@ local Library = {
 			Main = Color3.fromRGB(16, 18, 27),
 			Secondary = Color3.fromRGB(28, 32, 45),
 			Tertiary = Color3.fromRGB(120, 130, 255),
-			StrongText = Color3.fromHSV(0, 0, 1),
-			WeakText = Color3.fromHSV(0, 0, 172/255)
-		},
-		Rose = {
-			Main = Color3.fromRGB(32, 22, 28),
-			Secondary = Color3.fromRGB(55, 35, 45),
-			Tertiary = Color3.fromRGB(240, 130, 170),
-			StrongText = Color3.fromHSV(0, 0, 1),
-			WeakText = Color3.fromHSV(0, 0, 172/255)
-		},
-		Nord = {
-			Main = Color3.fromRGB(46, 52, 64),
-			Secondary = Color3.fromRGB(59, 66, 82),
-			Tertiary = Color3.fromRGB(136, 192, 208),
-			StrongText = Color3.fromHSV(0, 0, 1),
-			WeakText = Color3.fromHSV(0, 0, 172/255)
-		},
-		Gruvbox = {
-			Main = Color3.fromRGB(40, 40, 40),
-			Secondary = Color3.fromRGB(60, 56, 54),
-			Tertiary = Color3.fromRGB(250, 189, 47),
 			StrongText = Color3.fromHSV(0, 0, 1),
 			WeakText = Color3.fromHSV(0, 0, 172/255)
 		},
@@ -861,10 +826,7 @@ function Library:create(options)
 
 	rawset(mt, "creditsContainer", creditsTab.container)
 
-	creditsTab:credit{Name = "Azuno", Description = "Owner & Maintainer", Discord = "azunoo"}
-	creditsTab:credit{Name = "Abstract", Description = "Original UI Developer", Discord = "Abstract#8007", V3rmillion = "AbstractPoo"}
-	creditsTab:credit{Name = "Deity", Description = "Original UI Developer", Discord = "Deity#0228", V3rmillion = "0xDEITY"}
-	creditsTab:credit{Name = "Repository", Description = "UI Library Repository", Github="https://github.com/azunoo/azuno-lib"}
+	creditsTab:credit{Name = "Azuno", Description = "Owner", Discord = "azunoo"}
 
 	return mt
 end

@@ -1,8 +1,5 @@
 -- =========================================================================
---  ZEPHYRUS UI LIBRARY — ALL-IN-ONE (FIX MINIMAL)
---  - Système de signaux ORIGINAL (pas de lazy — ça cassait le rendu)
---  - Colorpickers créés à l'init (comme l'original)
---  - Seuls fixes : rgba/refreshscrolling/Remove/notify + shadow qui suit
+--  ZEPHYRUS UI LIBRARY — ALL-IN-ONE (FIX Z-INDEX & VISIBILITY)
 -- =========================================================================
 
 -- ============ PART 1 : DRAWING EXTENSION ============
@@ -246,7 +243,6 @@ local drawing = {} do
                         end
                         return docontinue
                     end
-                    -- FIX: limite d'itérations
                     refreshscrolling = function()
                         local i = 0
                         while scroll(-1) do
@@ -316,7 +312,6 @@ local drawing = {} do
                             end
                         end
                         if table.find(squares, mtobjs[self]) then table.remove(squares, table.find(squares, mtobjs[self])) end
-                        -- FIX: suppression correcte sur dictionnaire (l'original plantait sur table.remove(x, nil))
                         for _, object in next, objchildren[self] do
                             if objexists[object] then
                                 objsignals[object] = nil
@@ -704,9 +699,6 @@ function utility.center(sx, sy) return UDim2.new(0.5, -sx/2, 0.5, -sy/2) end
 function utility.nextflag() totalflags = totalflags + 1; return "flag_"..totalflags end
 function utility.round(n, f) return f * math.floor(n / f) end
 
--- FIX: rgba safe — pcall + early return si pas d'alpha. Le hack metatable est
--- tenté seulement quand a ~= nil, protégé par pcall (Hyperion/Byfron peuvent
--- refuser getrawmetatable/setrawmetatable et faire crash).
 function utility.rgba(r, g, b, a)
     local rgb = Color3.fromRGB(r, g, b)
     if a == nil or a == 255 then return rgb end
@@ -873,7 +865,7 @@ end
 function library.notify(message, time, color)
     time = time or 5
     local n = {}; library.notifications[n] = true
-    local z = 10
+    local z = 100
     local accent = color or library.theme["Accent"]
     local accent_dark = color and Color3.fromRGB(
         math.max(0, math.floor(color.R*255 - 40)),
@@ -917,7 +909,6 @@ function library.notify(message, time, color)
 
     task.spawn(function()
         library.update_notifications()
-        -- FIX: TextBounds peut être indisponible immédiatement sur certains executors
         local w = 20
         local ok, tb = pcall(function() return n.text.TextBounds end)
         if ok and tb and tb.X then w = tb.X + 20 end
@@ -1004,23 +995,23 @@ function library.createcolorpicker(default, parent, count, flag, callback, offse
     local icon = utility.create("Square", {
         Filled = true, Thickness = 0, Color = default, Parent = parent,
         Size = UDim2.new(0, 20, 0, 10),
-        Position = UDim2.new(1, -20 - (count * 22), 0, 3 + (offset or 0)), ZIndex = 8,
+        Position = UDim2.new(1, -20 - (count * 22), 0, 3 + (offset or 0)), ZIndex = 18,
     })
     local io1 = utility.outline(icon, "SectionBorder"); utility.outline(io1, Color3.fromRGB(0, 0, 0))
 
     local window = utility.create("Square", {
         Filled = true, Thickness = 1, Color = Color3.fromRGB(0, 0, 0), Parent = icon,
         Size = UDim2.new(0, 190, 0, 220), Visible = false,
-        Position = UDim2.new(1, -190 + (count * 22), 1, 6), ZIndex = 20,
+        Position = UDim2.new(1, -190 + (count * 22), 1, 6), ZIndex = 50,
     })
     table.insert(pickers, window)
 
     local inner = utility.create("Square", {
         Parent = window, Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1),
-        Theme = "SectionBorder", Filled = true, Thickness = 0, ZIndex = 21,
+        Theme = "SectionBorder", Filled = true, Thickness = 0, ZIndex = 51,
     })
-    utility.create("Square", { Parent = inner, Theme = "Accent", Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 1), Filled = true, Thickness = 0, ZIndex = 22 })
-    utility.create("Square", { Parent = inner, Theme = "AccentDark", Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 2), Filled = true, Thickness = 0, ZIndex = 22 })
+    utility.create("Square", { Parent = inner, Theme = "Accent", Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 1), Filled = true, Thickness = 0, ZIndex = 52 })
+    utility.create("Square", { Parent = inner, Theme = "AccentDark", Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 2), Filled = true, Thickness = 0, ZIndex = 52 })
 
     local sv_cells = {}
     for j = 0, GRID - 1 do
@@ -1034,7 +1025,7 @@ function library.createcolorpicker(default, parent, count, flag, callback, offse
                     Color = Color3.fromHSV(hue, s, v),
                     Size = UDim2.new(0, math.ceil(CELL) + 1, 0, math.ceil(CELL) + 1),
                     Position = UDim2.new(0, SV_X + math.floor(i * CELL), 0, SV_Y + math.floor(j * CELL)),
-                    ZIndex = 23,
+                    ZIndex = 53,
                 })
             })
         end
@@ -1043,7 +1034,7 @@ function library.createcolorpicker(default, parent, count, flag, callback, offse
 
     local sv_cur = utility.create("Square", {
         Parent = window, Filled = false, Thickness = 1, Color = Color3.fromRGB(255, 255, 255),
-        Size = UDim2.new(0, 4, 0, 4), ZIndex = 24,
+        Size = UDim2.new(0, 4, 0, 4), ZIndex = 54,
     })
 
     local hue_strips = {}
@@ -1053,43 +1044,43 @@ function library.createcolorpicker(default, parent, count, flag, callback, offse
             Color = Color3.fromHSV(i / HUE_ROWS, 1, 1),
             Size = UDim2.new(0, HUE_W, 0, math.ceil(SV_SZ / HUE_ROWS) + 1),
             Position = UDim2.new(0, HUE_X, 0, SV_Y + math.floor(i * (SV_SZ / HUE_ROWS))),
-            ZIndex = 23,
+            ZIndex = 53,
         }))
     end
     local hue_cur = utility.create("Square", {
         Parent = window, Filled = false, Thickness = 1, Color = Color3.fromRGB(255, 255, 255),
-        Size = UDim2.new(0, HUE_W + 2, 0, 3), Position = UDim2.new(0, HUE_X - 1, 0, SV_Y), ZIndex = 24,
+        Size = UDim2.new(0, HUE_W + 2, 0, 3), Position = UDim2.new(0, HUE_X - 1, 0, SV_Y), ZIndex = 54,
     })
 
     local preview = utility.create("Square", {
         Parent = window, Filled = true, Thickness = 1, Color = default,
-        Size = UDim2.new(0, 50, 0, 20), Position = UDim2.new(0, 6, 0, 164), ZIndex = 23,
+        Size = UDim2.new(0, 50, 0, 20), Position = UDim2.new(0, 6, 0, 164), ZIndex = 53,
     })
     utility.outline(preview, "SectionBorder")
 
     local rgb_text = utility.create("Text", {
         Parent = window, Text = "", Size = 13, Theme = "Text",
         Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX,
-        Position = UDim2.new(0, 62, 0, 166), ZIndex = 24,
+        Position = UDim2.new(0, 62, 0, 166), ZIndex = 54,
     })
 
     local copy_btn = utility.create("Square", {
         Parent = window, Filled = true, Thickness = 0, Color = Color3.fromRGB(30, 30, 30),
-        Size = UDim2.new(0, 85, 0, 22), Position = UDim2.new(0, 6, 0, 190), ZIndex = 23,
+        Size = UDim2.new(0, 85, 0, 22), Position = UDim2.new(0, 6, 0, 190), ZIndex = 53,
     })
     utility.create("Text", {
         Parent = copy_btn, Text = "copy", Size = 13, Center = true, Theme = "Text",
         Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX,
-        Position = UDim2.new(0.5, 0, 0, 3), ZIndex = 24,
+        Position = UDim2.new(0.5, 0, 0, 3), ZIndex = 54,
     })
     local paste_btn = utility.create("Square", {
         Parent = window, Filled = true, Thickness = 0, Color = Color3.fromRGB(30, 30, 30),
-        Size = UDim2.new(0, 85, 0, 22), Position = UDim2.new(0, 99, 0, 190), ZIndex = 23,
+        Size = UDim2.new(0, 85, 0, 22), Position = UDim2.new(0, 99, 0, 190), ZIndex = 53,
     })
     utility.create("Text", {
         Parent = paste_btn, Text = "paste", Size = 13, Center = true, Theme = "Text",
         Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX,
-        Position = UDim2.new(0.5, 0, 0, 3), ZIndex = 24,
+        Position = UDim2.new(0.5, 0, 0, 3), ZIndex = 54,
     })
 
     local function update_preview()
@@ -1166,22 +1157,22 @@ end
 function library.createdropdown(holder, content, flag, callback, default, max, scrollable, scrollingmax, islist, size)
     local dropdown = utility.create("Square", {
         Filled = true, Visible = not islist, Thickness = 0, Color = Color3.fromRGB(0, 0, 0),
-        Size = UDim2.new(1, 0, 0, 22), Position = UDim2.new(0, 0, 1, -22), ZIndex = 7, Parent = holder,
+        Size = UDim2.new(1, 0, 0, 22), Position = UDim2.new(0, 0, 1, -22), ZIndex = 17, Parent = holder,
     })
     local di = utility.create("Square", {
         Parent = dropdown, Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1),
-        Theme = "SectionBorder", Filled = true, Thickness = 0, ZIndex = 8,
+        Theme = "SectionBorder", Filled = true, Thickness = 0, ZIndex = 18,
     })
-    utility.stripes(di, 8, library.theme["ObjectTop"], library.theme["ObjectBottom"], 9)
+    utility.stripes(di, 8, library.theme["ObjectTop"], library.theme["ObjectBottom"], 19)
 
     local value = utility.create("Text", {
         Parent = dropdown, Text = "", Theme = "Text", Font = PLEX, Size = 13,
-        Position = UDim2.new(0, 6, 0, 4), ZIndex = 11,
+        Position = UDim2.new(0, 6, 0, 4), ZIndex = 21,
         Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0),
     })
     utility.create("Text", {
         Parent = dropdown, Text = "▼", Theme = "TextDim", Font = PLEX, Size = 12,
-        Position = UDim2.new(1, -20, 0, 4), ZIndex = 11,
+        Position = UDim2.new(1, -20, 0, 4), ZIndex = 21,
         Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0),
     })
 
@@ -1189,15 +1180,15 @@ function library.createdropdown(holder, content, flag, callback, default, max, s
         Filled = true, Visible = islist or false, Thickness = 0, Color = Color3.fromRGB(0, 0, 0),
         Size = islist and (size == "Fill" and UDim2.new(1, 0, 1, -30) or UDim2.new(1, 0, 0, size or 100)) or UDim2.new(1, 0, 0, 0),
         Position = islist and UDim2.new(0, 0, 0, 26) or UDim2.new(0, 0, 1, 6),
-        ZIndex = 12, Parent = islist and holder or dropdown,
+        ZIndex = 22, Parent = islist and holder or dropdown,
     })
     local cfi = utility.create("Square", {
         Parent = contentframe, Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1),
-        Theme = "SectionBorder", Filled = true, Thickness = 0, ZIndex = 13,
+        Theme = "SectionBorder", Filled = true, Thickness = 0, ZIndex = 23,
     })
     local contentholder = utility.create("Square", {
         Transparency = 0, Size = UDim2.new(1, -6, 1, -6), Position = UDim2.new(0, 3, 0, 3),
-        Parent = cfi, ZIndex = 14,
+        Parent = cfi, ZIndex = 24,
     })
     if scrollable then contentholder:MakeScrollable() end
     contentholder:AddListLayout(2)
@@ -1215,12 +1206,12 @@ function library.createdropdown(holder, content, flag, callback, default, max, s
         optioninstances[name] = {}
         local button = utility.create("Square", {
             Filled = true, Transparency = 0, Thickness = 0, Color = Color3.fromRGB(40, 40, 40),
-            Size = UDim2.new(1, 0, 0, 18), ZIndex = 14, Parent = contentholder,
+            Size = UDim2.new(1, 0, 0, 18), ZIndex = 24, Parent = contentholder,
         })
         optioninstances[name].button = button
         optioninstances[name].text = utility.create("Text", {
             Parent = button, Text = name, Theme = "Text", Font = PLEX, Size = 13,
-            Position = UDim2.new(0, 6, 0, 1), ZIndex = 15,
+            Position = UDim2.new(0, 6, 0, 1), ZIndex = 25,
             Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0),
         })
         if not islist then
@@ -1395,16 +1386,16 @@ local function mk_toggle(container, cfg)
     local callback        = cfg.callback or cfg.Callback or function() end
     local toggled         = false
 
-    local holder = utility.create("Square", { Parent = container, Size = UDim2.new(1, 0, 0, 14), Filled = false, Thickness = 0, ZIndex = 8 })
-    local box = utility.create("Square", { Parent = holder, Color = Color3.fromRGB(30, 30, 30), Size = UDim2.new(0, 12, 0, 12), Filled = true, Thickness = 0, ZIndex = 7 })
+    local holder = utility.create("Square", { Parent = container, Size = UDim2.new(1, 0, 0, 14), Filled = false, Thickness = 0, ZIndex = 30 })
+    local box = utility.create("Square", { Parent = holder, Color = Color3.fromRGB(30, 30, 30), Size = UDim2.new(0, 12, 0, 12), Filled = true, Thickness = 0, ZIndex = 31 })
     local o1 = utility.outline(box, Color3.fromRGB(0, 0, 0)); utility.outline(o1, Color3.fromRGB(0, 0, 0))
-    utility.create("Square", { Parent = box, Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Filled = false, Thickness = 1, Color = Color3.fromRGB(0, 0, 0), ZIndex = 8 })
+    utility.create("Square", { Parent = box, Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Filled = false, Thickness = 1, Color = Color3.fromRGB(0, 0, 0), ZIndex = 32 })
 
     local lines = {}
     for i = 0, 3 do
         table.insert(lines, utility.create("Square", {
             Parent = box, Filled = true, Thickness = 0, Color = Color3.fromRGB(50, 50, 50),
-            Size = UDim2.new(1, -4, 0, 2), Position = UDim2.new(0, 2, 0, 2 + i*2), ZIndex = 7,
+            Size = UDim2.new(1, -4, 0, 2), Position = UDim2.new(0, 2, 0, 2 + i*2), ZIndex = 31,
         }))
     end
 
@@ -1412,7 +1403,7 @@ local function mk_toggle(container, cfg)
         Parent = holder, Text = name, Size = 13,
         Color = risky and library.theme["Risky"] or library.theme["Text"],
         Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX,
-        Position = UDim2.new(0, 18, 0, -2), ZIndex = 9,
+        Position = UDim2.new(0, 18, 0, -2), ZIndex = 33,
     })
 
     local function refresh()
@@ -1458,15 +1449,15 @@ local function mk_slider(container, cfg)
     local callback = cfg.callback or function() end
     local text     = cfg.text or ("[value]/"..max)
 
-    local holder = utility.create("Square", { Parent = container, Size = UDim2.new(1, 0, 0, 24), Filled = false, Thickness = 0, ZIndex = 6 })
-    local frame = utility.create("Square", { Parent = holder, Color = Color3.fromRGB(0, 0, 0), Size = UDim2.new(1, 0, 0, 14), Position = UDim2.new(0, 0, 0, 12), Filled = true, Thickness = 0, ZIndex = 7 })
-    local fi = utility.create("Square", { Parent = frame, Theme = "SectionBorder", Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Filled = true, Thickness = 0, ZIndex = 8 })
+    local holder = utility.create("Square", { Parent = container, Size = UDim2.new(1, 0, 0, 24), Filled = false, Thickness = 0, ZIndex = 30 })
+    local frame = utility.create("Square", { Parent = holder, Color = Color3.fromRGB(0, 0, 0), Size = UDim2.new(1, 0, 0, 14), Position = UDim2.new(0, 0, 0, 12), Filled = true, Thickness = 0, ZIndex = 31 })
+    local fi = utility.create("Square", { Parent = frame, Theme = "SectionBorder", Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Filled = true, Thickness = 0, ZIndex = 32 })
     for i = 0, 3 do
         local s = math.floor(50 - 15*(i/3))
-        utility.create("Square", { Parent = fi, Filled = true, Thickness = 0, Color = Color3.fromRGB(s, s, s), Size = UDim2.new(1, -2, 0, 2), Position = UDim2.new(0, 1, 0, 1 + i*2), ZIndex = 9 })
+        utility.create("Square", { Parent = fi, Filled = true, Thickness = 0, Color = Color3.fromRGB(s, s, s), Size = UDim2.new(1, -2, 0, 2), Position = UDim2.new(0, 1, 0, 1 + i*2), ZIndex = 33 })
     end
-    utility.create("Text", { Parent = holder, Text = name, Theme = "Text", Size = 13, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX, Position = UDim2.new(0, 0, 0, -2), ZIndex = 9 })
-    local val_text = utility.create("Text", { Parent = frame, Text = text, Theme = "Text", Size = 12, Center = true, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX, Position = UDim2.new(0.5, 0, 0.5, -6), ZIndex = 11 })
+    utility.create("Text", { Parent = holder, Text = name, Theme = "Text", Size = 13, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX, Position = UDim2.new(0, 0, 0, -2), ZIndex = 33 })
+    local val_text = utility.create("Text", { Parent = frame, Text = text, Theme = "Text", Size = 12, Center = true, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX, Position = UDim2.new(0.5, 0, 0.5, -6), ZIndex = 34 })
 
     local fills = {}
     for i = 0, 3 do
@@ -1477,11 +1468,11 @@ local function mk_slider(container, cfg)
                 math.max(0, math.floor(library.theme["Accent"].R*255 - 40*t)),
                 math.max(0, math.floor(library.theme["Accent"].G*255 - 40*t)),
                 math.max(0, math.floor(library.theme["Accent"].B*255 - 40*t))),
-            Size = UDim2.new(0, 0, 0, 2), Position = UDim2.new(0, 1, 0, 1 + i*2), ZIndex = 10,
+            Size = UDim2.new(0, 0, 0, 2), Position = UDim2.new(0, 1, 0, 1 + i*2), ZIndex = 34,
         }))
     end
 
-    local drag = utility.create("Square", { Parent = frame, Filled = true, Thickness = 0, Color = Color3.new(1,1,1), Transparency = 1, Size = UDim2.new(1, 0, 1, 0), ZIndex = 12 })
+    local drag = utility.create("Square", { Parent = frame, Filled = true, Thickness = 0, Color = Color3.new(1,1,1), Transparency = 1, Size = UDim2.new(1, 0, 1, 0), ZIndex = 35 })
 
     local function set(v)
         v = math.clamp(utility.round(v, float), min, max)
@@ -1508,12 +1499,12 @@ local function mk_button(container, cfg)
     local confirm  = cfg.confirm or cfg.Confirm or false
     local callback = cfg.callback or cfg.Callback or function() end
 
-    local holder = utility.create("Square", { Parent = container, Size = UDim2.new(1, 0, 0, 22), Filled = false, Thickness = 0, ZIndex = 6 })
-    local frame = utility.create("Square", { Parent = holder, Color = Color3.fromRGB(0, 0, 0), Size = UDim2.new(1, 0, 1, 0), Filled = true, Thickness = 1, ZIndex = 7 })
-    local fi = utility.create("Square", { Parent = frame, Theme = "SectionBorder", Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Filled = true, Thickness = 0, ZIndex = 8 })
-    local stripes = utility.stripes(fi, 9, library.theme["ObjectTop"], library.theme["ObjectBottom"], 9)
-    utility.create("Square", { Parent = fi, Filled = false, Thickness = 1, Color = Color3.fromRGB(0, 0, 0), Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), ZIndex = 11 })
-    local title = utility.create("Text", { Parent = fi, Text = name, Theme = "Text", Size = 13, Center = true, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX, Position = UDim2.new(0.5, 0, 0.5, -6), ZIndex = 12 })
+    local holder = utility.create("Square", { Parent = container, Size = UDim2.new(1, 0, 0, 22), Filled = false, Thickness = 0, ZIndex = 30 })
+    local frame = utility.create("Square", { Parent = holder, Color = Color3.fromRGB(0, 0, 0), Size = UDim2.new(1, 0, 1, 0), Filled = true, Thickness = 1, ZIndex = 31 })
+    local fi = utility.create("Square", { Parent = frame, Theme = "SectionBorder", Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Filled = true, Thickness = 0, ZIndex = 32 })
+    local stripes = utility.stripes(fi, 9, library.theme["ObjectTop"], library.theme["ObjectBottom"], 33)
+    utility.create("Square", { Parent = fi, Filled = false, Thickness = 1, Color = Color3.fromRGB(0, 0, 0), Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), ZIndex = 35 })
+    local title = utility.create("Text", { Parent = fi, Text = name, Theme = "Text", Size = 13, Center = true, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX, Position = UDim2.new(0.5, 0, 0.5, -6), ZIndex = 36 })
     local clicked, counting = false, false
     utility.connect(frame.MouseButton1Click, function()
         task.spawn(function()
@@ -1556,13 +1547,13 @@ local function mk_dropdown(container, cfg)
     if max and default == nil then default = {} end
 
     local holder = utility.create("Square", {
-        Transparency = 0, ZIndex = 7, Filled = false, Thickness = 0, Parent = container,
+        Transparency = 0, ZIndex = 30, Filled = false, Thickness = 0, Parent = container,
         Size = islist and (size == "Fill" and UDim2.new(1, 0, 1, 0) or UDim2.new(1, 0, 0, size+20))
                         or UDim2.new(1, 0, 0, 34),
     })
     utility.create("Text", {
         Parent = holder, Text = name, Theme = "Text", Font = PLEX, Size = 13,
-        Position = UDim2.new(0, 0, 0, -2), ZIndex = 7,
+        Position = UDim2.new(0, 0, 0, -2), ZIndex = 31,
         Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0),
     })
     return library.createdropdown(holder, content, flag, callback, default, max, scrollable, scrollingmax, islist, size)
@@ -1580,16 +1571,16 @@ local function mk_keybind(container, cfg, key_list)
     local ignore_list = cfg.ignore or cfg.Ignore or false
     local key_mode  = mode
 
-    local holder = utility.create("Square", { Transparency = 0, ZIndex = 7, Filled = false, Thickness = 0, Size = UDim2.new(1, 0, 0, 34), Parent = container })
-    utility.create("Text", { Parent = holder, Text = name, Theme = "Text", Font = PLEX, Size = 13, Position = UDim2.new(0, 0, 0, -2), ZIndex = 7, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0) })
-    local frame = utility.create("Square", { Parent = holder, Color = Color3.fromRGB(0, 0, 0), Size = UDim2.new(1, 0, 0, 18), Position = UDim2.new(0, 0, 1, -18), Filled = true, Thickness = 1, ZIndex = 8 })
-    local fi = utility.create("Square", { Parent = frame, Theme = "SectionBorder", Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Filled = true, Thickness = 0, ZIndex = 9 })
-    utility.stripes(fi, 7, library.theme["ObjectTop"], library.theme["ObjectBottom"], 10)
+    local holder = utility.create("Square", { Transparency = 0, ZIndex = 30, Filled = false, Thickness = 0, Size = UDim2.new(1, 0, 0, 34), Parent = container })
+    utility.create("Text", { Parent = holder, Text = name, Theme = "Text", Font = PLEX, Size = 13, Position = UDim2.new(0, 0, 0, -2), ZIndex = 31, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0) })
+    local frame = utility.create("Square", { Parent = holder, Color = Color3.fromRGB(0, 0, 0), Size = UDim2.new(1, 0, 0, 18), Position = UDim2.new(0, 0, 1, -18), Filled = true, Thickness = 1, ZIndex = 32 })
+    local fi = utility.create("Square", { Parent = frame, Theme = "SectionBorder", Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Filled = true, Thickness = 0, ZIndex = 33 })
+    utility.stripes(fi, 7, library.theme["ObjectTop"], library.theme["ObjectBottom"], 34)
 
-    local keytext = utility.create("Text", { Parent = frame, Theme = "Text", Font = PLEX, Size = 13, Position = UDim2.new(0, 4, 0, 1), ZIndex = 11, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0) })
-    local mode_btn = utility.create("Square", { Parent = frame, Filled = true, Thickness = 1, Color = Color3.fromRGB(0, 0, 0), Size = UDim2.new(0, 46, 1, -2), Position = UDim2.new(1, -48, 0, 1), ZIndex = 10 })
-    local mbi = utility.create("Square", { Parent = mode_btn, Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Color = Color3.fromRGB(40, 40, 40), Filled = true, Thickness = 0, ZIndex = 11 })
-    local mode_text = utility.create("Text", { Parent = mbi, Text = key_mode, Theme = "Text", Font = PLEX, Size = 12, Center = true, Position = UDim2.new(0.5, 0, 0.5, -5), ZIndex = 12, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0) })
+    local keytext = utility.create("Text", { Parent = frame, Theme = "Text", Font = PLEX, Size = 13, Position = UDim2.new(0, 4, 0, 1), ZIndex = 35, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0) })
+    local mode_btn = utility.create("Square", { Parent = frame, Filled = true, Thickness = 1, Color = Color3.fromRGB(0, 0, 0), Size = UDim2.new(0, 46, 1, -2), Position = UDim2.new(1, -48, 0, 1), ZIndex = 34 })
+    local mbi = utility.create("Square", { Parent = mode_btn, Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Color = Color3.fromRGB(40, 40, 40), Filled = true, Thickness = 0, ZIndex = 35 })
+    local mode_text = utility.create("Text", { Parent = mbi, Text = key_mode, Theme = "Text", Font = PLEX, Size = 12, Center = true, Position = UDim2.new(0.5, 0, 0.5, -5), ZIndex = 36, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0) })
 
     local list_obj = nil
     if not ignore_list and key_list then list_obj = key_list:add_keybind(key_name, keytext.Text) end
@@ -1647,11 +1638,11 @@ end
 
 local function mk_separator(container, cfg)
     local txt = cfg.name or cfg.Name or "separator"
-    local sep = utility.create("Square", { Parent = container, Size = UDim2.new(1, 0, 0, 12), Filled = false, Thickness = 0, Transparency = 0 })
-    utility.create("Square", { Parent = sep, Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0.5, 0), Filled = true, Thickness = 0, Theme = "ObjectTop", ZIndex = 7 })
+    local sep = utility.create("Square", { Parent = container, Size = UDim2.new(1, 0, 0, 12), Filled = false, Thickness = 0, Transparency = 0, ZIndex = 30 })
+    utility.create("Square", { Parent = sep, Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0.5, 0), Filled = true, Thickness = 0, Theme = "ObjectTop", ZIndex = 31 })
     local sx = utility.textlength(txt, PLEX, 13).X
-    utility.create("Square", { Parent = sep, Size = UDim2.new(0, sx + 12, 0, 5), Position = UDim2.new(0.5, -sx/2 - 6, 0.5, -2), Filled = true, Theme = "SectionTop", ZIndex = 8 })
-    utility.create("Text", { Parent = sep, Text = txt, Theme = "Text", Font = PLEX, Size = 13, Center = true, Position = UDim2.new(0.5, 0, 0, -1), ZIndex = 9, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0) })
+    utility.create("Square", { Parent = sep, Size = UDim2.new(0, sx + 12, 0, 5), Position = UDim2.new(0.5, -sx/2 - 6, 0.5, -2), Filled = true, Theme = "SectionTop", ZIndex = 32 })
+    utility.create("Text", { Parent = sep, Text = txt, Theme = "Text", Font = PLEX, Size = 13, Center = true, Position = UDim2.new(0.5, 0, 0, -1), ZIndex = 33, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0) })
 end
 
 local function mk_colorpicker(container, cfg)
@@ -1659,8 +1650,8 @@ local function mk_colorpicker(container, cfg)
     local name, default = cfg.name or cfg.Name or "color", cfg.default or cfg.Default or Color3.fromRGB(255, 0, 0)
     local flag = cfg.flag or cfg.Flag or utility.nextflag()
     local callback = cfg.callback or function() end
-    local holder = utility.create("Square", { Parent = container, Size = UDim2.new(1, 0, 0, 12), Filled = false, Thickness = 0, ZIndex = 7 })
-    utility.create("Text", { Parent = holder, Text = name, Theme = "Text", Font = PLEX, Size = 13, Position = UDim2.new(0, 0, 0, -2), ZIndex = 8, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0) })
+    local holder = utility.create("Square", { Parent = container, Size = UDim2.new(1, 0, 0, 12), Filled = false, Thickness = 0, ZIndex = 30 })
+    utility.create("Text", { Parent = holder, Text = name, Theme = "Text", Font = PLEX, Size = 13, Position = UDim2.new(0, 0, 0, -2), ZIndex = 31, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0) })
     local cp = library.createcolorpicker(default, holder, 0, flag, callback, 0)
     function api:set(c) cp:set(c) end
     return api
@@ -1673,12 +1664,12 @@ local function mk_textbox(container, cfg)
     local middle      = cfg.middle or cfg.Middle or false
     local flag        = cfg.flag or cfg.Flag or utility.nextflag()
     local callback    = cfg.callback or function() end
-    local holder = utility.create("Square", { Parent = container, Size = UDim2.new(1, 0, 0, 22), Filled = false, Thickness = 0, ZIndex = 7 })
-    local textbox = utility.create("Square", { Parent = holder, Filled = true, Thickness = 1, Color = Color3.fromRGB(0, 0, 0), Size = UDim2.new(1, 0, 1, 0), ZIndex = 8 })
-    local tbi = utility.create("Square", { Parent = textbox, Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Theme = "SectionBorder", Filled = true, Thickness = 0, ZIndex = 9 })
-    utility.stripes(tbi, 7, library.theme["ObjectTop"], library.theme["ObjectBottom"], 10)
-    local text = utility.create("Text", { Parent = tbi, Text = default, Font = PLEX, Size = 13, Center = middle, Position = middle and UDim2.new(0.5, 0, 0, 1) or UDim2.new(0, 4, 0, 1), Theme = "Text", ZIndex = 11, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0) })
-    local ph = utility.create("Text", { Parent = tbi, Text = placeholder, Font = PLEX, Transparency = 0.5, Size = 13, Center = middle, Position = middle and UDim2.new(0.5, 0, 0, 1) or UDim2.new(0, 4, 0, 1), Theme = "Text", ZIndex = 11, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0) })
+    local holder = utility.create("Square", { Parent = container, Size = UDim2.new(1, 0, 0, 22), Filled = false, Thickness = 0, ZIndex = 30 })
+    local textbox = utility.create("Square", { Parent = holder, Filled = true, Thickness = 1, Color = Color3.fromRGB(0, 0, 0), Size = UDim2.new(1, 0, 1, 0), ZIndex = 31 })
+    local tbi = utility.create("Square", { Parent = textbox, Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Theme = "SectionBorder", Filled = true, Thickness = 0, ZIndex = 32 })
+    utility.stripes(tbi, 7, library.theme["ObjectTop"], library.theme["ObjectBottom"], 33)
+    local text = utility.create("Text", { Parent = tbi, Text = default, Font = PLEX, Size = 13, Center = middle, Position = middle and UDim2.new(0.5, 0, 0, 1) or UDim2.new(0, 4, 0, 1), Theme = "Text", ZIndex = 34, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0) })
+    local ph = utility.create("Text", { Parent = tbi, Text = placeholder, Font = PLEX, Transparency = 0.5, Size = 13, Center = middle, Position = middle and UDim2.new(0.5, 0, 0, 1) or UDim2.new(0, 4, 0, 1), Theme = "Text", ZIndex = 34, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0) })
     library.createbox(textbox, text, function(s) ph.Visible = (s == "") end, function(s) library.flags[flag] = s; callback(s) end)
     local function set(s) text.Visible = s ~= ""; ph.Visible = s == ""; text.Text = s; library.flags[flag] = s; callback(s) end
     set(default); flags[flag] = set
@@ -1696,9 +1687,6 @@ function library:new_window(cfg)
     local size = cfg.size or cfg.Size or Vector2.new(600, 400)
     local sx, sy = size.X, size.Y
 
-    -- FIX: window créée AVANT le shadow, puis shadow est enfant de window
-    -- → le shadow suit la fenêtre lors du drag (l'original laissait le shadow
-    --   au centre de l'écran, ce qui donne "une frame noire qui ne bouge pas")
     local window = utility.create("Square", {
         Size = UDim2.new(0, sx, 0, sy), Position = UDim2.new(0.5, -(sx/2), 0.5, -(sy/2)),
         Color = Color3.fromRGB(0, 0, 0), Filled = true, Thickness = 1, ZIndex = 1,
@@ -1766,10 +1754,12 @@ function library:new_window(cfg)
         Size = UDim2.new(1, 0, 0, 24), Position = UDim2.new(0, 0, 0, 26),
         Filled = true, Thickness = 0, ZIndex = 3,
     })
+    
+    -- FIX: ZIndex très bas pour le fond, pour que le contenu soit TOUJOURS au-dessus
     local content_bg = utility.create("Square", {
         Parent = inner, Theme = "HolderBg",
         Size = UDim2.new(1, 0, 1, -50), Position = UDim2.new(0, 0, 0, 50),
-        Filled = true, Thickness = 0, ZIndex = 3,
+        Filled = true, Thickness = 0, ZIndex = 2,
     })
 
     local key_list = library.createkeybindlist(); key_list:set_visible(false)
@@ -1804,16 +1794,17 @@ function library:new_window(cfg)
         local pacc = utility.create("Square", { Parent = pbtn, Visible = false, Theme = "Accent", Size = UDim2.new(1, 0, 0, 2), Position = UDim2.new(0, 0, 1, -2), Filled = true, Thickness = 0, ZIndex = 6 })
         table.insert(self.page_accents, pacc)
 
+        -- FIX: ZIndex très élevé pour la page
         local page = utility.create("Square", {
             Parent = content_bg, Visible = false, Transparency = 0,
             Size = UDim2.new(1, -16, 1, -16), Position = UDim2.new(0, 8, 0, 8),
-            Filled = false, Thickness = 0, ZIndex = 4,
+            Filled = false, Thickness = 0, ZIndex = 10,
         })
         table.insert(self.pages, page)
 
-        local left = utility.create("Square", { Parent = page, Transparency = 0, Filled = false, Thickness = 0, ZIndex = 4, Size = UDim2.new(0.5, -8, 1, 0) })
+        local left = utility.create("Square", { Parent = page, Transparency = 0, Filled = false, Thickness = 0, ZIndex = 11, Size = UDim2.new(0.5, -8, 1, 0) })
         left:AddListLayout(10)
-        local right = utility.create("Square", { Parent = page, Transparency = 0, Filled = false, Thickness = 0, ZIndex = 4, Size = UDim2.new(0.5, -8, 1, 0), Position = UDim2.new(0.5, 8, 0, 0) })
+        local right = utility.create("Square", { Parent = page, Transparency = 0, Filled = false, Thickness = 0, ZIndex = 11, Size = UDim2.new(0.5, -8, 1, 0), Position = UDim2.new(0.5, 8, 0, 0) })
         right:AddListLayout(10)
 
         utility.connect(pbtn.MouseButton1Click, function()
@@ -1840,24 +1831,25 @@ function library:new_window(cfg)
                        or (scfg.side == "right" and right) or (scfg.Side == "right" and right) or left
             local ssize = scfg.size or scfg.Size or 200
 
+            -- FIX: ZIndex très élevé pour les sections
             local section = utility.create("Square", {
                 Parent = side, Color = Color3.fromRGB(0, 0, 0),
                 Size = ssize ~= "Fill" and UDim2.new(1, 0, 0, ssize) or UDim2.new(1, 0, 1, 0),
                 Position = UDim2.new(0, 0, 0, 0),
-                Filled = true, Thickness = 1, ZIndex = 5,
+                Filled = true, Thickness = 1, ZIndex = 20,
             })
-            local sin = utility.create("Square", { Parent = section, Theme = "SectionBorder", Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Filled = true, Thickness = 0, ZIndex = 6 })
-            utility.create("Square", { Parent = sin, Theme = "Accent",     Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 1), Filled = true, Thickness = 0, ZIndex = 7 })
-            utility.create("Square", { Parent = sin, Theme = "AccentDark", Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 2), Filled = true, Thickness = 0, ZIndex = 7 })
-            local body = utility.create("Square", { Parent = sin, Theme = "SectionTop", Size = UDim2.new(1, 0, 1, -3), Position = UDim2.new(0, 0, 0, 2), Filled = true, Thickness = 0, ZIndex = 6 })
-            utility.stripes(body, 12, library.theme["SectionTop"], library.theme["SectionBottom"], 7)
+            local sin = utility.create("Square", { Parent = section, Theme = "SectionBorder", Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Filled = true, Thickness = 0, ZIndex = 21 })
+            utility.create("Square", { Parent = sin, Theme = "Accent",     Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 1), Filled = true, Thickness = 0, ZIndex = 22 })
+            utility.create("Square", { Parent = sin, Theme = "AccentDark", Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 2), Filled = true, Thickness = 0, ZIndex = 22 })
+            local body = utility.create("Square", { Parent = sin, Theme = "SectionTop", Size = UDim2.new(1, 0, 1, -3), Position = UDim2.new(0, 0, 0, 2), Filled = true, Thickness = 0, ZIndex = 21 })
+            utility.stripes(body, 12, library.theme["SectionTop"], library.theme["SectionBottom"], 22)
 
             local tw = utility.textlength(sname, PLEX, 13).X + 16
-            utility.create("Square", { Parent = section, Theme = "HolderBg", Size = UDim2.new(0, tw, 0, 6), Position = UDim2.new(0, 8, 0, -6), Filled = true, Thickness = 0, ZIndex = 6 })
-            utility.create("Square", { Parent = section, Theme = "Accent", Size = UDim2.new(0, 3, 0, 3), Position = UDim2.new(0, 10, 0, -4), Filled = true, Thickness = 0, ZIndex = 8 })
-            utility.create("Text", { Parent = section, Text = sname, Theme = "Text", Size = 13, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX, Position = UDim2.new(0, 16, 0, -10), ZIndex = 8 })
+            utility.create("Square", { Parent = section, Theme = "HolderBg", Size = UDim2.new(0, tw, 0, 6), Position = UDim2.new(0, 8, 0, -6), Filled = true, Thickness = 0, ZIndex = 21 })
+            utility.create("Square", { Parent = section, Theme = "Accent", Size = UDim2.new(0, 3, 0, 3), Position = UDim2.new(0, 10, 0, -4), Filled = true, Thickness = 0, ZIndex = 23 })
+            utility.create("Text", { Parent = section, Text = sname, Theme = "Text", Size = 13, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX, Position = UDim2.new(0, 16, 0, -10), ZIndex = 23 })
 
-            local content = utility.create("Square", { Parent = section, Size = UDim2.new(1, -16, 1, -16), Position = UDim2.new(0, 8, 0, 10), Filled = false, Thickness = 0, ZIndex = 8 })
+            local content = utility.create("Square", { Parent = section, Size = UDim2.new(1, -16, 1, -16), Position = UDim2.new(0, 8, 0, 10), Filled = false, Thickness = 0, ZIndex = 25 })
             content:AddListLayout(6)
 
             function stbl:new_toggle(c) return mk_toggle(content, c) end
@@ -1881,31 +1873,31 @@ function library:new_window(cfg)
             local section = utility.create("Square", {
                 Parent = side, Color = Color3.fromRGB(0, 0, 0),
                 Size = ssize ~= "Fill" and UDim2.new(1, 0, 0, ssize) or UDim2.new(1, 0, 1, 0),
-                Filled = true, Thickness = 1, ZIndex = 5,
+                Filled = true, Thickness = 1, ZIndex = 20,
             })
-            local sin = utility.create("Square", { Parent = section, Theme = "SectionBorder", Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Filled = true, Thickness = 0, ZIndex = 6 })
-            utility.create("Square", { Parent = sin, Theme = "Accent",     Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 1), Filled = true, Thickness = 0, ZIndex = 7 })
-            utility.create("Square", { Parent = sin, Theme = "AccentDark", Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 2), Filled = true, Thickness = 0, ZIndex = 7 })
-            local body = utility.create("Square", { Parent = sin, Theme = "SectionTop", Size = UDim2.new(1, 0, 1, -3), Position = UDim2.new(0, 0, 0, 2), Filled = true, Thickness = 0, ZIndex = 6 })
-            utility.stripes(body, 12, library.theme["SectionTop"], library.theme["SectionBottom"], 7)
+            local sin = utility.create("Square", { Parent = section, Theme = "SectionBorder", Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), Filled = true, Thickness = 0, ZIndex = 21 })
+            utility.create("Square", { Parent = sin, Theme = "Accent",     Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 1), Filled = true, Thickness = 0, ZIndex = 22 })
+            utility.create("Square", { Parent = sin, Theme = "AccentDark", Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 2), Filled = true, Thickness = 0, ZIndex = 22 })
+            local body = utility.create("Square", { Parent = sin, Theme = "SectionTop", Size = UDim2.new(1, 0, 1, -3), Position = UDim2.new(0, 0, 0, 2), Filled = true, Thickness = 0, ZIndex = 21 })
+            utility.stripes(body, 12, library.theme["SectionTop"], library.theme["SectionBottom"], 22)
 
             local tw = utility.textlength(sname, PLEX, 13).X + 16
-            utility.create("Square", { Parent = section, Theme = "HolderBg", Size = UDim2.new(0, tw, 0, 6), Position = UDim2.new(0, 8, 0, -6), Filled = true, Thickness = 0, ZIndex = 6 })
-            utility.create("Square", { Parent = section, Theme = "Accent", Size = UDim2.new(0, 3, 0, 3), Position = UDim2.new(0, 10, 0, -4), Filled = true, Thickness = 0, ZIndex = 8 })
-            utility.create("Text", { Parent = section, Text = sname, Theme = "Text", Size = 13, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX, Position = UDim2.new(0, 16, 0, -10), ZIndex = 8 })
+            utility.create("Square", { Parent = section, Theme = "HolderBg", Size = UDim2.new(0, tw, 0, 6), Position = UDim2.new(0, 8, 0, -6), Filled = true, Thickness = 0, ZIndex = 21 })
+            utility.create("Square", { Parent = section, Theme = "Accent", Size = UDim2.new(0, 3, 0, 3), Position = UDim2.new(0, 10, 0, -4), Filled = true, Thickness = 0, ZIndex = 23 })
+            utility.create("Text", { Parent = section, Text = sname, Theme = "Text", Size = 13, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX, Position = UDim2.new(0, 16, 0, -10), ZIndex = 23 })
 
-            local btn_row = utility.create("Square", { Size = UDim2.new(1, -16, 0, 20), Position = UDim2.new(0, 8, 0, 10), Parent = section, Filled = false, Thickness = 0, ZIndex = 6 })
+            local btn_row = utility.create("Square", { Size = UDim2.new(1, -16, 0, 20), Position = UDim2.new(0, 8, 0, 10), Parent = section, Filled = false, Thickness = 0, ZIndex = 21 })
 
             function stbl:new_section(cfg2)
                 local name = cfg2.name or cfg2.Name or "tab"
-                local mb = utility.create("Square", { Parent = btn_row, Color = Color3.fromRGB(30, 30, 30), Size = UDim2.new(0, 0, 1, 0), Position = UDim2.new(0, 0, 0, 0), Filled = true, Thickness = 0, ZIndex = 7 })
+                local mb = utility.create("Square", { Parent = btn_row, Color = Color3.fromRGB(30, 30, 30), Size = UDim2.new(0, 0, 1, 0), Position = UDim2.new(0, 0, 0, 0), Filled = true, Thickness = 0, ZIndex = 22 })
                 table.insert(stbl.buttons, mb)
-                utility.stripes(mb, 4, library.theme["ObjectTop"], library.theme["ObjectBottom"], 8)
-                utility.create("Text", { Parent = mb, Text = name, Theme = "Text", Size = 13, Center = true, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX, Position = UDim2.new(0.5, 0, 0, 3), ZIndex = 9 })
-                local mba = utility.create("Square", { Parent = mb, Visible = false, Theme = "Accent", Size = UDim2.new(1, 0, 0, 2), Position = UDim2.new(0, 0, 1, -2), Filled = true, Thickness = 0, ZIndex = 9 })
+                utility.stripes(mb, 4, library.theme["ObjectTop"], library.theme["ObjectBottom"], 23)
+                utility.create("Text", { Parent = mb, Text = name, Theme = "Text", Size = 13, Center = true, Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX, Position = UDim2.new(0.5, 0, 0, 3), ZIndex = 24 })
+                local mba = utility.create("Square", { Parent = mb, Visible = false, Theme = "Accent", Size = UDim2.new(1, 0, 0, 2), Position = UDim2.new(0, 0, 1, -2), Filled = true, Thickness = 0, ZIndex = 24 })
                 table.insert(stbl.accents, mba)
 
-                local sc = utility.create("Square", { Visible = false, Size = UDim2.new(1, -16, 1, -46), Position = UDim2.new(0, 8, 0, 36), Parent = section, Filled = false, Thickness = 0, ZIndex = 6 })
+                local sc = utility.create("Square", { Visible = false, Size = UDim2.new(1, -16, 1, -46), Position = UDim2.new(0, 8, 0, 36), Parent = section, Filled = false, Thickness = 0, ZIndex = 21 })
                 table.insert(stbl.sections, sc)
                 sc:AddListLayout(6)
 

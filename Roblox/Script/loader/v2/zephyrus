@@ -1,0 +1,479 @@
+-- =========================================================================
+--  ZEPHYRUS UI — SCRIPT DE TEST COMPLET
+--  Teste TOUTES les fonctionnalités de la librairie :
+--    • new_window + set_title / set_subtitle runtime
+--    • new_page (multi-pages)
+--    • new_section (simple)
+--    • new_section_holder → new_section (multi-onglets internes)
+--    • new_toggle (+ new_colorpicker enfant)
+--    • new_slider (int + float)
+--    • new_button (+ confirm)
+--    • new_dropdown (simple, multi-select, list)
+--    • new_keybind (Hold + Toggle)
+--    • new_seperator
+--    • new_colorpicker
+--    • new_textbox
+--    • notifications (normales + colorées + spam)
+--    • keybind list visibility
+--    • save / load config via get_config() et load_config()
+-- =========================================================================
+
+-- ─────────────────────────────────────────────────────────────────────────
+--  ÉTAPE 1 : Charger la librairie
+-- ─────────────────────────────────────────────────────────────────────────
+-- Option A : si tu héberges la lib en ligne
+-- local lib = loadstring(game:HttpGet("https://TON_URL_ICI/library.lua"))()
+
+-- Option B : si tu as la lib dans un fichier local
+-- local lib = loadstring(readfile("zephyrus_lib.lua"))()
+
+-- Option C : si tu as collé la lib direct dans le même script au-dessus
+-- (dans ce cas, remplace juste `library` par le nom que tu lui as donné)
+local lib = library -- ← adapte ici si besoin
+
+-- ─────────────────────────────────────────────────────────────────────────
+--  ÉTAPE 2 : Créer la fenêtre avec titre + sous-titre custom
+-- ─────────────────────────────────────────────────────────────────────────
+local window = lib:new_window({
+    title    = "Zephyrus — Test Suite",
+    subtitle = "v1.0 · all features",
+    size     = Vector2.new(680, 460),
+})
+
+-- Affiche la keybind list (panneau à gauche)
+window:set_keybind_list_visibility(true)
+
+-- ═════════════════════════════════════════════════════════════════════════
+--  PAGE 1 : COMBAT — teste tous les composants simples
+-- ═════════════════════════════════════════════════════════════════════════
+local combat = window:new_page({ name = "Combat" })
+
+-- ─── SECTION GAUCHE ───
+local aim = combat:new_section({ name = "Aimbot", side = "left", size = 290 })
+
+-- Toggle simple
+aim:new_toggle({
+    name  = "Enable Aimbot",
+    state = false,
+    flag  = "aimbot_enabled",
+    callback = function(v)
+        lib.notify("Aimbot: " .. (v and "ON" or "OFF"), 2)
+    end,
+})
+
+-- Toggle "risky" (texte jaune)
+aim:new_toggle({
+    name  = "Risky Mode",
+    risky = true,
+    callback = function(v)
+        lib.notify("Risky: " .. tostring(v), 2, Color3.fromRGB(230, 190, 90))
+    end,
+})
+
+-- Toggle avec colorpicker enfant (couleur ESP dans le toggle)
+local esp_tgl = aim:new_toggle({
+    name = "ESP Highlight",
+    callback = function(v) end,
+})
+esp_tgl:new_colorpicker({
+    name    = "ESP Color",
+    default = Color3.fromRGB(255, 80, 80),
+    callback = function(c)
+        -- c est un Color3
+    end,
+})
+
+-- Slider entier
+local fov_slider = aim:new_slider({
+    name    = "FOV",
+    min     = 0,
+    max     = 360,
+    default = 90,
+    float   = 1,
+    flag    = "aimbot_fov",
+    text    = "[value]°",
+    callback = function(v) end,
+})
+
+-- Slider décimal
+aim:new_slider({
+    name    = "Smoothing",
+    min     = 0,
+    max     = 100,
+    default = 25.5,
+    float   = 0.1,
+    callback = function(v) end,
+})
+
+-- Dropdown simple
+aim:new_dropdown({
+    name     = "Hitbox",
+    options  = { "Head", "Body", "Closest", "Random" },
+    default  = "Head",
+    flag     = "hitbox",
+    callback = function(v)
+        lib.notify("Hitbox: " .. tostring(v), 2)
+    end,
+})
+
+-- Dropdown multi-sélection (max 2)
+aim:new_dropdown({
+    name    = "Multi Hit",
+    options = { "Head", "Body", "Arms", "Legs" },
+    max     = 2,
+    default = { "Head" },
+    callback = function(t)
+        lib.notify("Multi: " .. #t .. " sélectionné(s)", 2)
+    end,
+})
+
+-- Colorpicker
+aim:new_colorpicker({
+    name    = "Box Color",
+    default = Color3.fromRGB(255, 0, 0),
+    flag    = "box_color",
+    callback = function(c) end,
+})
+
+-- Bouton avec confirmation (3s)
+aim:new_button({
+    name    = "Reset Aimbot Settings",
+    confirm = true,
+    callback = function()
+        fov_slider:set(90)
+        lib.notify("Settings reset!", 3, Color3.fromRGB(80, 200, 80))
+    end,
+})
+
+-- ─── SECTION DROITE ───
+local misc = combat:new_section({ name = "Keybinds & Misc", side = "right", size = 290 })
+
+-- Keybind mode "Hold"
+misc:new_keybind({
+    name    = "Aimbot Key (Hold)",
+    default = Enum.KeyCode.V,
+    mode    = "Hold",
+    callback = function(active)
+        if active then
+            lib.notify("Aimbot key held", 1)
+        end
+    end,
+})
+
+-- Keybind mode "Toggle"
+misc:new_keybind({
+    name    = "Speed Key (Toggle)",
+    default = Enum.KeyCode.Q,
+    mode    = "Toggle",
+    callback = function(active)
+        lib.notify("Speed: " .. (active and "ON" or "OFF"), 2)
+    end,
+})
+
+-- Keybind sans clé par défaut
+misc:new_keybind({
+    name = "Optional Key",
+    mode = "Hold",
+    callback = function(active) end,
+})
+
+-- Séparateur
+misc:new_seperator({ name = "Text & Buttons" })
+
+-- Textbox
+local name_box = misc:new_textbox({
+    name        = "Player Name",
+    placeholder = "Enter your name...",
+    default     = "",
+    flag        = "player_name",
+    callback = function(s) end,
+})
+
+-- Textbox centré
+misc:new_textbox({
+    name        = "Centered Box",
+    placeholder = "Type here...",
+    middle      = true,
+    callback    = function(s) end,
+})
+
+-- Bouton simple (sans confirm)
+misc:new_button({
+    name = "Show Notification",
+    callback = function()
+        lib.notify("Hello from Zephyrus! 🎉", 4)
+    end,
+})
+
+misc:new_button({
+    name = "Show Player Name",
+    callback = function()
+        local n = lib.flags["player_name"]
+        lib.notify("Name is: '" .. (n or "") .. "'", 3, Color3.fromRGB(100, 140, 255))
+    end,
+})
+
+-- ═════════════════════════════════════════════════════════════════════════
+--  PAGE 2 : VISUALS — teste section_holder (multi-onglets) et list dropdown
+-- ═════════════════════════════════════════════════════════════════════════
+local vis = window:new_page({ name = "Visuals" })
+
+-- ─── SECTION HOLDER GAUCHE (3 onglets internes) ───
+local esp_holder = vis:new_section_holder({
+    name = "ESP Settings",
+    side = "left",
+    size = 380,
+})
+
+-- Onglet "Enemy"
+local esp_enemy = esp_holder:new_section({ name = "Enemy" })
+esp_enemy:new_toggle({ name = "Enabled",       callback = function(v) end })
+esp_enemy:new_toggle({ name = "Box",           callback = function(v) end })
+esp_enemy:new_toggle({ name = "Name",          callback = function(v) end })
+esp_enemy:new_toggle({ name = "Health Bar",    callback = function(v) end })
+esp_enemy:new_toggle({ name = "Distance",      callback = function(v) end })
+esp_enemy:new_colorpicker({
+    name    = "Enemy Color",
+    default = Color3.fromRGB(255, 80, 80),
+})
+esp_enemy:new_slider({
+    name = "Max Distance",
+    min  = 50,
+    max  = 1000,
+    default = 500,
+})
+
+-- Onglet "Team"
+local esp_team = esp_holder:new_section({ name = "Team" })
+esp_team:new_toggle({ name = "Enabled",   callback = function(v) end })
+esp_team:new_toggle({ name = "Box",       callback = function(v) end })
+esp_team:new_colorpicker({
+    name    = "Team Color",
+    default = Color3.fromRGB(80, 255, 80),
+})
+
+-- Onglet "World"
+local esp_world = esp_holder:new_section({ name = "World" })
+esp_world:new_toggle({ name = "Dropped Items", callback = function(v) end })
+esp_world:new_toggle({ name = "World Markers", callback = function(v) end })
+esp_world:new_slider({
+    name    = "Opacity",
+    min     = 0,
+    max     = 100,
+    default = 80,
+    text    = "[value]%",
+})
+
+-- ─── SECTION HOLDER DROITE (2 onglets) ───
+local cam_holder = vis:new_section_holder({
+    name = "Camera",
+    side = "right",
+    size = 200,
+})
+
+local cam_fov = cam_holder:new_section({ name = "FOV" })
+cam_fov:new_toggle({ name = "Enable Custom FOV", callback = function(v) end })
+cam_fov:new_slider({
+    name = "Camera FOV",
+    min  = 40,
+    max  = 120,
+    default = 70,
+    text = "[value]°",
+})
+cam_fov:new_toggle({ name = "Disable ADS FOV", callback = function(v) end })
+
+local cam_tp = cam_holder:new_section({ name = "Third Person" })
+cam_tp:new_toggle({ name = "Enable", callback = function(v) end })
+cam_tp:new_slider({
+    name = "Distance",
+    min  = 1,
+    max  = 30,
+    default = 8,
+    float = 0.5,
+})
+cam_tp:new_keybind({
+    name    = "TP Toggle Key",
+    default = Enum.KeyCode.T,
+    mode    = "Toggle",
+})
+
+-- ─── SECTION "List" DROPDOWN ───
+local list_sec = vis:new_section({ name = "Scrollable List", side = "right", size = 170 })
+
+list_sec:new_dropdown({
+    name    = "Choose a fruit",
+    list    = true,
+    size    = 130,
+    options = { "Apple", "Banana", "Cherry", "Date", "Elderberry", "Fig", "Grape", "Honeydew", "Kiwi", "Lemon" },
+    default = "Apple",
+    callback = function(v)
+        lib.notify("Fruit: " .. tostring(v), 2)
+    end,
+})
+
+-- ═════════════════════════════════════════════════════════════════════════
+--  PAGE 3 : SETTINGS — teste runtime control, notifications, config
+-- ═════════════════════════════════════════════════════════════════════════
+local st = window:new_page({ name = "Settings" })
+
+-- ─── SECTION GAUCHE : Window Controls ───
+local wctrl = st:new_section({ name = "Window Controls", side = "left", size = 220 })
+
+wctrl:new_textbox({
+    name        = "Window Title",
+    placeholder = "Type a new title...",
+    default     = "Zephyrus — Test Suite",
+    flag        = "window_title",
+    callback    = function(s) end,
+})
+
+wctrl:new_button({
+    name = "Apply Title",
+    callback = function()
+        local t = lib.flags["window_title"]
+        if t and t ~= "" then
+            window:set_title(t)
+            lib.notify("Title updated!", 2, Color3.fromRGB(80, 200, 80))
+        else
+            lib.notify("Empty title!", 2, Color3.fromRGB(230, 80, 80))
+        end
+    end,
+})
+
+wctrl:new_button({
+    name = "Apply Subtitle",
+    callback = function()
+        local s = lib.flags["window_title"]
+        if s then
+            window:set_subtitle("by " .. s)
+            lib.notify("Subtitle updated!", 2, Color3.fromRGB(80, 200, 80))
+        end
+    end,
+})
+
+wctrl:new_seperator({ name = "Quick Toggles" })
+
+-- Var pour tracker l'état de la keybind list
+local kb_visible = true
+wctrl:new_button({
+    name = "Toggle Keybind List",
+    callback = function()
+        kb_visible = not kb_visible
+        window:set_keybind_list_visibility(kb_visible)
+        lib.notify("Keybind list: " .. (kb_visible and "shown" or "hidden"), 2)
+    end,
+})
+
+wctrl:new_button({
+    name    = "Hide UI (press again to close all)",
+    confirm = true,
+    callback = function()
+        lib:Close()
+    end,
+})
+
+-- ─── SECTION DROITE : Notifications ───
+local notif_sec = st:new_section({ name = "Notifications", side = "right", size = 200 })
+
+notif_sec:new_button({
+    name = "Success (green)",
+    callback = function()
+        lib.notify("Success! Operation complete.", 3, Color3.fromRGB(80, 200, 80))
+    end,
+})
+
+notif_sec:new_button({
+    name = "Warning (yellow)",
+    callback = function()
+        lib.notify("Warning! Check your settings.", 3, Color3.fromRGB(230, 190, 90))
+    end,
+})
+
+notif_sec:new_button({
+    name = "Error (red)",
+    callback = function()
+        lib.notify("Error! Something went wrong.", 3, Color3.fromRGB(230, 80, 80))
+    end,
+})
+
+notif_sec:new_button({
+    name = "Info (blue)",
+    callback = function()
+        lib.notify("Info: loading assets...", 3, Color3.fromRGB(100, 140, 255))
+    end,
+})
+
+notif_sec:new_button({
+    name = "Spam x5",
+    callback = function()
+        task.spawn(function()
+            for i = 1, 5 do
+                lib.notify("Spam message #" .. i, 4)
+                task.wait(0.15)
+            end
+        end)
+    end,
+})
+
+-- ─── SECTION DROITE : Config ───
+local cfg_sec = st:new_section({ name = "Config", side = "right", size = 170 })
+
+cfg_sec:new_button({
+    name = "Save Config",
+    callback = function()
+        local ok, err = pcall(function()
+            local json = window:get_config()
+            writefile("zephyrus/test_config.json", json)
+        end)
+        if ok then
+            lib.notify("Config saved!", 3, Color3.fromRGB(80, 200, 80))
+        else
+            lib.notify("Save failed: " .. tostring(err), 4, Color3.fromRGB(230, 80, 80))
+        end
+    end,
+})
+
+cfg_sec:new_button({
+    name = "Load Config",
+    callback = function()
+        if isfile("zephyrus/test_config.json") then
+            local ok, err = pcall(function()
+                lib:load_config("zephyrus/test_config.json")
+            end)
+            if ok then
+                lib.notify("Config loaded!", 3, Color3.fromRGB(80, 200, 80))
+            else
+                lib.notify("Load failed: " .. tostring(err), 4, Color3.fromRGB(230, 80, 80))
+            end
+        else
+            lib.notify("No config file found!", 3, Color3.fromRGB(230, 80, 80))
+        end
+    end,
+})
+
+cfg_sec:new_button({
+    name = "Delete Config",
+    confirm = true,
+    callback = function()
+        if isfile("zephyrus/test_config.json") then
+            delfile("zephyrus/test_config.json")
+            lib.notify("Config deleted!", 3, Color3.fromRGB(80, 200, 80))
+        else
+            lib.notify("Nothing to delete!", 2)
+        end
+    end,
+})
+
+-- ═════════════════════════════════════════════════════════════════════════
+--  STARTUP : Notifications de bienvenue
+-- ═════════════════════════════════════════════════════════════════════════
+task.spawn(function()
+    task.wait(0.5)
+    lib.notify("Zephyrus loaded successfully!", 4, Color3.fromRGB(80, 200, 80))
+    task.wait(0.6)
+    lib.notify("3 pages · all features ready to test", 4, Color3.fromRGB(100, 140, 255))
+    task.wait(0.6)
+    lib.notify("Click on toggles, sliders, keybinds...", 4, Color3.fromRGB(230, 190, 90))
+end)
+
+print("[Zephyrus] Test suite loaded. All components should be visible.")

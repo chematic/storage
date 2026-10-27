@@ -1,9 +1,8 @@
 -- =========================================================================
---  ZEPHYRUS UI LIBRARY — ALL-IN-ONE PERSONAL EDITION (CORRIGÉ)
---  - Drawing extension inline (signaux lazy — fix crash BindableEvent)
---  - Tween recréé (API Vozoid-style)
---  - Style navy flat, pas de corner radius
---  - Titre custom : library:new_window({ title = "...", subtitle = "..." })
+--  ZEPHYRUS UI LIBRARY — ALL-IN-ONE (FIX MINIMAL)
+--  - Système de signaux ORIGINAL (pas de lazy — ça cassait le rendu)
+--  - Colorpickers créés à l'init (comme l'original)
+--  - Seuls fixes : rgba/refreshscrolling/Remove/notify + shadow qui suit
 -- =========================================================================
 
 -- ============ PART 1 : DRAWING EXTENSION ============
@@ -90,14 +89,6 @@ local drawing = {} do
     local objconnections, objmtchildren, scrollpositions, childrenposupdates, childrenvisupdates = {}, {}, {}, {}, {}
     local squares, objsignals, objexists = {}, {}, {}
 
-    -- FIX: whitelist des signaux valides pour la création lazy
-    local VALID_SIGNAL_NAMES = {
-        MouseButton1Click = true, MouseButton1Up = true, MouseButton1Down = true,
-        MouseButton2Click = true, MouseButton2Up = true, MouseButton2Down = true,
-        InputBegan = true, InputEnded = true, InputChanged = true,
-        MouseEnter = true, MouseLeave = true, MouseMoved = true,
-    }
-
     local function mouseoverhighersquare(obj)
         for _, square in next, squares do
             if square.Visible == true and square.ZIndex > obj.ZIndex then
@@ -170,23 +161,18 @@ local drawing = {} do
     function drawing:new(shape)
         local obj = Drawing.new(shape)
         objexists[obj] = true
-        local signalnames = nil
+        local signalnames = {}
         local listfunc, scrollfunc, refreshscrolling
         objconnections[obj] = {}
 
         if shape == "Square" then
             table.insert(squares, obj)
-            -- FIX: création LAZY des signaux via metatable — un BindableEvent n'est
-            -- créé que si le script accède réellement au signal (ex: :Connect()).
-            signalnames = setmetatable({}, {
-                __index = function(t, k)
-                    if VALID_SIGNAL_NAMES[k] then
-                        local s = signal.new()
-                        rawset(t, k, s)
-                        return s
-                    end
-                end
-            })
+            signalnames = {
+                MouseButton1Click = signal.new(), MouseButton1Up = signal.new(), MouseButton1Down = signal.new(),
+                MouseButton2Click = signal.new(), MouseButton2Up = signal.new(), MouseButton2Down = signal.new(),
+                InputBegan = signal.new(), InputEnded = signal.new(), InputChanged = signal.new(),
+                MouseEnter = signal.new(), MouseLeave = signal.new(), MouseMoved = signal.new()
+            }
             local attemptedscrollable = false
             scrollfunc = function(self)
                 if listobjs[self] then
@@ -260,12 +246,12 @@ local drawing = {} do
                         end
                         return docontinue
                     end
-                    -- FIX: limite d'itérations pour éviter boucle infinie
+                    -- FIX: limite d'itérations
                     refreshscrolling = function()
-                        local iterations = 0
+                        local i = 0
                         while scroll(-1) do
-                            iterations = iterations + 1
-                            if iterations > 5000 then break end
+                            i = i + 1
+                            if i > 5000 then break end
                         end
                     end
                     self.InputChanged:Connect(function(input)
@@ -330,28 +316,24 @@ local drawing = {} do
                             end
                         end
                         if table.find(squares, mtobjs[self]) then table.remove(squares, table.find(squares, mtobjs[self])) end
+                        -- FIX: suppression correcte sur dictionnaire (l'original plantait sur table.remove(x, nil))
                         for _, object in next, objchildren[self] do
                             if objexists[object] then
-                                -- FIX: suppression correcte des signaux (dictionnaire, pas array)
                                 objsignals[object] = nil
                                 objmts[object]:Remove()
                             end
                         end
-                        -- FIX: suppression correcte (l'ancien code faisait table.remove sur un dict)
                         objsignals[obj] = nil
                         obj:Remove()
                     end
                 end
-                if signalnames then
-                    local sig = signalnames[k]
-                    if sig then
-                        objsignals[obj] = objsignals[obj] or {}
-                        if not objsignals[obj][k] then objsignals[obj][k] = sig end
-                        objsignals[obj].inputbegan = objsignals[obj].inputbegan or {}
-                        objsignals[obj].mouseentered = objsignals[obj].mouseentered or {}
-                        objsignals[obj].mouse1down = objsignals[obj].mouse1down or {}
-                        return sig
-                    end
+                if signalnames and signalnames[k] then
+                    objsignals[obj] = objsignals[obj] or {}
+                    if not objsignals[obj][k] then objsignals[obj][k] = signalnames[k] end
+                    objsignals[obj].inputbegan = objsignals[obj].inputbegan or {}
+                    objsignals[obj].mouseentered = objsignals[obj].mouseentered or {}
+                    objsignals[obj].mouse1down = objsignals[obj].mouse1down or {}
+                    return signalnames[k]
                 end
                 return customproperties[k] or obj[k]
             end,
@@ -593,7 +575,7 @@ local drawing = {} do
     end
 end
 
--- ============ PART 2 : TWEEN (recreated) ============
+-- ============ PART 2 : TWEEN ============
 local tween = (function()
     local RunService = game:GetService("RunService")
 
@@ -722,20 +704,18 @@ function utility.center(sx, sy) return UDim2.new(0.5, -sx/2, 0.5, -sy/2) end
 function utility.nextflag() totalflags = totalflags + 1; return "flag_"..totalflags end
 function utility.round(n, f) return f * math.floor(n / f) end
 
--- FIX: rgba sécurisé — l'ancien code plantait sur les executors sans setrawmetatable
--- (Hyperion/Byfron). Maintenant : early-return si alpha=nil (cas du test),
--- et pcall silencieux si on tente le metatable hack.
+-- FIX: rgba safe — pcall + early return si pas d'alpha. Le hack metatable est
+-- tenté seulement quand a ~= nil, protégé par pcall (Hyperion/Byfron peuvent
+-- refuser getrawmetatable/setrawmetatable et faire crash).
 function utility.rgba(r, g, b, a)
     local rgb = Color3.fromRGB(r, g, b)
-    if a == nil or a == 255 then
-        return rgb
-    end
+    if a == nil or a == 255 then return rgb end
     pcall(function()
         local mt = table.clone(getrawmetatable(rgb))
         setreadonly(mt, false)
         local old = mt.__index
         mt.__index = newcclosure(function(self, key)
-            if key:lower() == "a" then return a end
+            if type(key) == "string" and key:lower() == "a" then return a end
             return old(self, key)
         end)
         setrawmetatable(rgb, mt)
@@ -890,7 +870,6 @@ function library:Unload()
     self.holder = nil
 end
 
--- ═══ NOTIFICATIONS ═══
 function library.notify(message, time, color)
     time = time or 5
     local n = {}; library.notifications[n] = true
@@ -938,7 +917,7 @@ function library.notify(message, time, color)
 
     task.spawn(function()
         library.update_notifications()
-        -- FIX: pcall pour TextBounds (peut être nil sur certains executors)
+        -- FIX: TextBounds peut être indisponible immédiatement sur certains executors
         local w = 20
         local ok, tb = pcall(function() return n.text.TextBounds end)
         if ok and tb and tb.X then w = tb.X + 20 end
@@ -964,7 +943,6 @@ function library.update_notifications2(n)
         { Position = UDim2.new(0, -(n.background.Size.X.Offset + 10), 0, n.background.Position.Y) }):Play()
 end
 
--- ═══ KEYBIND LIST ═══
 function library.createkeybindlist()
     local tbl = { keybinds = {} }
     local list = utility.create("Square", {
@@ -1011,9 +989,6 @@ function library.createkeybindlist()
     return tbl
 end
 
--- ═══ COLOR PICKER (grid, no images) — LAZY ═══
--- FIX: les 120 cases de grille (SV + hue) sont créées uniquement à la première
--- ouverture du picker. Rendu identique quand ouvert, mais Drawing count divisé.
 local pickers = {}
 function library.createcolorpicker(default, parent, count, flag, callback, offset)
     local hue, sat, val = default:ToHSV()
@@ -1033,184 +1008,161 @@ function library.createcolorpicker(default, parent, count, flag, callback, offse
     })
     local io1 = utility.outline(icon, "SectionBorder"); utility.outline(io1, Color3.fromRGB(0, 0, 0))
 
-    local built = false
-    local window, sv_cells, hue_strips, sv_cur, hue_cur, preview, rgb_text
-    local refresh_sv, update_preview
+    local window = utility.create("Square", {
+        Filled = true, Thickness = 1, Color = Color3.fromRGB(0, 0, 0), Parent = icon,
+        Size = UDim2.new(0, 190, 0, 220), Visible = false,
+        Position = UDim2.new(1, -190 + (count * 22), 1, 6), ZIndex = 20,
+    })
+    table.insert(pickers, window)
 
-    local function build()
-        if built then return end
-        built = true
+    local inner = utility.create("Square", {
+        Parent = window, Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1),
+        Theme = "SectionBorder", Filled = true, Thickness = 0, ZIndex = 21,
+    })
+    utility.create("Square", { Parent = inner, Theme = "Accent", Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 1), Filled = true, Thickness = 0, ZIndex = 22 })
+    utility.create("Square", { Parent = inner, Theme = "AccentDark", Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 2), Filled = true, Thickness = 0, ZIndex = 22 })
 
-        window = utility.create("Square", {
-            Filled = true, Thickness = 1, Color = Color3.fromRGB(0, 0, 0), Parent = icon,
-            Size = UDim2.new(0, 190, 0, 220), Visible = false,
-            Position = UDim2.new(1, -190 + (count * 22), 1, 6), ZIndex = 20,
-        })
-        table.insert(pickers, window)
-
-        local inner = utility.create("Square", {
-            Parent = window, Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1),
-            Theme = "SectionBorder", Filled = true, Thickness = 0, ZIndex = 21,
-        })
-        utility.create("Square", { Parent = inner, Theme = "Accent", Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 1), Filled = true, Thickness = 0, ZIndex = 22 })
-        utility.create("Square", { Parent = inner, Theme = "AccentDark", Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 2), Filled = true, Thickness = 0, ZIndex = 22 })
-
-        sv_cells = {}
-        for j = 0, GRID - 1 do
-            for i = 0, GRID - 1 do
-                local s = i / (GRID - 1)
-                local v = 1 - (j / (GRID - 1))
-                table.insert(sv_cells, {
-                    s = s, v = v,
-                    obj = utility.create("Square", {
-                        Parent = window, Filled = true, Thickness = 0,
-                        Color = Color3.fromHSV(hue, s, v),
-                        Size = UDim2.new(0, math.ceil(CELL) + 1, 0, math.ceil(CELL) + 1),
-                        Position = UDim2.new(0, SV_X + math.floor(i * CELL), 0, SV_Y + math.floor(j * CELL)),
-                        ZIndex = 23,
-                    })
+    local sv_cells = {}
+    for j = 0, GRID - 1 do
+        for i = 0, GRID - 1 do
+            local s = i / (GRID - 1)
+            local v = 1 - (j / (GRID - 1))
+            table.insert(sv_cells, {
+                s = s, v = v,
+                obj = utility.create("Square", {
+                    Parent = window, Filled = true, Thickness = 0,
+                    Color = Color3.fromHSV(hue, s, v),
+                    Size = UDim2.new(0, math.ceil(CELL) + 1, 0, math.ceil(CELL) + 1),
+                    Position = UDim2.new(0, SV_X + math.floor(i * CELL), 0, SV_Y + math.floor(j * CELL)),
+                    ZIndex = 23,
                 })
-            end
+            })
         end
-        refresh_sv = function(h)
-            for _, c in next, sv_cells do c.obj.Color = Color3.fromHSV(h, c.s, c.v) end
-        end
+    end
+    local function refresh_sv(h) for _, c in next, sv_cells do c.obj.Color = Color3.fromHSV(h, c.s, c.v) end end
 
-        sv_cur = utility.create("Square", {
-            Parent = window, Filled = false, Thickness = 1, Color = Color3.fromRGB(255, 255, 255),
-            Size = UDim2.new(0, 4, 0, 4), ZIndex = 24,
-        })
+    local sv_cur = utility.create("Square", {
+        Parent = window, Filled = false, Thickness = 1, Color = Color3.fromRGB(255, 255, 255),
+        Size = UDim2.new(0, 4, 0, 4), ZIndex = 24,
+    })
 
-        hue_strips = {}
-        for i = 0, HUE_ROWS - 1 do
-            table.insert(hue_strips, utility.create("Square", {
-                Parent = window, Filled = true, Thickness = 0,
-                Color = Color3.fromHSV(i / HUE_ROWS, 1, 1),
-                Size = UDim2.new(0, HUE_W, 0, math.ceil(SV_SZ / HUE_ROWS) + 1),
-                Position = UDim2.new(0, HUE_X, 0, SV_Y + math.floor(i * (SV_SZ / HUE_ROWS))),
-                ZIndex = 23,
-            }))
-        end
-        hue_cur = utility.create("Square", {
-            Parent = window, Filled = false, Thickness = 1, Color = Color3.fromRGB(255, 255, 255),
-            Size = UDim2.new(0, HUE_W + 2, 0, 3), Position = UDim2.new(0, HUE_X - 1, 0, SV_Y), ZIndex = 24,
-        })
+    local hue_strips = {}
+    for i = 0, HUE_ROWS - 1 do
+        table.insert(hue_strips, utility.create("Square", {
+            Parent = window, Filled = true, Thickness = 0,
+            Color = Color3.fromHSV(i / HUE_ROWS, 1, 1),
+            Size = UDim2.new(0, HUE_W, 0, math.ceil(SV_SZ / HUE_ROWS) + 1),
+            Position = UDim2.new(0, HUE_X, 0, SV_Y + math.floor(i * (SV_SZ / HUE_ROWS))),
+            ZIndex = 23,
+        }))
+    end
+    local hue_cur = utility.create("Square", {
+        Parent = window, Filled = false, Thickness = 1, Color = Color3.fromRGB(255, 255, 255),
+        Size = UDim2.new(0, HUE_W + 2, 0, 3), Position = UDim2.new(0, HUE_X - 1, 0, SV_Y), ZIndex = 24,
+    })
 
-        preview = utility.create("Square", {
-            Parent = window, Filled = true, Thickness = 1, Color = default,
-            Size = UDim2.new(0, 50, 0, 20), Position = UDim2.new(0, 6, 0, 164), ZIndex = 23,
-        })
-        utility.outline(preview, "SectionBorder")
+    local preview = utility.create("Square", {
+        Parent = window, Filled = true, Thickness = 1, Color = default,
+        Size = UDim2.new(0, 50, 0, 20), Position = UDim2.new(0, 6, 0, 164), ZIndex = 23,
+    })
+    utility.outline(preview, "SectionBorder")
 
-        rgb_text = utility.create("Text", {
-            Parent = window, Text = "", Size = 13, Theme = "Text",
-            Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX,
-            Position = UDim2.new(0, 62, 0, 166), ZIndex = 24,
-        })
+    local rgb_text = utility.create("Text", {
+        Parent = window, Text = "", Size = 13, Theme = "Text",
+        Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX,
+        Position = UDim2.new(0, 62, 0, 166), ZIndex = 24,
+    })
 
-        local copy_btn = utility.create("Square", {
-            Parent = window, Filled = true, Thickness = 0, Color = Color3.fromRGB(30, 30, 30),
-            Size = UDim2.new(0, 85, 0, 22), Position = UDim2.new(0, 6, 0, 190), ZIndex = 23,
-        })
-        utility.create("Text", {
-            Parent = copy_btn, Text = "copy", Size = 13, Center = true, Theme = "Text",
-            Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX,
-            Position = UDim2.new(0.5, 0, 0, 3), ZIndex = 24,
-        })
-        local paste_btn = utility.create("Square", {
-            Parent = window, Filled = true, Thickness = 0, Color = Color3.fromRGB(30, 30, 30),
-            Size = UDim2.new(0, 85, 0, 22), Position = UDim2.new(0, 99, 0, 190), ZIndex = 23,
-        })
-        utility.create("Text", {
-            Parent = paste_btn, Text = "paste", Size = 13, Center = true, Theme = "Text",
-            Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX,
-            Position = UDim2.new(0.5, 0, 0, 3), ZIndex = 24,
-        })
+    local copy_btn = utility.create("Square", {
+        Parent = window, Filled = true, Thickness = 0, Color = Color3.fromRGB(30, 30, 30),
+        Size = UDim2.new(0, 85, 0, 22), Position = UDim2.new(0, 6, 0, 190), ZIndex = 23,
+    })
+    utility.create("Text", {
+        Parent = copy_btn, Text = "copy", Size = 13, Center = true, Theme = "Text",
+        Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX,
+        Position = UDim2.new(0.5, 0, 0, 3), ZIndex = 24,
+    })
+    local paste_btn = utility.create("Square", {
+        Parent = window, Filled = true, Thickness = 0, Color = Color3.fromRGB(30, 30, 30),
+        Size = UDim2.new(0, 85, 0, 22), Position = UDim2.new(0, 99, 0, 190), ZIndex = 23,
+    })
+    utility.create("Text", {
+        Parent = paste_btn, Text = "paste", Size = 13, Center = true, Theme = "Text",
+        Outline = true, OutlineColor = Color3.fromRGB(0, 0, 0), Font = PLEX,
+        Position = UDim2.new(0.5, 0, 0, 3), ZIndex = 24,
+    })
 
-        update_preview = function()
-            local c = Color3.fromHSV(hue, sat, val)
-            preview.Color = c; icon.Color = c
-            rgb_text.Text = string.format("%d, %d, %d",
-                math.floor(c.R*255), math.floor(c.G*255), math.floor(c.B*255))
-        end
-
-        local sliding_sv, sliding_hue = false, false
-        local function do_sv(input)
-            local rx = math.clamp((input.Position.X - SV_X - window.AbsolutePosition.X) / SV_SZ, 0, 1)
-            local ry = math.clamp((input.Position.Y - SV_Y - window.AbsolutePosition.Y) / SV_SZ, 0, 1)
-            sat, val = rx, 1 - ry
-            sv_cur.Position = UDim2.new(0, SV_X + math.floor(sat * (SV_SZ - 4)), 0, SV_Y + math.floor((1 - val) * (SV_SZ - 4)))
-            update_preview(); current_val = Color3.fromHSV(hue, sat, val); callback(current_val)
-        end
-        local function do_hue(input)
-            local ry = math.clamp((input.Position.Y - SV_Y - window.AbsolutePosition.Y) / SV_SZ, 0, 1)
-            hue = 1 - ry
-            refresh_sv(hue)
-            hue_cur.Position = UDim2.new(0, HUE_X - 1, 0, SV_Y + math.floor((1 - hue) * (SV_SZ - 3)))
-            update_preview(); current_val = Color3.fromHSV(hue, sat, val); callback(current_val)
-        end
-
-        utility.connect(services.InputService.InputBegan, function(input)
-            if not window.Visible or input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-            local mx, my = input.Position.X, input.Position.Y
-            local wx, wy = window.AbsolutePosition.X, window.AbsolutePosition.Y
-            if mx >= wx + SV_X and mx <= wx + SV_X + SV_SZ and my >= wy + SV_Y and my <= wy + SV_Y + SV_SZ then
-                sliding_sv = true; do_sv(input)
-            elseif mx >= wx + HUE_X and mx <= wx + HUE_X + HUE_W and my >= wy + SV_Y and my <= wy + SV_Y + SV_SZ then
-                sliding_hue = true; do_hue(input)
-            end
-        end)
-        utility.connect(services.InputService.InputEnded, function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding_sv, sliding_hue = false, false end
-        end)
-        utility.connect(services.InputService.InputChanged, function(input)
-            if input.UserInputType ~= Enum.UserInputType.MouseMovement then return end
-            if sliding_sv then do_sv(input) end
-            if sliding_hue then do_hue(input) end
-        end)
-
-        utility.connect(copy_btn.MouseButton1Click, function() library.currentcolor = current_val end)
-        utility.connect(paste_btn.MouseButton1Click, function() if library.currentcolor then set(library.currentcolor, false) end end)
-
-        -- Sync vers l'état courant
-        refresh_sv(hue)
-        sv_cur.Position = UDim2.new(0, SV_X + math.floor(sat * (SV_SZ - 4)), 0, SV_Y + math.floor((1 - val) * (SV_SZ - 4)))
-        hue_cur.Position = UDim2.new(0, HUE_X - 1, 0, SV_Y + math.floor((1 - hue) * (SV_SZ - 3)))
-        update_preview()
+    local function update_preview()
+        local c = Color3.fromHSV(hue, sat, val)
+        preview.Color = c; icon.Color = c
+        rgb_text.Text = string.format("%d, %d, %d",
+            math.floor(c.R*255), math.floor(c.G*255), math.floor(c.B*255))
     end
 
     local function set(color, skip_pos)
         if type(color) == "table" then color = Color3.fromRGB(color[1], color[2], color[3]) end
         if type(color) == "string" then color = Color3.fromHex(color) end
         hue, sat, val = color:ToHSV()
+        refresh_sv(hue)
+        if not skip_pos then
+            sv_cur.Position = UDim2.new(0, SV_X + math.floor(sat * (SV_SZ - 4)), 0, SV_Y + math.floor((1 - val) * (SV_SZ - 4)))
+            hue_cur.Position = UDim2.new(0, HUE_X - 1, 0, SV_Y + math.floor((1 - hue) * (SV_SZ - 3)))
+        end
+        update_preview()
         current_val = Color3.fromHSV(hue, sat, val)
-        icon.Color = current_val
         if flag then library.flags[flag] = utility.rgba(
             math.floor(current_val.R*255), math.floor(current_val.G*255), math.floor(current_val.B*255)) end
         callback(current_val)
-        if built then
-            refresh_sv(hue)
-            if not skip_pos then
-                sv_cur.Position = UDim2.new(0, SV_X + math.floor(sat * (SV_SZ - 4)), 0, SV_Y + math.floor((1 - val) * (SV_SZ - 4)))
-                hue_cur.Position = UDim2.new(0, HUE_X - 1, 0, SV_Y + math.floor((1 - hue) * (SV_SZ - 3)))
-            end
-            update_preview()
-        end
     end
     set(default)
 
-    utility.connect(icon.MouseButton1Click, function()
-        build()
+    local sliding_sv, sliding_hue = false, false
+    local function do_sv(input)
+        local rx = math.clamp((input.Position.X - SV_X - window.AbsolutePosition.X) / SV_SZ, 0, 1)
+        local ry = math.clamp((input.Position.Y - SV_Y - window.AbsolutePosition.Y) / SV_SZ, 0, 1)
+        sat, val = rx, 1 - ry
+        sv_cur.Position = UDim2.new(0, SV_X + math.floor(sat * (SV_SZ - 4)), 0, SV_Y + math.floor((1 - val) * (SV_SZ - 4)))
+        update_preview(); current_val = Color3.fromHSV(hue, sat, val); callback(current_val)
+    end
+    local function do_hue(input)
+        local ry = math.clamp((input.Position.Y - SV_Y - window.AbsolutePosition.Y) / SV_SZ, 0, 1)
+        hue = 1 - ry
+        refresh_sv(hue)
+        hue_cur.Position = UDim2.new(0, HUE_X - 1, 0, SV_Y + math.floor((1 - hue) * (SV_SZ - 3)))
+        update_preview(); current_val = Color3.fromHSV(hue, sat, val); callback(current_val)
+    end
+
+    utility.connect(services.InputService.InputBegan, function(input)
+        if not window.Visible or input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+        local mx, my = input.Position.X, input.Position.Y
+        local wx, wy = window.AbsolutePosition.X, window.AbsolutePosition.Y
+        if mx >= wx + SV_X and mx <= wx + SV_X + SV_SZ and my >= wy + SV_Y and my <= wy + SV_Y + SV_SZ then
+            sliding_sv = true; do_sv(input)
+        elseif mx >= wx + HUE_X and mx <= wx + HUE_X + HUE_W and my >= wy + SV_Y and my <= wy + SV_Y + SV_SZ then
+            sliding_hue = true; do_hue(input)
+        end
+    end)
+    utility.connect(services.InputService.InputEnded, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding_sv, sliding_hue = false, false end
+    end)
+    utility.connect(services.InputService.InputChanged, function(input)
+        if input.UserInputType ~= Enum.UserInputType.MouseMovement then return end
+        if sliding_sv then do_sv(input) end
+        if sliding_hue then do_hue(input) end
+    end)
+
+    utility.connect(copy_btn.MouseButton1Click, function() library.currentcolor = current_val end)
+    utility.connect(paste_btn.MouseButton1Click, function() if library.currentcolor then set(library.currentcolor, false) end end)
+    icon.MouseButton1Click:Connect(function()
         for _, p in next, pickers do if p ~= window then p.Visible = false end end
         window.Visible = not window.Visible
     end)
 
     local cpt = {}
     function cpt:set(color) set(color) end
-    return cpt
+    return cpt, window
 end
 
--- ═══ DROPDOWN ═══
 function library.createdropdown(holder, content, flag, callback, default, max, scrollable, scrollingmax, islist, size)
     local dropdown = utility.create("Square", {
         Filled = true, Visible = not islist, Thickness = 0, Color = Color3.fromRGB(0, 0, 0),
@@ -1350,7 +1302,6 @@ function library.createdropdown(holder, content, flag, callback, default, max, s
     return dt
 end
 
--- ═══ TEXT INPUT ═══
 local allowedchars = {}
 local shiftchars = {
     ["1"]="!",["2"]="@",["3"]="#",["4"]="$",["5"]="%",["6"]="^",["7"]="&",["8"]="*",["9"]="(",["0"]=")",
@@ -1745,15 +1696,21 @@ function library:new_window(cfg)
     local size = cfg.size or cfg.Size or Vector2.new(600, 400)
     local sx, sy = size.X, size.Y
 
-    local shadow = utility.create("Square", {
-        Size = UDim2.new(0, sx, 0, sy), Position = UDim2.new(0.5, -(sx/2) + 4, 0.5, -(sy/2) + 4),
-        Color = Color3.fromRGB(0, 0, 0), Filled = true, Thickness = 0, Transparency = 0.5, ZIndex = 0,
-    })
+    -- FIX: window créée AVANT le shadow, puis shadow est enfant de window
+    -- → le shadow suit la fenêtre lors du drag (l'original laissait le shadow
+    --   au centre de l'écran, ce qui donne "une frame noire qui ne bouge pas")
     local window = utility.create("Square", {
         Size = UDim2.new(0, sx, 0, sy), Position = UDim2.new(0.5, -(sx/2), 0.5, -(sy/2)),
         Color = Color3.fromRGB(0, 0, 0), Filled = true, Thickness = 1, ZIndex = 1,
     })
     library.holder = window
+
+    local shadow = utility.create("Square", {
+        Parent = window, Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 4, 0, 4),
+        Color = Color3.fromRGB(0, 0, 0), Filled = true, Thickness = 0, Transparency = 0.5, ZIndex = 0,
+    })
+
     local inner = utility.create("Square", {
         Parent = window, Theme = "WindowInner", Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1),
         Filled = true, Thickness = 0, ZIndex = 2,

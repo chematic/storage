@@ -1,6 +1,6 @@
 --[[
 ██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-  AZUNO UI LIBRARY v1.5 — HACKER EDITION MAX (3x Enhanced) + Lucide Icons
+  AZUNO UI LIBRARY v1.5 — HACKER EDITION MAX (3x Enhanced) + Lucide Icons (resolved)
   Maintained by Azuno @azunoo
   Based on Mercury by Abstract#8007 & Deity#0228
 ]]
@@ -13,45 +13,45 @@ local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local HTTPService = game:GetService("HttpService")
 
--- ═══ LUCIDE ICONS (all black by default — always set ImageColor3) ═══
+-- ═══ LUCIDE ICONS — RESOLVED TEXTURE IDs ═══
 local Icons = {
-	x          = "rbxassetid://85208824201721",
-	user       = "rbxassetid://97147720417510",
-	users      = "rbxassetid://119714722855790",
-	settings   = "rbxassetid://126965913235478",
-	warning    = "rbxassetid://93983945573586",
-	trash      = "rbxassetid://98865309518134",
-	star       = "rbxassetid://106190417504763",
-	cursor     = "rbxassetid://122202400146147",
-	click      = "rbxassetid://84806646109485",
-	save       = "rbxassetid://118980313084191",
-	scroll     = "rbxassetid://73166582901059",
-	info       = "rbxassetid://118525722021996",
-	mail       = "rbxassetid://127821745038774",
-	minus      = "rbxassetid://87005755150493",
-	house      = "rbxassetid://121054850016682",
-	folder     = "rbxassetid://115178320441820",
-	globe      = "rbxassetid://73085396668232",
-	heart      = "rbxassetid://100205958143823",
-	eye        = "rbxassetid://88502340130684",
-	user_circle= "rbxassetid://86973588569476",
-	copy       = "rbxassetid://94842454227069",
-	crosshair  = "rbxassetid://78015203921763",
-	question   = "rbxassetid://108558480500844",
-	check_big  = "rbxassetid://92184158104350",
-	dollar     = "rbxassetid://75404098865238",
-	alert      = "rbxassetid://109398430751346",
-	check      = "rbxassetid://124137869726189", -- circle-check
-	check_plain= "rbxassetid://123419050448825", -- check
-	right      = "rbxassetid://83990995585276",
-	down       = "rbxassetid://129601616782033",
-	up         = "rbxassetid://101442330547551",
-	left       = "rbxassetid://139498051926104",
-	book       = "rbxassetid://73959728821275",
-	box        = "rbxassetid://108846365309528",
-	ban        = "rbxassetid://137655261210020",
-	discord    = "rbxassetid://118195371543220",
-	undo       = "rbxassetid://140247459178388",
+	x          = "rbxassetid://90489372760290",
+	user       = "rbxassetid://113658012034568",
+	users      = "rbxassetid://96555491599366",
+	settings   = "rbxassetid://112154243411630",
+	warning    = "rbxassetid://93337078983583",
+	trash      = "rbxassetid://81151825153717",
+	star       = "rbxassetid://107366747476046",
+	cursor     = "rbxassetid://80210427103698",
+	click      = "rbxassetid://71495726109517",
+	save       = "rbxassetid://100359470395747",
+	scroll     = "rbxassetid://96223499040716",
+	info       = "rbxassetid://113179536105419",
+	mail       = "rbxassetid://105573204233996",
+	minus      = "rbxassetid://79320580338358",
+	house      = "rbxassetid://134508834194878",
+	folder     = "rbxassetid://100993558939123",
+	globe      = "rbxassetid://112147183143741",
+	heart      = "rbxassetid://121326572875511",
+	eye        = "rbxassetid://79514747061168",
+	user_circle= "rbxassetid://108957276649017",
+	copy       = "rbxassetid://103056703741622",
+	crosshair  = "rbxassetid://106147383599050",
+	question   = "rbxassetid://121952934391928",
+	check_big  = "rbxassetid://97710462137275",
+	dollar     = "rbxassetid://97237675227433",
+	alert      = "rbxassetid://130602002498437",
+	check      = "rbxassetid://107877937174125", -- circle-check
+	check_plain= "rbxassetid://92564822961100",  -- check
+	right      = "rbxassetid://112955866857370",
+	down       = "rbxassetid://109917570260618",
+	up         = "rbxassetid://72140038152330",
+	left       = "rbxassetid://136016232144103",
+	book       = "rbxassetid://87491163006544",
+	box        = "rbxassetid://86171309383956",
+	ban        = "rbxassetid://115332091839277",
+	discord    = "rbxassetid://117906369436378",
+	undo       = "rbxassetid://116107197341156",
 }
 Library_Icons = Icons
 
@@ -225,7 +225,6 @@ function Library:create(opts)
 	local hackerBg = core:object("Frame", {Size=UDim2.new(1,-2,1,-2), Position=UDim2.new(0,1,0,1), BackgroundTransparency=1, Visible=(opts.Theme == Library.Themes.Hacker), ZIndex=2, ClipsDescendants=true})
 	Library.hackerBg = hackerBg
 
-	-- ═══ MATRIX RAIN (per-char random changes) ═══
 	local rainChars = {"0","1","!","@","#","$","%","&","*","+","-","=","/","\\","|",":",";","<",">","?","[","]","{","}","~","^","_"}
 	local numCols = 48
 	local charsPerCol = 50
@@ -238,41 +237,31 @@ function Library:create(opts)
 		table.insert(columns, {obj=tl, chars=chars, y=tl.Position.Y.Offset, speed=math.random(25, 100)})
 	end
 
-	-- ═══ SCANLINES ═══
 	for i = 1, 80 do
 		hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.93, Size=UDim2.new(1,0,0,1), Position=UDim2.new(0,0,i/80,0), BorderSizePixel=0, ZIndex=4})
 	end
 
-	-- ═══ CRT FLICKER OVERLAY ═══
 	local crtFlicker = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(0,0,0), BackgroundTransparency=0.8, Size=UDim2.new(1,0,1,0), ZIndex=5, BorderSizePixel=0})
-
-	-- ═══ GLITCH FLASH OVERLAY ═══
 	local glitchOverlay = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=1, Size=UDim2.new(1,0,1,0), ZIndex=5, BorderSizePixel=0})
-
-	-- ═══ MOVING SCANLINE ═══
 	local movingScanline = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.75, Size=UDim2.new(1,0,0,3), Position=UDim2.new(0,0,0,-10), BorderSizePixel=0, ZIndex=6})
 
-	-- ═══ GLITCH BARS ═══
 	local glitchBars = {}
 	for i = 1, 6 do
 		local bar = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=1, Size=UDim2.new(1,0,0,4), Position=UDim2.new(0,0,math.random(0,1000)/1000,0), BorderSizePixel=0, ZIndex=7})
 		table.insert(glitchBars, {obj=bar, timer=math.random(30, 200)/10})
 	end
 
-	-- ═══ HEX CODES ═══
 	local hexLabels = {}
 	for i = 1, 20 do
 		local hex = hackerBg:object("TextLabel", {BackgroundTransparency=1, Text="0x0000", TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.5, Size=UDim2.new(0,80,0,16), Position=UDim2.new(math.random(0,900)/1000,0,math.random(0,900)/1000,0), TextSize=12, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=6})
 		table.insert(hexLabels, {obj=hex, timer=math.random(0, 30)})
 	end
 
-	-- ═══ ASCII DECORATIONS ═══
 	local decorChars = {"[+]","[x]","[>]","[<]","===","|||","==>","<==","///","\\\\\\","//>","<//","{ }","[ ]","< >",">>>","<<<","---"}
 	for i = 1, 30 do
 		hackerBg:object("TextLabel", {BackgroundTransparency=1, Text=decorChars[math.random(1,#decorChars)], TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.6, Size=UDim2.new(0,60,0,16), Position=UDim2.new(math.random(0,900)/1000,0,math.random(0,900)/1000,0), TextSize=14, Font=Enum.Font.Code, ZIndex=6})
 	end
 
-	-- ═══ FLOATING BINARY ═══
 	local floatBinary = {}
 	for i = 1, 10 do
 		local str = ""
@@ -281,14 +270,12 @@ function Library:create(opts)
 		table.insert(floatBinary, {obj=fb, timer=math.random(0, 30), speed=math.random(5, 30)/100})
 	end
 
-	-- ═══ PARTICLES ═══
 	local particles = {}
 	for i = 1, 20 do
 		local p = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.7, Size=UDim2.fromOffset(2,2), Position=UDim2.new(math.random(0,1000)/1000,0,math.random(0,1000)/1000,0), BorderSizePixel=0, ZIndex=6})
 		table.insert(particles, {obj=p, timer=math.random(0, 60)})
 	end
 
-	-- ═══ ANIMATION LOOP ═══
 	task.spawn(function()
 		local valid = function()
 			return Library.hackerBg and Library.hackerBg.AbsoluteObject and Library.hackerBg.AbsoluteObject.Parent
@@ -304,7 +291,6 @@ function Library:create(opts)
 			if isVisible then
 				counter = counter + 1
 
-				-- 1. Matrix rain scroll
 				for _, col in ipairs(columns) do
 					col.y = col.y + col.speed * dt
 					if col.y > hackerBg.AbsoluteSize.Y then
@@ -315,7 +301,6 @@ function Library:create(opts)
 					col.obj.Position = UDim2.new(col.obj.Position.X.Scale, 0, 0, col.y)
 				end
 
-				-- 2. Per-character random changes
 				local dirty = {}
 				local dirtyCols = math.random(4, 8)
 				for _ = 1, dirtyCols do
@@ -332,18 +317,15 @@ function Library:create(opts)
 					columns[colIdx].obj.Text = table.concat(columns[colIdx].chars, "\n")
 				end
 
-				-- 3. CRT flicker
 				if counter % 3 == 0 then
 					crtFlicker.BackgroundTransparency = 0.65 + math.random() * 0.3
 				end
 
-				-- 4. Moving scanline
 				scanlineY = scanlineY + 200 * dt
 				if scanlineY > hackerBg.AbsoluteSize.Y + 5 then scanlineY = -5 end
 				movingScanline.Position = UDim2.new(0, 0, 0, scanlineY)
 				movingScanline.BackgroundTransparency = 0.7 + math.random() * 0.2
 
-				-- 5. Glitch bars
 				for _, bar in ipairs(glitchBars) do
 					bar.timer = bar.timer - dt
 					if bar.timer <= 0 then
@@ -359,7 +341,6 @@ function Library:create(opts)
 					end
 				end
 
-				-- 6. Glitch flash
 				if math.random() < 0.02 then
 					glitchOverlay.BackgroundTransparency = 0.88
 					task.delay(math.random(2, 5)/100, function()
@@ -369,7 +350,6 @@ function Library:create(opts)
 					end)
 				end
 
-				-- 7. Hex codes update
 				for _, h in ipairs(hexLabels) do
 					h.timer = h.timer + 1
 					if h.timer >= 15 then
@@ -380,7 +360,6 @@ function Library:create(opts)
 					end
 				end
 
-				-- 8. Floating binary
 				for _, fb in ipairs(floatBinary) do
 					fb.timer = fb.timer + 1
 					if fb.timer >= 25 then
@@ -394,7 +373,6 @@ function Library:create(opts)
 					fb.obj.Position = UDim2.new(fb.obj.Position.X.Scale, 0, newY, 0)
 				end
 
-				-- 9. Particles
 				for _, p in ipairs(particles) do
 					p.timer = p.timer + 1
 					if p.timer >= 40 then
@@ -404,7 +382,6 @@ function Library:create(opts)
 					end
 				end
 
-				-- 10. Title glitch
 				titleCounter = titleCounter + 1
 				if titleCounter >= 15 and Library.title_obj and Library.originalTitle then
 					titleCounter = 0
@@ -430,9 +407,8 @@ function Library:create(opts)
 			end
 		end
 	end)
-	-- ═══════════════════════════════════════════════════════════════════════════
 
-	-- ═══ DRAG (UNCHANGED — old working version) ═══
+	-- ═══ DRAG (UNCHANGED) ═══
 	do
 		local S, Ev = pcall(function() return core.MouseEnter end)
 		if S then
@@ -547,7 +523,6 @@ end
 -- ═══ NOTIFICATION ═══
 function Library:notification(opts)
 	opts = self:set_defaults({Title="Notification", Text="Message", Duration=3, Callback=function() end}, opts)
-	-- Infer icon from title context (backwards compatible — optional)
 	local _t = tostring(opts.Title):lower()
 	local notiIcon = Icons.check
 	if _t:find("error") or _t:find("fail") or _t:find("denied") then notiIcon = Icons.alert
@@ -843,13 +818,12 @@ function Library:button(opts)
 	return api
 end
 
--- ═══ COLOR PICKER COMPLET ═══
+-- ═══ COLOR PICKER ═══
 function Library:color_picker(opts)
 	opts = self:set_defaults({Name="Color Picker", Description=nil, Style=Library.ColorPickerStyles.Legacy, Followup=false, Callback=function(c) end}, opts)
 	local bc = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
 	bc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 0), Size=(opts.Description and UDim2.new(0.5,-10,0,22)) or UDim2.new(0.5,-10,1,0), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
 	if opts.Description then bc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
-	-- color picker trigger: use cursor (no palette icon available)
 	local icon = bc:object("ImageLabel", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.fromOffset(22,22), Image=Icons.cursor, ImageColor3=Library.CurrentTheme.Tertiary, ZIndex=10})
 	do
 		local h, d = false, false

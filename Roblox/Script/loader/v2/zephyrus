@@ -1,6 +1,6 @@
 --[[
 ██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-  AZUNO UI LIBRARY v1.5 — HACKER EDITION MAX (3x Enhanced) + Lucide Icons (resolved)
+  AZUNO UI LIBRARY v1.5 — HACKER EDITION MAX (3x Enhanced)
   Maintained by Azuno @azunoo
   Based on Mercury by Abstract#8007 & Deity#0228
 ]]
@@ -13,46 +13,59 @@ local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local HTTPService = game:GetService("HttpService")
 
--- ═══ LUCIDE ICONS — RESOLVED TEXTURE IDs ═══
+-- ═══ ICONS ═══
 local Icons = {
-	x          = "rbxassetid://90489372760290",
-	user       = "rbxassetid://113658012034568",
-	users      = "rbxassetid://96555491599366",
-	settings   = "rbxassetid://112154243411630",
-	warning    = "rbxassetid://93337078983583",
-	trash      = "rbxassetid://81151825153717",
-	star       = "rbxassetid://107366747476046",
-	cursor     = "rbxassetid://80210427103698",
-	click      = "rbxassetid://71495726109517",
-	save       = "rbxassetid://100359470395747",
-	scroll     = "rbxassetid://96223499040716",
-	info       = "rbxassetid://113179536105419",
-	mail       = "rbxassetid://105573204233996",
-	minus      = "rbxassetid://79320580338358",
-	house      = "rbxassetid://134508834194878",
-	folder     = "rbxassetid://100993558939123",
-	globe      = "rbxassetid://112147183143741",
-	heart      = "rbxassetid://121326572875511",
-	eye        = "rbxassetid://79514747061168",
-	user_circle= "rbxassetid://108957276649017",
-	copy       = "rbxassetid://103056703741622",
-	crosshair  = "rbxassetid://106147383599050",
-	question   = "rbxassetid://121952934391928",
-	check_big  = "rbxassetid://97710462137275",
-	dollar     = "rbxassetid://97237675227433",
-	alert      = "rbxassetid://130602002498437",
-	check      = "rbxassetid://107877937174125", -- circle-check
-	check_plain= "rbxassetid://92564822961100",  -- check
-	right      = "rbxassetid://112955866857370",
-	down       = "rbxassetid://109917570260618",
-	up         = "rbxassetid://72140038152330",
-	left       = "rbxassetid://136016232144103",
-	book       = "rbxassetid://87491163006544",
-	box        = "rbxassetid://86171309383956",
-	ban        = "rbxassetid://115332091839277",
-	discord    = "rbxassetid://117906369436378",
-	undo       = "rbxassetid://116107197341156",
+	x           = "rbxassetid://10152135063",     -- x close
+	trash       = "rbxassetid://137246078911422", -- trash bin
+	grid        = "rbxassetid://134855699168308", -- grid x4
+	dashboard   = "rbxassetid://131195306876003", -- dashboard
+	return_kb   = "rbxassetid://73469154520504",  -- keyboard return
+	mic         = "rbxassetid://103024617507153", -- microphone
+	run         = "rbxassetid://70523947915342",  -- direction run right
+	walk        = "rbxassetid://128150736818436", -- direction walk right
+	save        = "rbxassetid://88852210207454",  -- file save
+	warning     = "rbxassetid://104463236123312", -- warning
+	info        = "rbxassetid://106847273191219", -- info
+	error       = "rbxassetid://75052404705382",  -- error
+	flashlight  = "rbxassetid://127214341614238", -- flashlight
+	cursor      = "rbxassetid://73128140256723",  -- mouse cursor
+	euro        = "rbxassetid://137035282500521", -- euro
+	check_small = "rbxassetid://79181104803162",  -- checkmark small
+	check       = "rbxassetid://87635036041287",  -- checkmark
+	trophy      = "rbxassetid://111619666750400", -- trophy
+	launch      = "rbxassetid://86308989595310",  -- launch page
+	heart       = "rbxassetid://105291564639239", -- heart
+	right       = "rbxassetid://73793633589587",  -- right arrow
+	left        = "rbxassetid://95914482122535",  -- left arrow
+	down        = "rbxassetid://80813996117360",  -- chevron down
+	up          = "rbxassetid://139029907586032", -- chevron up
 }
+-- Aliases for AimX compatibility
+Icons.crosshair   = Icons.cursor
+Icons.eye         = Icons.flashlight
+Icons.star        = Icons.run
+Icons.user_circle = Icons.heart
+Icons.folder      = Icons.save
+Icons.house       = Icons.dashboard
+Icons.settings    = Icons.grid
+Icons.globe       = Icons.launch
+Icons.discord     = Icons.heart
+Icons.minus       = Icons.check_small
+Icons.check_plain = Icons.check
+Icons.user        = Icons.dashboard
+Icons.users       = Icons.dashboard
+Icons.mail        = Icons.info
+Icons.copy        = Icons.check_small
+Icons.question    = Icons.info
+Icons.check_big   = Icons.check
+Icons.dollar      = Icons.euro
+Icons.alert       = Icons.error
+Icons.book        = Icons.info
+Icons.ban         = Icons.x
+Icons.undo        = Icons.left
+Icons.click       = Icons.cursor
+Icons.scroll      = Icons.down
+Icons.box         = Icons.grid
 Library_Icons = Icons
 
 local Library = {
@@ -150,7 +163,7 @@ function Library:object(class, props)
 	function m:tooltip(text)
 		local tc = m:object("TextLabel", {Theme={BackgroundColor3={"Main",10},TextColor3={"WeakText"}}, TextSize=16, Text=text, Position=UDim2.new(0.5,0,0,-8), TextXAlignment=Enum.TextXAlignment.Center, TextYAlignment=Enum.TextYAlignment.Center, AnchorPoint=Vector2.new(0.5,1), BackgroundTransparency=1, TextTransparency=1}):round(5)
 		tc.Size = UDim2.fromOffset(tc.TextBounds.X+16, tc.TextBounds.Y+8)
-		local ta = tc:object("ImageLabel", {Image=Icons.down, Theme={ImageColor3={"Main",10}}, AnchorPoint=Vector2.new(0.5,0), Position=UDim2.fromScale(0.5,1), Size=UDim2.fromOffset(10,10), BackgroundTransparency=1, ImageTransparency=1})
+		local ta = tc:object("ImageLabel", {Image=Icons.down, Theme={ImageColor3={"Main",10}}, AnchorPoint=Vector2.new(0.5,0), Rotation=180, Position=UDim2.fromScale(0.5,1), Size=UDim2.fromOffset(10,6), BackgroundTransparency=1, ImageTransparency=1})
 		local h = false
 		m.MouseEnter:connect(function() h=true; wait(0.2); if h then tc:tween{BackgroundTransparency=0.2,TextTransparency=0.2}; ta:tween{ImageTransparency=0.2} end end)
 		m.MouseLeave:connect(function() h=false; tc:tween{BackgroundTransparency=1,TextTransparency=1}; ta:tween{ImageTransparency=1} end)
@@ -225,6 +238,7 @@ function Library:create(opts)
 	local hackerBg = core:object("Frame", {Size=UDim2.new(1,-2,1,-2), Position=UDim2.new(0,1,0,1), BackgroundTransparency=1, Visible=(opts.Theme == Library.Themes.Hacker), ZIndex=2, ClipsDescendants=true})
 	Library.hackerBg = hackerBg
 
+	-- ═══ MATRIX RAIN (per-char random changes) ═══
 	local rainChars = {"0","1","!","@","#","$","%","&","*","+","-","=","/","\\","|",":",";","<",">","?","[","]","{","}","~","^","_"}
 	local numCols = 48
 	local charsPerCol = 50
@@ -237,31 +251,41 @@ function Library:create(opts)
 		table.insert(columns, {obj=tl, chars=chars, y=tl.Position.Y.Offset, speed=math.random(25, 100)})
 	end
 
+	-- ═══ SCANLINES ═══
 	for i = 1, 80 do
 		hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.93, Size=UDim2.new(1,0,0,1), Position=UDim2.new(0,0,i/80,0), BorderSizePixel=0, ZIndex=4})
 	end
 
+	-- ═══ CRT FLICKER OVERLAY ═══
 	local crtFlicker = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(0,0,0), BackgroundTransparency=0.8, Size=UDim2.new(1,0,1,0), ZIndex=5, BorderSizePixel=0})
+
+	-- ═══ GLITCH FLASH OVERLAY ═══
 	local glitchOverlay = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=1, Size=UDim2.new(1,0,1,0), ZIndex=5, BorderSizePixel=0})
+
+	-- ═══ MOVING SCANLINE (NEW) ═══
 	local movingScanline = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.75, Size=UDim2.new(1,0,0,3), Position=UDim2.new(0,0,0,-10), BorderSizePixel=0, ZIndex=6})
 
+	-- ═══ GLITCH BARS (NEW) ═══
 	local glitchBars = {}
 	for i = 1, 6 do
 		local bar = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=1, Size=UDim2.new(1,0,0,4), Position=UDim2.new(0,0,math.random(0,1000)/1000,0), BorderSizePixel=0, ZIndex=7})
 		table.insert(glitchBars, {obj=bar, timer=math.random(30, 200)/10})
 	end
 
+	-- ═══ HEX CODES (20) ═══
 	local hexLabels = {}
 	for i = 1, 20 do
 		local hex = hackerBg:object("TextLabel", {BackgroundTransparency=1, Text="0x0000", TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.5, Size=UDim2.new(0,80,0,16), Position=UDim2.new(math.random(0,900)/1000,0,math.random(0,900)/1000,0), TextSize=12, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=6})
 		table.insert(hexLabels, {obj=hex, timer=math.random(0, 30)})
 	end
 
+	-- ═══ ASCII DECORATIONS (30) ═══
 	local decorChars = {"[+]","[x]","[>]","[<]","===","|||","==>","<==","///","\\\\\\","//>","<//","{ }","[ ]","< >",">>>","<<<","---"}
 	for i = 1, 30 do
 		hackerBg:object("TextLabel", {BackgroundTransparency=1, Text=decorChars[math.random(1,#decorChars)], TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.6, Size=UDim2.new(0,60,0,16), Position=UDim2.new(math.random(0,900)/1000,0,math.random(0,900)/1000,0), TextSize=14, Font=Enum.Font.Code, ZIndex=6})
 	end
 
+	-- ═══ FLOATING BINARY (NEW) ═══
 	local floatBinary = {}
 	for i = 1, 10 do
 		local str = ""
@@ -270,12 +294,14 @@ function Library:create(opts)
 		table.insert(floatBinary, {obj=fb, timer=math.random(0, 30), speed=math.random(5, 30)/100})
 	end
 
+	-- ═══ PARTICLES (NEW) ═══
 	local particles = {}
 	for i = 1, 20 do
 		local p = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.7, Size=UDim2.fromOffset(2,2), Position=UDim2.new(math.random(0,1000)/1000,0,math.random(0,1000)/1000,0), BorderSizePixel=0, ZIndex=6})
 		table.insert(particles, {obj=p, timer=math.random(0, 60)})
 	end
 
+	-- ═══ ANIMATION LOOP ═══
 	task.spawn(function()
 		local valid = function()
 			return Library.hackerBg and Library.hackerBg.AbsoluteObject and Library.hackerBg.AbsoluteObject.Parent
@@ -291,6 +317,7 @@ function Library:create(opts)
 			if isVisible then
 				counter = counter + 1
 
+				-- 1. Matrix rain scroll
 				for _, col in ipairs(columns) do
 					col.y = col.y + col.speed * dt
 					if col.y > hackerBg.AbsoluteSize.Y then
@@ -301,6 +328,7 @@ function Library:create(opts)
 					col.obj.Position = UDim2.new(col.obj.Position.X.Scale, 0, 0, col.y)
 				end
 
+				-- 2. Per-character random changes (real-time, random timing)
 				local dirty = {}
 				local dirtyCols = math.random(4, 8)
 				for _ = 1, dirtyCols do
@@ -317,15 +345,18 @@ function Library:create(opts)
 					columns[colIdx].obj.Text = table.concat(columns[colIdx].chars, "\n")
 				end
 
+				-- 3. CRT flicker
 				if counter % 3 == 0 then
 					crtFlicker.BackgroundTransparency = 0.65 + math.random() * 0.3
 				end
 
+				-- 4. Moving scanline
 				scanlineY = scanlineY + 200 * dt
 				if scanlineY > hackerBg.AbsoluteSize.Y + 5 then scanlineY = -5 end
 				movingScanline.Position = UDim2.new(0, 0, 0, scanlineY)
 				movingScanline.BackgroundTransparency = 0.7 + math.random() * 0.2
 
+				-- 5. Glitch bars
 				for _, bar in ipairs(glitchBars) do
 					bar.timer = bar.timer - dt
 					if bar.timer <= 0 then
@@ -341,6 +372,7 @@ function Library:create(opts)
 					end
 				end
 
+				-- 6. Glitch flash
 				if math.random() < 0.02 then
 					glitchOverlay.BackgroundTransparency = 0.88
 					task.delay(math.random(2, 5)/100, function()
@@ -350,6 +382,7 @@ function Library:create(opts)
 					end)
 				end
 
+				-- 7. Hex codes update
 				for _, h in ipairs(hexLabels) do
 					h.timer = h.timer + 1
 					if h.timer >= 15 then
@@ -360,6 +393,7 @@ function Library:create(opts)
 					end
 				end
 
+				-- 8. Floating binary
 				for _, fb in ipairs(floatBinary) do
 					fb.timer = fb.timer + 1
 					if fb.timer >= 25 then
@@ -373,6 +407,7 @@ function Library:create(opts)
 					fb.obj.Position = UDim2.new(fb.obj.Position.X.Scale, 0, newY, 0)
 				end
 
+				-- 9. Particles
 				for _, p in ipairs(particles) do
 					p.timer = p.timer + 1
 					if p.timer >= 40 then
@@ -382,6 +417,7 @@ function Library:create(opts)
 					end
 				end
 
+				-- 10. Title glitch
 				titleCounter = titleCounter + 1
 				if titleCounter >= 15 and Library.title_obj and Library.originalTitle then
 					titleCounter = 0
@@ -407,8 +443,9 @@ function Library:create(opts)
 			end
 		end
 	end)
+	-- ═══════════════════════════════════════════════════════════════════════════
 
-	-- ═══ DRAG (UNCHANGED) ═══
+	-- ═══ DRAG (UNCHANGED — old working version) ═══
 	do
 		local S, Ev = pcall(function() return core.MouseEnter end)
 		if S then
@@ -450,7 +487,7 @@ function Library:create(opts)
 	closeBtn.MouseButton1Click:connect(closeUI)
 
 	local urlBar = core:object("Frame", {Size=UDim2.new(1,-10,0,25), Position=UDim2.new(0,5,0,35), Theme={BackgroundColor3="Secondary"}, ZIndex=10}):round(5)
-	urlBar:object("ImageLabel", {AnchorPoint=Vector2.new(0,.5), Position=UDim2.new(0,5,0.5,0), Theme={ImageColor3="Tertiary"}, Size=UDim2.fromOffset(16,16), Image=Icons.globe, BackgroundTransparency=1, ZIndex=11})
+	urlBar:object("ImageLabel", {AnchorPoint=Vector2.new(0,.5), Position=UDim2.new(0,5,0.5,0), Theme={ImageColor3="Tertiary"}, Size=UDim2.fromOffset(16,16), Image=Icons.launch, BackgroundTransparency=1, ZIndex=11})
 	local link = urlBar:object("TextLabel", {AnchorPoint=Vector2.new(0,0.5), Position=UDim2.new(0,26,0.5,0), BackgroundTransparency=1, Size=UDim2.new(1,-30,.6,0), Text=opts.Link .. "/home", Theme={TextColor3="WeakText"}, TextSize=14, TextScaled=false, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=11})
 	Library.UrlLabel = link; Library.Url = opts.Link
 
@@ -464,7 +501,7 @@ function Library:create(opts)
 	local homeBtn = tabButtons:object("TextButton", {Name="azuno_home", BackgroundTransparency=0, Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(0,125,0,25), ZIndex=8}):round(5)
 	local homeBtnText = homeBtn:object("TextLabel", {Theme={TextColor3="StrongText"}, AnchorPoint=Vector2.new(0,.5), BackgroundTransparency=1, TextSize=14, Text=opts.Name, Position=UDim2.new(0,25,0.5,0), TextXAlignment=Enum.TextXAlignment.Left, Size=UDim2.new(1,-45,0.5,0), Font=Enum.Font.SourceSans, TextTruncate=Enum.TextTruncate.AtEnd, ZIndex=9})
 	Library.title_obj = homeBtnText; Library.originalTitle = opts.Name
-	homeBtn:object("ImageLabel", {AnchorPoint=Vector2.new(0,0.5), BackgroundTransparency=1, Position=UDim2.new(0,5,0.5,0), Size=UDim2.new(0,15,0,15), Image=Icons.house, Theme={ImageColor3="StrongText"}, ZIndex=9})
+	homeBtn:object("ImageLabel", {AnchorPoint=Vector2.new(0,0.5), BackgroundTransparency=1, Position=UDim2.new(0,5,0.5,0), Size=UDim2.new(0,15,0,15), Image=Icons.dashboard, Theme={ImageColor3="StrongText"}, ZIndex=9})
 
 	local homePage = content:object("Frame", {Size=UDim2.fromScale(1,1), Centered=true, BackgroundTransparency=1, ZIndex=8})
 	local tabs = {}; selectedTab = homeBtn; tabs[#tabs+1] = {homePage, homeBtn}
@@ -498,7 +535,7 @@ function Library:create(opts)
 
 	task.spawn(function() while timeDisplay and timeDisplay.AbsoluteObject do task.wait(1); pcall(function() local d = tostring(os.date("%X")); timeDisplay.Text = d:sub(1, d:len()-3) end) end end)
 
-	local settingsTabIcon = profile:object("ImageButton", {BackgroundTransparency=1, Theme={ImageColor3="WeakText"}, Size=UDim2.fromOffset(24,24), Position=UDim2.new(1,-10,1,-10), AnchorPoint=Vector2.new(1,1), Image=Icons.settings, ZIndex=9}):tooltip("settings")
+	local settingsTabIcon = profile:object("ImageButton", {BackgroundTransparency=1, Theme={ImageColor3="WeakText"}, Size=UDim2.fromOffset(24,24), Position=UDim2.new(1,-10,1,-10), AnchorPoint=Vector2.new(1,1), Image=Icons.grid, ZIndex=9}):tooltip("settings")
 	local creditsTabIcon = profile:object("ImageButton", {BackgroundTransparency=1, Theme={ImageColor3="WeakText"}, Size=UDim2.fromOffset(24,24), Position=UDim2.new(1,-44,1,-10), AnchorPoint=Vector2.new(1,1), Image=Icons.info, ZIndex=9}):tooltip("credits")
 
 	local quickAccess = homePage:object("Frame", {BackgroundTransparency=1, Size=UDim2.new(1,-20,0,180), ZIndex=8})
@@ -507,7 +544,7 @@ function Library:create(opts)
 
 	local mt = setmetatable({gui=gui, core=core, notifs=notiHolder, statusText=status, container=content, navigation=tabButtons, Theme=opts.Theme, Tabs=tabs, quickAccess=quickAccess, homeButton=homeBtn, homePage=homePage, nilFolder=core:object("Folder")}, Library)
 
-	local settingsTab = Library.tab(mt, {Name="Settings", Internal=settingsTabIcon, Icon=Icons.settings})
+	local settingsTab = Library.tab(mt, {Name="Settings", Internal=settingsTabIcon, Icon=Icons.grid})
 	settingsTab:_theme_selector()
 	settingsTab:keybind({Name="Toggle Key", Description="Key to show/hide the UI.", Keybind=Enum.KeyCode.Delete, Callback=function() self.Toggled = not self.Toggled; Library:show(self.Toggled) end})
 	settingsTab:toggle({Name="Lock Dragging", Description="Prevent dragging outside screen.", StartingState=true, Callback=function(s) Library.LockDragging = s end})
@@ -523,12 +560,6 @@ end
 -- ═══ NOTIFICATION ═══
 function Library:notification(opts)
 	opts = self:set_defaults({Title="Notification", Text="Message", Duration=3, Callback=function() end}, opts)
-	local _t = tostring(opts.Title):lower()
-	local notiIcon = Icons.check
-	if _t:find("error") or _t:find("fail") or _t:find("denied") then notiIcon = Icons.alert
-	elseif _t:find("warn") or _t:find("caution") then notiIcon = Icons.warning
-	elseif _t:find("info") or _t:find("note") then notiIcon = Icons.info end
-
 	local faded = false; local fadeOut
 	local noti = self.notifs:object("Frame", {BackgroundTransparency=1, Theme={BackgroundColor3="Main"}, Size=UDim2.new(0,300,0,0), ZIndex=100}):round(10)
 	noti:object("UIPadding", {PaddingBottom=UDim.new(0,11), PaddingTop=UDim.new(0,11), PaddingLeft=UDim.new(0,11), PaddingRight=UDim.new(0,11)})
@@ -536,7 +567,7 @@ function Library:notification(opts)
 	local _shadow = dropShadow:object("ImageLabel", {Centered=true, Position=UDim2.fromScale(.5,.5), BackgroundTransparency=1, Size=UDim2.new(1,70,1,70), ZIndex=0, Image="rbxassetid://6014261993", ImageColor3=Color3.fromRGB(0,0,0), ImageTransparency=1, ScaleType=Enum.ScaleType.Slice, SliceCenter=Rect.new(49,49,450,450)})
 	local durHolder = noti:object("Frame", {BackgroundTransparency=1, Theme={BackgroundColor3="Secondary"}, AnchorPoint=Vector2.new(0,1), Position=UDim2.fromScale(0,1), Size=UDim2.new(1,0,0,4), ZIndex=101}):round(100)
 	local len = durHolder:object("Frame", {BackgroundTransparency=1, Theme={BackgroundColor3="Tertiary"}, Size=UDim2.fromScale(1,1), ZIndex=102}):round(100)
-	local icon = noti:object("ImageLabel", {BackgroundTransparency=1, ImageTransparency=1, Position=UDim2.fromOffset(1,1), Size=UDim2.fromOffset(18,18), Image=notiIcon, Theme={ImageColor3="Tertiary"}, ZIndex=102})
+	local icon = noti:object("ImageLabel", {BackgroundTransparency=1, ImageTransparency=1, Position=UDim2.fromOffset(1,1), Size=UDim2.fromOffset(18,18), Image=Icons.check, Theme={ImageColor3="Tertiary"}, ZIndex=102})
 	local exit = noti:object("ImageButton", {Image=Icons.x, AnchorPoint=Vector2.new(1,0), ImageColor3=Color3.fromRGB(255,255,255), Position=UDim2.new(1,-3,0,3), Size=UDim2.fromOffset(14,14), BackgroundTransparency=1, ImageTransparency=1, ZIndex=102})
 	exit.MouseButton1Click:Connect(function() fadeOut() end)
 	local text = noti:object("TextLabel", {BackgroundTransparency=1, Text=opts.Text, Position=UDim2.new(0,0,0,23), Size=UDim2.new(1,0,100,0), TextSize=16, TextTransparency=1, TextWrapped=true, TextColor3=Color3.fromRGB(255,255,255), TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top, ZIndex=102})
@@ -562,7 +593,7 @@ end
 
 -- ═══ TAB ═══
 function Library:tab(opts)
-	opts = self:set_defaults({Name="New Tab", Icon=Icons.box}, opts)
+	opts = self:set_defaults({Name="New Tab", Icon=Icons.dashboard}, opts)
 	local tab = self.container:object("ScrollingFrame", {AnchorPoint=Vector2.new(0,1), Visible=false, BackgroundTransparency=1, Position=UDim2.fromScale(0,1), Size=UDim2.fromScale(1,1), ScrollBarThickness=0, ScrollingDirection=Enum.ScrollingDirection.Y, ZIndex=8})
 	local qaBtn, qaIcon
 	if not opts.Internal then
@@ -648,7 +679,7 @@ end
 function Library:toggle(opts)
 	opts = self:set_defaults({Name="Toggle", StartingState=false, Description=nil, Callback=function(s) end}, opts)
 	local c = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
-	local on, off = Icons.check, Icons.minus
+	local on, off = Icons.check, Icons.check_small
 	local tog = opts.StartingState
 	local onI = c:object("ImageLabel", {AnchorPoint=Vector2.new(1,.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.new(0,26,0,26), Image=on, Theme={ImageColor3="Tertiary"}, ImageTransparency=(tog and 0) or 1, ZIndex=10})
 	local offI = c:object("ImageLabel", {AnchorPoint=Vector2.new(1,.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.new(0,26,0,26), Image=off, Theme={ImageColor3="WeakText"}, ImageTransparency=(tog and 1) or 0, ZIndex=10})
@@ -738,11 +769,11 @@ function Library:combo(opts)
 		state[val] = false
 		if opts.DefaultSelected and table.find(opts.DefaultSelected, val) then state[val]=true end
 		local row = ic:object("TextButton", {Theme={BackgroundColor3={"Secondary",25},TextColor3="StrongText"}, Text="", Size=UDim2.new(1,0,0,22), ZIndex=12}):round(5)
-		local chk = row:object("ImageLabel", {BackgroundTransparency=1, AnchorPoint=Vector2.new(0,0.5), Position=UDim2.fromOffset(6,11), Size=UDim2.fromOffset(14,14), Image=state[val] and Icons.check or Icons.minus, Theme={ImageColor3=state[val] and "Tertiary" or "WeakText"}, ZIndex=13})
+		local chk = row:object("ImageLabel", {BackgroundTransparency=1, AnchorPoint=Vector2.new(0,0.5), Position=UDim2.fromOffset(6,11), Size=UDim2.fromOffset(14,14), Image=state[val] and Icons.check or Icons.check_small, Theme={ImageColor3=state[val] and "Tertiary" or "WeakText"}, ZIndex=13})
 		row:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(26,0), Size=UDim2.new(1,-30,1,0), Text=label, TextSize=14, TextXAlignment=Enum.TextXAlignment.Left, Theme={TextColor3="StrongText"}, ZIndex=13})
 		checkboxes[val] = {row=row, check=chk, label=label}
 		local function upd() local parts = {}; for v, o in next, state do if o then table.insert(parts, checkboxes[v].label) end end; summ.Text = #parts==0 and "None" or table.concat(parts, ", "); summ.Size = UDim2.fromOffset(math.min(#summ.Text*7+20, 200), 20); opts.Callback(state) end
-		row.MouseButton1Click:connect(function() state[val] = not state[val]; chk.Image = state[val] and Icons.check or Icons.minus; chk:tween({ImageColor3=state[val] and Library.CurrentTheme.Tertiary or Library.CurrentTheme.WeakText}); upd() end)
+		row.MouseButton1Click:connect(function() state[val] = not state[val]; chk.Image = state[val] and Icons.check or Icons.check_small; chk:tween({ImageColor3=state[val] and Library.CurrentTheme.Tertiary or Library.CurrentTheme.WeakText}); upd() end)
 		row.MouseEnter:connect(function() row:tween({BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,25)}) end)
 		row.MouseLeave:connect(function() row:tween({BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,15)}) end)
 	end
@@ -759,7 +790,7 @@ function Library:combo(opts)
 	self:_resize_tab()
 	local api = {}
 	function api:Get() return state end
-	function api:Set(vs) for k in next, state do state[k]=false end; for _, v in next, vs do if state[v]~=nil then state[v]=true end end; for val, cb in next, checkboxes do cb.check.Image = state[val] and Icons.check or Icons.minus; cb.check.ImageColor3 = state[val] and Library.CurrentTheme.Tertiary or Library.CurrentTheme.WeakText end; opts.Callback(state) end
+	function api:Set(vs) for k in next, state do state[k]=false end; for _, v in next, vs do if state[v]~=nil then state[v]=true end end; for val, cb in next, checkboxes do cb.check.Image = state[val] and Icons.check or Icons.check_small; cb.check.ImageColor3 = state[val] and Library.CurrentTheme.Tertiary or Library.CurrentTheme.WeakText end; opts.Callback(state) end
 	return api
 end
 
@@ -802,11 +833,11 @@ function Library:button(opts)
 	local c = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
 	local txt = c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 0), Size=(opts.Description and UDim2.new(0.5,-10,0,22)) or UDim2.new(0.5,-10,1,0), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
 	if opts.Description then c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
-	local icon = c:object("ImageLabel", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.fromOffset(22,22), Image=Icons.right, Theme={ImageColor3="Tertiary"}, ZIndex=10})
+	local icon = c:object("ImageLabel", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.fromOffset(26,26), Image=Icons.right, Theme={ImageColor3="Tertiary"}, ZIndex=10})
 	do
 		local h, d = false, false
-		c.MouseEnter:connect(function() h=true; c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)}; icon:tween{Size=UDim2.fromOffset(24,24), Length=0.1} end)
-		c.MouseLeave:connect(function() h=false; if not d then c:tween{BackgroundColor3=Library.CurrentTheme.Secondary} end; icon:tween{Size=UDim2.fromOffset(22,22), Length=0.1} end)
+		c.MouseEnter:connect(function() h=true; c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)}; icon:tween{Size=UDim2.fromOffset(28,28), Length=0.1} end)
+		c.MouseLeave:connect(function() h=false; if not d then c:tween{BackgroundColor3=Library.CurrentTheme.Secondary} end; icon:tween{Size=UDim2.fromOffset(26,26), Length=0.1} end)
 		c.MouseButton1Down:connect(function() d=true; c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,20)} end)
 		UserInputService.InputEnded:connect(function(k) if k.UserInputType==Enum.UserInputType.MouseButton1 then d=false; c:tween{BackgroundColor3=(h and self:lighten(Library.CurrentTheme.Secondary)) or Library.CurrentTheme.Secondary} end end)
 		c.MouseButton1Click:connect(function() opts.Callback() end)
@@ -818,13 +849,13 @@ function Library:button(opts)
 	return api
 end
 
--- ═══ COLOR PICKER ═══
+-- ═══ COLOR PICKER COMPLET ═══
 function Library:color_picker(opts)
 	opts = self:set_defaults({Name="Color Picker", Description=nil, Style=Library.ColorPickerStyles.Legacy, Followup=false, Callback=function(c) end}, opts)
 	local bc = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
 	bc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 0), Size=(opts.Description and UDim2.new(0.5,-10,0,22)) or UDim2.new(0.5,-10,1,0), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
 	if opts.Description then bc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
-	local icon = bc:object("ImageLabel", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.fromOffset(22,22), Image=Icons.cursor, ImageColor3=Library.CurrentTheme.Tertiary, ZIndex=10})
+	local icon = bc:object("ImageLabel", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.fromOffset(26,26), Image=Icons.cursor, ImageColor3=Library.CurrentTheme.Tertiary, ZIndex=10})
 	do
 		local h, d = false, false
 		bc.MouseEnter:connect(function() h=true; bc:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)} end)
@@ -866,7 +897,7 @@ function Library:color_picker(opts)
 				local r = infos:object("TextLabel", {AnchorPoint=Vector2.new(0.5,0), Name="1", Text=tostring(selectedColor.R*255), Theme={BackgroundColor3={"Secondary",12}}, Size=UDim2.new(1,-10,0,18), TextColor3=Color3.fromHSV(0,0.8,1), TextSize=14, BackgroundTransparency=1, TextTransparency=1, ZIndex=204}):round(4)
 				local g = infos:object("TextLabel", {AnchorPoint=Vector2.new(0.5,0), Name="2", Text=tostring(selectedColor.G*255), Theme={BackgroundColor3={"Secondary",12}}, Size=UDim2.new(1,-10,0,18), TextColor3=Color3.fromHSV(120/360,0.8,1), TextSize=14, BackgroundTransparency=1, TextTransparency=1, ZIndex=204}):round(4)
 				local b = infos:object("TextLabel", {AnchorPoint=Vector2.new(0.5,0), Text=tostring(selectedColor.B*255), Name="3", Theme={BackgroundColor3={"Secondary",12}}, Size=UDim2.new(1,-10,0,18), TextColor3=Color3.fromHSV(240/360,0.8,1), TextSize=14, BackgroundTransparency=1, TextTransparency=1, ZIndex=204}):round(4)
-				local pickBtn = holder:object("ImageButton", {AnchorPoint=Vector2.new(1,1), Theme={BackgroundColor3="Tertiary"}, Position=UDim2.fromScale(1,1), Size=UDim2.new(0.5,0,0,20), Image=Icons.check_plain, ImageColor3=Library.CurrentTheme.Main, ScaleType=Enum.ScaleType.Fit, BackgroundTransparency=1, ImageTransparency=1, ZIndex=206}):round(6)
+				local pickBtn = holder:object("ImageButton", {AnchorPoint=Vector2.new(1,1), Theme={BackgroundColor3="Tertiary"}, Position=UDim2.fromScale(1,1), Size=UDim2.new(0.5,0,0,20), Image=Icons.check, ImageColor3=Library.CurrentTheme.Main, ScaleType=Enum.ScaleType.Fit, BackgroundTransparency=1, ImageTransparency=1, ZIndex=206}):round(6)
 				local pl = holder:object("Frame", {AnchorPoint=Vector2.new(1,1), BackgroundColor3=selectedColor, Position=UDim2.new(1,-65,1,-25), Size=UDim2.fromOffset(40,40), BackgroundTransparency=1, ZIndex=205}):round(5)
 				local pd = holder:object("Frame", {AnchorPoint=Vector2.new(1,1), BackgroundColor3=selectedColor, Position=UDim2.new(1,-15,1,-25), Size=UDim2.fromOffset(40,40), BackgroundTransparency=1, ZIndex=205}):round(5)
 
@@ -943,7 +974,6 @@ function Library:credit(opts)
 	if opts.Description then cc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
 	if setclipboard and opts.Discord then
 		local dc = cc:object("TextButton", {AnchorPoint=Vector2.new(1,1), Size=UDim2.fromOffset(24,24), Position=UDim2.new(1,-8,1,-8), BackgroundColor3=Color3.fromRGB(88,101,242), ZIndex=10}):round(5):tooltip("copy discord")
-		dc:object("ImageLabel", {BackgroundTransparency=1, Size=UDim2.fromScale(0.65,0.65), Centered=true, Image=Icons.discord, ImageColor3=Color3.fromRGB(255,255,255), ZIndex=11})
 		dc.MouseButton1Click:connect(function() setclipboard(opts.Discord) end)
 	end
 	self._resize_tab({container=self.creditsContainer or self.container, layout=(self.creditsContainer and self.creditsContainer.AbsoluteObject.UIListLayout) or self.layout})

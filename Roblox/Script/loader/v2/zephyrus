@@ -964,7 +964,6 @@ function Library:notification(options)
 	length:tween({Size = UDim2.fromScale(0, 1), Length = options.Duration}, fadeOut)
 end
 
--- ═══ TABS (avec auto-attach dans la navbar) ═══
 function Library:tab(options)
 	options = self:set_defaults({
 		Name = "New Tab",
@@ -1017,6 +1016,34 @@ function Library:tab(options)
 
 	self.Tabs[#self.Tabs+1] = {tab, tabButton, options.Name}
 
+	-- Attachement IMMÉDIAT dans la navbar (pas de task.defer → pas de race)
+	if not options.Internal then
+		tabButton.Parent = self.navigation.AbsoluteObject
+		tabButton.Visible = true
+		tabButton.Size = UDim2.new(0, 125, 0, 25)
+		tabButton.BackgroundTransparency = 1
+	end
+
+	-- Fonction commune : sélectionne CETTE tab
+	local function selectThisTab()
+		tabButton.Parent = self.navigation.AbsoluteObject
+		tabButton.Visible = true
+		tabButton.Size = UDim2.new(0, 125, 0, 25)
+
+		for _, tabInfo in next, self.Tabs do
+			tabInfo[1].Visible = false
+		end
+
+		if selectedTab and selectedTab ~= tabButton then
+			selectedTab:tween{BackgroundTransparency = 1}
+		end
+
+		selectedTab = tabButton
+		tab.Visible = true
+		tabButton.BackgroundTransparency = 0
+		Library.UrlLabel.Text = Library.Url .. "/" .. options.Name:lower()
+	end
+
 	do
 		local down = false
 		local hovered = false
@@ -1038,30 +1065,15 @@ function Library:tab(options)
 				tabButton:tween{BackgroundTransparency = ((selectedTab == tabButton) and 0.15) or (hovered and 0.3) or 1}
 			end
 		end)
-		tabButton.MouseButton1Click:Connect(function()
-			for _, tabInfo in next, self.Tabs do tabInfo[1].Visible = false end
-			selectedTab:tween{BackgroundTransparency = ((selectedTab == tabButton) and 0.15) or 1}
-			selectedTab = tabButton
-			tab.Visible = true
-			tabButton.BackgroundTransparency = 0
-			Library.UrlLabel.Text = Library.Url .. "/" .. options.Name:lower()
-		end)
+		tabButton.MouseButton1Click:Connect(selectThisTab)
 
-		-- Quick access click = selects the tab directly
 		quickAccessButton.MouseEnter:connect(function()
 			quickAccessButton:tween{BackgroundColor3 = Library.CurrentTheme.Tertiary}
 		end)
 		quickAccessButton.MouseLeave:connect(function()
 			quickAccessButton:tween{BackgroundColor3 = Library.CurrentTheme.Secondary}
 		end)
-		quickAccessButton.MouseButton1Click:connect(function()
-			for _, tabInfo in next, self.Tabs do tabInfo[1].Visible = false end
-			selectedTab:tween{BackgroundTransparency = ((selectedTab == tabButton) and 0.15) or 1}
-			selectedTab = tabButton
-			tab.Visible = true
-			tabButton.BackgroundTransparency = 0
-			Library.UrlLabel.Text = Library.Url .. "/" .. options.Name:lower()
-		end)
+		quickAccessButton.MouseButton1Click:connect(selectThisTab)
 	end
 
 	tabButton:object("TextLabel", {
@@ -1136,19 +1148,6 @@ function Library:tab(options)
 			Library.UrlLabel.Text = Library.Url .. "/" .. lastTab[3]:lower()
 		end
 	end)
-
-	-- ═══════════════════════════════════════════════════════════════════════
-	--  AUTO-ATTACH : place le tab dans la navbar immédiatement
-	--  (les tabs "Internal" comme Settings/Credits restent dans le profile card)
-	-- ═══════════════════════════════════════════════════════════════════════
-	if not options.Internal then
-		task.defer(function()
-			tabButton.Parent = self.navigation.AbsoluteObject
-			tabButton.Visible = true
-			tabButton.Size = UDim2.new(0, 125, 0, 25)
-			tabButton.BackgroundTransparency = 1
-		end)
-	end
 
 	return setmetatable({
 		statusText = self.statusText,

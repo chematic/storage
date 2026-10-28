@@ -1,6 +1,6 @@
 --[[
 ██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-  AZUNO UI LIBRARY v1.5 — HACKER EDITION MAX (3x Enhanced)
+  AZUNO UI LIBRARY v1.5 — HACKER EDITION MAX (3x Enhanced) + Lucide Icons
   Maintained by Azuno @azunoo
   Based on Mercury by Abstract#8007 & Deity#0228
 ]]
@@ -13,8 +13,51 @@ local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local HTTPService = game:GetService("HttpService")
 
+-- ═══ LUCIDE ICONS (all black by default — always set ImageColor3) ═══
+local Icons = {
+	x          = "rbxassetid://85208824201721",
+	user       = "rbxassetid://97147720417510",
+	users      = "rbxassetid://119714722855790",
+	settings   = "rbxassetid://126965913235478",
+	warning    = "rbxassetid://93983945573586",
+	trash      = "rbxassetid://98865309518134",
+	star       = "rbxassetid://106190417504763",
+	cursor     = "rbxassetid://122202400146147",
+	click      = "rbxassetid://84806646109485",
+	save       = "rbxassetid://118980313084191",
+	scroll     = "rbxassetid://73166582901059",
+	info       = "rbxassetid://118525722021996",
+	mail       = "rbxassetid://127821745038774",
+	minus      = "rbxassetid://87005755150493",
+	house      = "rbxassetid://121054850016682",
+	folder     = "rbxassetid://115178320441820",
+	globe      = "rbxassetid://73085396668232",
+	heart      = "rbxassetid://100205958143823",
+	eye        = "rbxassetid://88502340130684",
+	user_circle= "rbxassetid://86973588569476",
+	copy       = "rbxassetid://94842454227069",
+	crosshair  = "rbxassetid://78015203921763",
+	question   = "rbxassetid://108558480500844",
+	check_big  = "rbxassetid://92184158104350",
+	dollar     = "rbxassetid://75404098865238",
+	alert      = "rbxassetid://109398430751346",
+	check      = "rbxassetid://124137869726189", -- circle-check
+	check_plain= "rbxassetid://123419050448825", -- check
+	right      = "rbxassetid://83990995585276",
+	down       = "rbxassetid://129601616782033",
+	up         = "rbxassetid://101442330547551",
+	left       = "rbxassetid://139498051926104",
+	book       = "rbxassetid://73959728821275",
+	box        = "rbxassetid://108846365309528",
+	ban        = "rbxassetid://137655261210020",
+	discord    = "rbxassetid://118195371543220",
+	undo       = "rbxassetid://140247459178388",
+}
+Library_Icons = Icons
+
 local Library = {
 	_VERSION = "1.5", _OWNER = "Azuno",
+	Icons = Icons,
 	Themes = {
 		Legacy = { Main = Color3.fromHSV(262/360, 60/255, 34/255), Secondary = Color3.fromHSV(240/360, 40/255, 63/255), Tertiary = Color3.fromHSV(260/360, 60/255, 148/255), StrongText = Color3.fromHSV(0, 0, 1), WeakText = Color3.fromHSV(0, 0, 172/255) },
 		Dark = { Main = Color3.fromRGB(30,30,35), Secondary = Color3.fromRGB(50,50,55), Tertiary = Color3.fromRGB(70,130,180), StrongText = Color3.fromHSV(0,0,1), WeakText = Color3.fromHSV(0,0,172/255) },
@@ -107,7 +150,7 @@ function Library:object(class, props)
 	function m:tooltip(text)
 		local tc = m:object("TextLabel", {Theme={BackgroundColor3={"Main",10},TextColor3={"WeakText"}}, TextSize=16, Text=text, Position=UDim2.new(0.5,0,0,-8), TextXAlignment=Enum.TextXAlignment.Center, TextYAlignment=Enum.TextYAlignment.Center, AnchorPoint=Vector2.new(0.5,1), BackgroundTransparency=1, TextTransparency=1}):round(5)
 		tc.Size = UDim2.fromOffset(tc.TextBounds.X+16, tc.TextBounds.Y+8)
-		local ta = tc:object("ImageLabel", {Image="http://www.roblox.com/asset/?id=4292970642", Theme={ImageColor3={"Main",10}}, AnchorPoint=Vector2.new(0.5,0), Rotation=180, Position=UDim2.fromScale(0.5,1), Size=UDim2.fromOffset(10,6), BackgroundTransparency=1, ImageTransparency=1})
+		local ta = tc:object("ImageLabel", {Image=Icons.down, Theme={ImageColor3={"Main",10}}, AnchorPoint=Vector2.new(0.5,0), Position=UDim2.fromScale(0.5,1), Size=UDim2.fromOffset(10,10), BackgroundTransparency=1, ImageTransparency=1})
 		local h = false
 		m.MouseEnter:connect(function() h=true; wait(0.2); if h then tc:tween{BackgroundTransparency=0.2,TextTransparency=0.2}; ta:tween{ImageTransparency=0.2} end end)
 		m.MouseLeave:connect(function() h=false; tc:tween{BackgroundTransparency=1,TextTransparency=1}; ta:tween{ImageTransparency=1} end)
@@ -206,30 +249,30 @@ function Library:create(opts)
 	-- ═══ GLITCH FLASH OVERLAY ═══
 	local glitchOverlay = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=1, Size=UDim2.new(1,0,1,0), ZIndex=5, BorderSizePixel=0})
 
-	-- ═══ MOVING SCANLINE (NEW) ═══
+	-- ═══ MOVING SCANLINE ═══
 	local movingScanline = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.75, Size=UDim2.new(1,0,0,3), Position=UDim2.new(0,0,0,-10), BorderSizePixel=0, ZIndex=6})
 
-	-- ═══ GLITCH BARS (NEW) ═══
+	-- ═══ GLITCH BARS ═══
 	local glitchBars = {}
 	for i = 1, 6 do
 		local bar = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=1, Size=UDim2.new(1,0,0,4), Position=UDim2.new(0,0,math.random(0,1000)/1000,0), BorderSizePixel=0, ZIndex=7})
 		table.insert(glitchBars, {obj=bar, timer=math.random(30, 200)/10})
 	end
 
-	-- ═══ HEX CODES (20) ═══
+	-- ═══ HEX CODES ═══
 	local hexLabels = {}
 	for i = 1, 20 do
 		local hex = hackerBg:object("TextLabel", {BackgroundTransparency=1, Text="0x0000", TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.5, Size=UDim2.new(0,80,0,16), Position=UDim2.new(math.random(0,900)/1000,0,math.random(0,900)/1000,0), TextSize=12, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=6})
 		table.insert(hexLabels, {obj=hex, timer=math.random(0, 30)})
 	end
 
-	-- ═══ ASCII DECORATIONS (30) ═══
+	-- ═══ ASCII DECORATIONS ═══
 	local decorChars = {"[+]","[x]","[>]","[<]","===","|||","==>","<==","///","\\\\\\","//>","<//","{ }","[ ]","< >",">>>","<<<","---"}
 	for i = 1, 30 do
 		hackerBg:object("TextLabel", {BackgroundTransparency=1, Text=decorChars[math.random(1,#decorChars)], TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.6, Size=UDim2.new(0,60,0,16), Position=UDim2.new(math.random(0,900)/1000,0,math.random(0,900)/1000,0), TextSize=14, Font=Enum.Font.Code, ZIndex=6})
 	end
 
-	-- ═══ FLOATING BINARY (NEW) ═══
+	-- ═══ FLOATING BINARY ═══
 	local floatBinary = {}
 	for i = 1, 10 do
 		local str = ""
@@ -238,7 +281,7 @@ function Library:create(opts)
 		table.insert(floatBinary, {obj=fb, timer=math.random(0, 30), speed=math.random(5, 30)/100})
 	end
 
-	-- ═══ PARTICLES (NEW) ═══
+	-- ═══ PARTICLES ═══
 	local particles = {}
 	for i = 1, 20 do
 		local p = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.7, Size=UDim2.fromOffset(2,2), Position=UDim2.new(math.random(0,1000)/1000,0,math.random(0,1000)/1000,0), BorderSizePixel=0, ZIndex=6})
@@ -272,7 +315,7 @@ function Library:create(opts)
 					col.obj.Position = UDim2.new(col.obj.Position.X.Scale, 0, 0, col.y)
 				end
 
-				-- 2. Per-character random changes (real-time, random timing)
+				-- 2. Per-character random changes
 				local dirty = {}
 				local dirtyCols = math.random(4, 8)
 				for _ = 1, dirtyCols do
@@ -417,7 +460,7 @@ function Library:create(opts)
 	local tabButtons = core:object("ScrollingFrame", {Size=UDim2.new(1,-40,0,25), Position=UDim2.fromOffset(5,5), BackgroundTransparency=1, ClipsDescendants=true, ScrollBarThickness=0, ScrollingDirection=Enum.ScrollingDirection.X, AutomaticCanvasSize=Enum.AutomaticSize.X, ZIndex=3})
 	tabButtons:object("UIListLayout", {FillDirection=Enum.FillDirection.Horizontal, HorizontalAlignment=Enum.HorizontalAlignment.Left, SortOrder=Enum.SortOrder.LayoutOrder, Padding=UDim.new(0,4)})
 
-	local closeBtn = core:object("ImageButton", {BackgroundTransparency=1, Size=UDim2.fromOffset(14,14), Position=UDim2.new(1,-11,0,11), Theme={ImageColor3="StrongText"}, Image="http://www.roblox.com/asset/?id=8497487650", AnchorPoint=Vector2.new(1), ZIndex=10})
+	local closeBtn = core:object("ImageButton", {BackgroundTransparency=1, Size=UDim2.fromOffset(14,14), Position=UDim2.new(1,-11,0,11), Theme={ImageColor3="StrongText"}, Image=Icons.x, AnchorPoint=Vector2.new(1), ZIndex=10})
 	closeBtn.MouseEnter:connect(function() closeBtn:tween{ImageColor3=Color3.fromRGB(255,124,142)} end)
 	closeBtn.MouseLeave:connect(function() closeBtn:tween{ImageColor3=Library.CurrentTheme.StrongText} end)
 
@@ -431,7 +474,7 @@ function Library:create(opts)
 	closeBtn.MouseButton1Click:connect(closeUI)
 
 	local urlBar = core:object("Frame", {Size=UDim2.new(1,-10,0,25), Position=UDim2.new(0,5,0,35), Theme={BackgroundColor3="Secondary"}, ZIndex=10}):round(5)
-	urlBar:object("ImageLabel", {AnchorPoint=Vector2.new(0,.5), Position=UDim2.new(0,5,0.5,0), Theme={ImageColor3="Tertiary"}, Size=UDim2.fromOffset(16,16), Image="http://www.roblox.com/asset/?id=8497489946", BackgroundTransparency=1, ZIndex=11})
+	urlBar:object("ImageLabel", {AnchorPoint=Vector2.new(0,.5), Position=UDim2.new(0,5,0.5,0), Theme={ImageColor3="Tertiary"}, Size=UDim2.fromOffset(16,16), Image=Icons.globe, BackgroundTransparency=1, ZIndex=11})
 	local link = urlBar:object("TextLabel", {AnchorPoint=Vector2.new(0,0.5), Position=UDim2.new(0,26,0.5,0), BackgroundTransparency=1, Size=UDim2.new(1,-30,.6,0), Text=opts.Link .. "/home", Theme={TextColor3="WeakText"}, TextSize=14, TextScaled=false, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=11})
 	Library.UrlLabel = link; Library.Url = opts.Link
 
@@ -445,7 +488,7 @@ function Library:create(opts)
 	local homeBtn = tabButtons:object("TextButton", {Name="azuno_home", BackgroundTransparency=0, Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(0,125,0,25), ZIndex=8}):round(5)
 	local homeBtnText = homeBtn:object("TextLabel", {Theme={TextColor3="StrongText"}, AnchorPoint=Vector2.new(0,.5), BackgroundTransparency=1, TextSize=14, Text=opts.Name, Position=UDim2.new(0,25,0.5,0), TextXAlignment=Enum.TextXAlignment.Left, Size=UDim2.new(1,-45,0.5,0), Font=Enum.Font.SourceSans, TextTruncate=Enum.TextTruncate.AtEnd, ZIndex=9})
 	Library.title_obj = homeBtnText; Library.originalTitle = opts.Name
-	homeBtn:object("ImageLabel", {AnchorPoint=Vector2.new(0,0.5), BackgroundTransparency=1, Position=UDim2.new(0,5,0.5,0), Size=UDim2.new(0,15,0,15), Image="http://www.roblox.com/asset/?id=8569322835", Theme={ImageColor3="StrongText"}, ZIndex=9})
+	homeBtn:object("ImageLabel", {AnchorPoint=Vector2.new(0,0.5), BackgroundTransparency=1, Position=UDim2.new(0,5,0.5,0), Size=UDim2.new(0,15,0,15), Image=Icons.house, Theme={ImageColor3="StrongText"}, ZIndex=9})
 
 	local homePage = content:object("Frame", {Size=UDim2.fromScale(1,1), Centered=true, BackgroundTransparency=1, ZIndex=8})
 	local tabs = {}; selectedTab = homeBtn; tabs[#tabs+1] = {homePage, homeBtn}
@@ -479,8 +522,8 @@ function Library:create(opts)
 
 	task.spawn(function() while timeDisplay and timeDisplay.AbsoluteObject do task.wait(1); pcall(function() local d = tostring(os.date("%X")); timeDisplay.Text = d:sub(1, d:len()-3) end) end end)
 
-	local settingsTabIcon = profile:object("ImageButton", {BackgroundTransparency=1, Theme={ImageColor3="WeakText"}, Size=UDim2.fromOffset(24,24), Position=UDim2.new(1,-10,1,-10), AnchorPoint=Vector2.new(1,1), Image="http://www.roblox.com/asset/?id=8559790237", ZIndex=9}):tooltip("settings")
-	local creditsTabIcon = profile:object("ImageButton", {BackgroundTransparency=1, Theme={ImageColor3="WeakText"}, Size=UDim2.fromOffset(24,24), Position=UDim2.new(1,-44,1,-10), AnchorPoint=Vector2.new(1,1), Image="http://www.roblox.com/asset/?id=8577523456", ZIndex=9}):tooltip("credits")
+	local settingsTabIcon = profile:object("ImageButton", {BackgroundTransparency=1, Theme={ImageColor3="WeakText"}, Size=UDim2.fromOffset(24,24), Position=UDim2.new(1,-10,1,-10), AnchorPoint=Vector2.new(1,1), Image=Icons.settings, ZIndex=9}):tooltip("settings")
+	local creditsTabIcon = profile:object("ImageButton", {BackgroundTransparency=1, Theme={ImageColor3="WeakText"}, Size=UDim2.fromOffset(24,24), Position=UDim2.new(1,-44,1,-10), AnchorPoint=Vector2.new(1,1), Image=Icons.info, ZIndex=9}):tooltip("credits")
 
 	local quickAccess = homePage:object("Frame", {BackgroundTransparency=1, Size=UDim2.new(1,-20,0,180), ZIndex=8})
 	quickAccess:object("UIGridLayout", {CellPadding=UDim2.fromOffset(10,10), CellSize=UDim2.fromOffset(55,55), HorizontalAlignment=Enum.HorizontalAlignment.Center, VerticalAlignment=Enum.VerticalAlignment.Center})
@@ -488,13 +531,13 @@ function Library:create(opts)
 
 	local mt = setmetatable({gui=gui, core=core, notifs=notiHolder, statusText=status, container=content, navigation=tabButtons, Theme=opts.Theme, Tabs=tabs, quickAccess=quickAccess, homeButton=homeBtn, homePage=homePage, nilFolder=core:object("Folder")}, Library)
 
-	local settingsTab = Library.tab(mt, {Name="Settings", Internal=settingsTabIcon, Icon="rbxassetid://8559790237"})
+	local settingsTab = Library.tab(mt, {Name="Settings", Internal=settingsTabIcon, Icon=Icons.settings})
 	settingsTab:_theme_selector()
 	settingsTab:keybind({Name="Toggle Key", Description="Key to show/hide the UI.", Keybind=Enum.KeyCode.Delete, Callback=function() self.Toggled = not self.Toggled; Library:show(self.Toggled) end})
 	settingsTab:toggle({Name="Lock Dragging", Description="Prevent dragging outside screen.", StartingState=true, Callback=function(s) Library.LockDragging = s end})
 	settingsTab:slider({Name="UI Drag Speed", Description="Drag smoothness.", Max=20, Default=14, Callback=function(v) Library.DragSpeed = (20-v)/100 end})
 
-	local creditsTab = Library.tab(mt, {Name="Credits", Internal=creditsTabIcon, Icon="http://www.roblox.com/asset/?id=8577523456"})
+	local creditsTab = Library.tab(mt, {Name="Credits", Internal=creditsTabIcon, Icon=Icons.info})
 	rawset(mt, "creditsContainer", creditsTab.container)
 	creditsTab:credit{Name="Azuno", Description="Owner", Discord="azunoo"}
 
@@ -504,6 +547,13 @@ end
 -- ═══ NOTIFICATION ═══
 function Library:notification(opts)
 	opts = self:set_defaults({Title="Notification", Text="Message", Duration=3, Callback=function() end}, opts)
+	-- Infer icon from title context (backwards compatible — optional)
+	local _t = tostring(opts.Title):lower()
+	local notiIcon = Icons.check
+	if _t:find("error") or _t:find("fail") or _t:find("denied") then notiIcon = Icons.alert
+	elseif _t:find("warn") or _t:find("caution") then notiIcon = Icons.warning
+	elseif _t:find("info") or _t:find("note") then notiIcon = Icons.info end
+
 	local faded = false; local fadeOut
 	local noti = self.notifs:object("Frame", {BackgroundTransparency=1, Theme={BackgroundColor3="Main"}, Size=UDim2.new(0,300,0,0), ZIndex=100}):round(10)
 	noti:object("UIPadding", {PaddingBottom=UDim.new(0,11), PaddingTop=UDim.new(0,11), PaddingLeft=UDim.new(0,11), PaddingRight=UDim.new(0,11)})
@@ -511,8 +561,8 @@ function Library:notification(opts)
 	local _shadow = dropShadow:object("ImageLabel", {Centered=true, Position=UDim2.fromScale(.5,.5), BackgroundTransparency=1, Size=UDim2.new(1,70,1,70), ZIndex=0, Image="rbxassetid://6014261993", ImageColor3=Color3.fromRGB(0,0,0), ImageTransparency=1, ScaleType=Enum.ScaleType.Slice, SliceCenter=Rect.new(49,49,450,450)})
 	local durHolder = noti:object("Frame", {BackgroundTransparency=1, Theme={BackgroundColor3="Secondary"}, AnchorPoint=Vector2.new(0,1), Position=UDim2.fromScale(0,1), Size=UDim2.new(1,0,0,4), ZIndex=101}):round(100)
 	local len = durHolder:object("Frame", {BackgroundTransparency=1, Theme={BackgroundColor3="Tertiary"}, Size=UDim2.fromScale(1,1), ZIndex=102}):round(100)
-	local icon = noti:object("ImageLabel", {BackgroundTransparency=1, ImageTransparency=1, Position=UDim2.fromOffset(1,1), Size=UDim2.fromOffset(18,18), Image="rbxassetid://8628681683", Theme={ImageColor3="Tertiary"}, ZIndex=102})
-	local exit = noti:object("ImageButton", {Image="http://www.roblox.com/asset/?id=8497487650", AnchorPoint=Vector2.new(1,0), ImageColor3=Color3.fromRGB(255,255,255), Position=UDim2.new(1,-3,0,3), Size=UDim2.fromOffset(14,14), BackgroundTransparency=1, ImageTransparency=1, ZIndex=102})
+	local icon = noti:object("ImageLabel", {BackgroundTransparency=1, ImageTransparency=1, Position=UDim2.fromOffset(1,1), Size=UDim2.fromOffset(18,18), Image=notiIcon, Theme={ImageColor3="Tertiary"}, ZIndex=102})
+	local exit = noti:object("ImageButton", {Image=Icons.x, AnchorPoint=Vector2.new(1,0), ImageColor3=Color3.fromRGB(255,255,255), Position=UDim2.new(1,-3,0,3), Size=UDim2.fromOffset(14,14), BackgroundTransparency=1, ImageTransparency=1, ZIndex=102})
 	exit.MouseButton1Click:Connect(function() fadeOut() end)
 	local text = noti:object("TextLabel", {BackgroundTransparency=1, Text=opts.Text, Position=UDim2.new(0,0,0,23), Size=UDim2.new(1,0,100,0), TextSize=16, TextTransparency=1, TextWrapped=true, TextColor3=Color3.fromRGB(255,255,255), TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top, ZIndex=102})
 	text:tween({Size=UDim2.new(1,0,0,text.TextBounds.Y)})
@@ -537,7 +587,7 @@ end
 
 -- ═══ TAB ═══
 function Library:tab(opts)
-	opts = self:set_defaults({Name="New Tab", Icon="rbxassetid://8569322835"}, opts)
+	opts = self:set_defaults({Name="New Tab", Icon=Icons.box}, opts)
 	local tab = self.container:object("ScrollingFrame", {AnchorPoint=Vector2.new(0,1), Visible=false, BackgroundTransparency=1, Position=UDim2.fromScale(0,1), Size=UDim2.fromScale(1,1), ScrollBarThickness=0, ScrollingDirection=Enum.ScrollingDirection.Y, ZIndex=8})
 	local qaBtn, qaIcon
 	if not opts.Internal then
@@ -580,7 +630,7 @@ function Library:tab(opts)
 
 	tabBtn:object("TextLabel", {Theme={TextColor3="StrongText"}, AnchorPoint=Vector2.new(0,.5), BackgroundTransparency=1, TextSize=14, Text=opts.Name, Position=UDim2.new(0,25,0.5,0), TextXAlignment=Enum.TextXAlignment.Left, Size=UDim2.new(1,-45,0.5,0), Font=Enum.Font.SourceSans, TextTruncate=Enum.TextTruncate.AtEnd, ZIndex=9})
 	tabBtn:object("ImageLabel", {AnchorPoint=Vector2.new(0,0.5), BackgroundTransparency=1, Position=UDim2.new(0,5,0.5,0), Size=UDim2.new(0,15,0,15), Image=opts.Icon, Theme={ImageColor3="StrongText"}, ZIndex=9})
-	local tabBtnClose = tabBtn:object("ImageButton", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-5,0.5,0), Size=UDim2.fromOffset(14,14), Image="rbxassetid://8497487650", Theme={ImageColor3="StrongText"}, ZIndex=9})
+	local tabBtnClose = tabBtn:object("ImageButton", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-5,0.5,0), Size=UDim2.fromOffset(14,14), Image=Icons.x, Theme={ImageColor3="StrongText"}, ZIndex=9})
 
 	tabBtnClose.MouseButton1Click:connect(function()
 		tabBtn:fade(true, Library.CurrentTheme.Main, 0.1)
@@ -623,7 +673,7 @@ end
 function Library:toggle(opts)
 	opts = self:set_defaults({Name="Toggle", StartingState=false, Description=nil, Callback=function(s) end}, opts)
 	local c = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
-	local on, off = "http://www.roblox.com/asset/?id=8498709213", "http://www.roblox.com/asset/?id=8498691125"
+	local on, off = Icons.check, Icons.minus
 	local tog = opts.StartingState
 	local onI = c:object("ImageLabel", {AnchorPoint=Vector2.new(1,.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.new(0,26,0,26), Image=on, Theme={ImageColor3="Tertiary"}, ImageTransparency=(tog and 0) or 1, ZIndex=10})
 	local offI = c:object("ImageLabel", {AnchorPoint=Vector2.new(1,.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.new(0,26,0,26), Image=off, Theme={ImageColor3="WeakText"}, ImageTransparency=(tog and 1) or 0, ZIndex=10})
@@ -653,7 +703,7 @@ function Library:dropdown(opts)
 	local dc = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
 	dc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 15), Size=UDim2.new(0.5,-10,0,22), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
 	if opts.Description then dc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
-	local icon = dc:object("ImageLabel", {AnchorPoint=Vector2.new(1,0), BackgroundTransparency=1, Position=UDim2.new(1,-11,0,12), Size=UDim2.fromOffset(26,26), Image="rbxassetid://8498840035", Theme={ImageColor3="Tertiary"}, ZIndex=10})
+	local icon = dc:object("ImageLabel", {AnchorPoint=Vector2.new(1,0), BackgroundTransparency=1, Position=UDim2.new(1,-11,0,12), Size=UDim2.fromOffset(26,26), Image=Icons.down, Theme={ImageColor3="Tertiary"}, ZIndex=10})
 	local selT = dc:object("TextLabel", {AnchorPoint=Vector2.new(1,0), Theme={BackgroundColor3={"Secondary",-20},TextColor3="WeakText"}, Position=UDim2.new(1,-50,0,16), Size=UDim2.fromOffset(200,20), TextSize=14, Text=opts.StartingText, ZIndex=10}):round(5):stroke("Tertiary")
 	local ic = dc:object("Frame", {BackgroundTransparency=1, Position=UDim2.new(0,5,0,55), Size=UDim2.new(1,-10,0,0), ClipsDescendants=true, ZIndex=11})
 	selT.Size = UDim2.fromOffset(selT.TextBounds.X + 20, 20)
@@ -703,7 +753,7 @@ function Library:combo(opts)
 	cc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 0), Size=(opts.Description and UDim2.new(0.5,-10,0,22)) or UDim2.new(0.5,-10,1,0), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
 	if opts.Description then cc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
 	local summ = cc:object("TextLabel", {AnchorPoint=Vector2.new(1,0), Theme={BackgroundColor3={"Secondary",-20},TextColor3="WeakText"}, Position=UDim2.new(1,-50,0,16), Size=UDim2.fromOffset(200,20), TextSize=14, Text="None", ZIndex=10}):round(5):stroke("Tertiary")
-	local icon = cc:object("ImageLabel", {AnchorPoint=Vector2.new(1,0), BackgroundTransparency=1, Position=UDim2.new(1,-11,0,12), Size=UDim2.fromOffset(26,26), Image="rbxassetid://8498840035", Theme={ImageColor3="Tertiary"}, ZIndex=10})
+	local icon = cc:object("ImageLabel", {AnchorPoint=Vector2.new(1,0), BackgroundTransparency=1, Position=UDim2.new(1,-11,0,12), Size=UDim2.fromOffset(26,26), Image=Icons.down, Theme={ImageColor3="Tertiary"}, ZIndex=10})
 	local ic = cc:object("Frame", {BackgroundTransparency=1, Position=UDim2.new(0,5,0,55), Size=UDim2.new(1,-10,0,0), ClipsDescendants=true, ZIndex=11})
 	ic:object("UIListLayout", {Padding=UDim.new(0,5), SortOrder=Enum.SortOrder.LayoutOrder})
 	local state, checkboxes, open, ns = {}, {}, false, 0
@@ -713,11 +763,11 @@ function Library:combo(opts)
 		state[val] = false
 		if opts.DefaultSelected and table.find(opts.DefaultSelected, val) then state[val]=true end
 		local row = ic:object("TextButton", {Theme={BackgroundColor3={"Secondary",25},TextColor3="StrongText"}, Text="", Size=UDim2.new(1,0,0,22), ZIndex=12}):round(5)
-		local chk = row:object("ImageLabel", {BackgroundTransparency=1, AnchorPoint=Vector2.new(0,0.5), Position=UDim2.fromOffset(6,11), Size=UDim2.fromOffset(14,14), Image=state[val] and "http://www.roblox.com/asset/?id=8498709213" or "http://www.roblox.com/asset/?id=8498691125", Theme={ImageColor3=state[val] and "Tertiary" or "WeakText"}, ZIndex=13})
+		local chk = row:object("ImageLabel", {BackgroundTransparency=1, AnchorPoint=Vector2.new(0,0.5), Position=UDim2.fromOffset(6,11), Size=UDim2.fromOffset(14,14), Image=state[val] and Icons.check or Icons.minus, Theme={ImageColor3=state[val] and "Tertiary" or "WeakText"}, ZIndex=13})
 		row:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(26,0), Size=UDim2.new(1,-30,1,0), Text=label, TextSize=14, TextXAlignment=Enum.TextXAlignment.Left, Theme={TextColor3="StrongText"}, ZIndex=13})
 		checkboxes[val] = {row=row, check=chk, label=label}
 		local function upd() local parts = {}; for v, o in next, state do if o then table.insert(parts, checkboxes[v].label) end end; summ.Text = #parts==0 and "None" or table.concat(parts, ", "); summ.Size = UDim2.fromOffset(math.min(#summ.Text*7+20, 200), 20); opts.Callback(state) end
-		row.MouseButton1Click:connect(function() state[val] = not state[val]; chk.Image = state[val] and "http://www.roblox.com/asset/?id=8498709213" or "http://www.roblox.com/asset/?id=8498691125"; chk:tween({ImageColor3=state[val] and Library.CurrentTheme.Tertiary or Library.CurrentTheme.WeakText}); upd() end)
+		row.MouseButton1Click:connect(function() state[val] = not state[val]; chk.Image = state[val] and Icons.check or Icons.minus; chk:tween({ImageColor3=state[val] and Library.CurrentTheme.Tertiary or Library.CurrentTheme.WeakText}); upd() end)
 		row.MouseEnter:connect(function() row:tween({BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,25)}) end)
 		row.MouseLeave:connect(function() row:tween({BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,15)}) end)
 	end
@@ -734,7 +784,7 @@ function Library:combo(opts)
 	self:_resize_tab()
 	local api = {}
 	function api:Get() return state end
-	function api:Set(vs) for k in next, state do state[k]=false end; for _, v in next, vs do if state[v]~=nil then state[v]=true end end; for val, cb in next, checkboxes do cb.check.Image = state[val] and "http://www.roblox.com/asset/?id=8498709213" or "http://www.roblox.com/asset/?id=8498691125"; cb.check.ImageColor3 = state[val] and Library.CurrentTheme.Tertiary or Library.CurrentTheme.WeakText end; opts.Callback(state) end
+	function api:Set(vs) for k in next, state do state[k]=false end; for _, v in next, vs do if state[v]~=nil then state[v]=true end end; for val, cb in next, checkboxes do cb.check.Image = state[val] and Icons.check or Icons.minus; cb.check.ImageColor3 = state[val] and Library.CurrentTheme.Tertiary or Library.CurrentTheme.WeakText end; opts.Callback(state) end
 	return api
 end
 
@@ -777,11 +827,11 @@ function Library:button(opts)
 	local c = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
 	local txt = c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 0), Size=(opts.Description and UDim2.new(0.5,-10,0,22)) or UDim2.new(0.5,-10,1,0), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
 	if opts.Description then c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
-	local icon = c:object("ImageLabel", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.fromOffset(26,26), Image="rbxassetid://8498776661", Theme={ImageColor3="Tertiary"}, ZIndex=10})
+	local icon = c:object("ImageLabel", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.fromOffset(22,22), Image=Icons.right, Theme={ImageColor3="Tertiary"}, ZIndex=10})
 	do
 		local h, d = false, false
-		c.MouseEnter:connect(function() h=true; c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)}; icon:tween{Size=UDim2.fromOffset(28,28), Length=0.1} end)
-		c.MouseLeave:connect(function() h=false; if not d then c:tween{BackgroundColor3=Library.CurrentTheme.Secondary} end; icon:tween{Size=UDim2.fromOffset(26,26), Length=0.1} end)
+		c.MouseEnter:connect(function() h=true; c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)}; icon:tween{Size=UDim2.fromOffset(24,24), Length=0.1} end)
+		c.MouseLeave:connect(function() h=false; if not d then c:tween{BackgroundColor3=Library.CurrentTheme.Secondary} end; icon:tween{Size=UDim2.fromOffset(22,22), Length=0.1} end)
 		c.MouseButton1Down:connect(function() d=true; c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,20)} end)
 		UserInputService.InputEnded:connect(function(k) if k.UserInputType==Enum.UserInputType.MouseButton1 then d=false; c:tween{BackgroundColor3=(h and self:lighten(Library.CurrentTheme.Secondary)) or Library.CurrentTheme.Secondary} end end)
 		c.MouseButton1Click:connect(function() opts.Callback() end)
@@ -799,7 +849,8 @@ function Library:color_picker(opts)
 	local bc = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
 	bc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 0), Size=(opts.Description and UDim2.new(0.5,-10,0,22)) or UDim2.new(0.5,-10,1,0), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
 	if opts.Description then bc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
-	local icon = bc:object("ImageLabel", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.fromOffset(26,26), Image="rbxassetid://8604555937", ImageColor3=Library.CurrentTheme.Tertiary, ZIndex=10})
+	-- color picker trigger: use cursor (no palette icon available)
+	local icon = bc:object("ImageLabel", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.fromOffset(22,22), Image=Icons.cursor, ImageColor3=Library.CurrentTheme.Tertiary, ZIndex=10})
 	do
 		local h, d = false, false
 		bc.MouseEnter:connect(function() h=true; bc:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)} end)
@@ -841,7 +892,7 @@ function Library:color_picker(opts)
 				local r = infos:object("TextLabel", {AnchorPoint=Vector2.new(0.5,0), Name="1", Text=tostring(selectedColor.R*255), Theme={BackgroundColor3={"Secondary",12}}, Size=UDim2.new(1,-10,0,18), TextColor3=Color3.fromHSV(0,0.8,1), TextSize=14, BackgroundTransparency=1, TextTransparency=1, ZIndex=204}):round(4)
 				local g = infos:object("TextLabel", {AnchorPoint=Vector2.new(0.5,0), Name="2", Text=tostring(selectedColor.G*255), Theme={BackgroundColor3={"Secondary",12}}, Size=UDim2.new(1,-10,0,18), TextColor3=Color3.fromHSV(120/360,0.8,1), TextSize=14, BackgroundTransparency=1, TextTransparency=1, ZIndex=204}):round(4)
 				local b = infos:object("TextLabel", {AnchorPoint=Vector2.new(0.5,0), Text=tostring(selectedColor.B*255), Name="3", Theme={BackgroundColor3={"Secondary",12}}, Size=UDim2.new(1,-10,0,18), TextColor3=Color3.fromHSV(240/360,0.8,1), TextSize=14, BackgroundTransparency=1, TextTransparency=1, ZIndex=204}):round(4)
-				local pickBtn = holder:object("ImageButton", {AnchorPoint=Vector2.new(1,1), Theme={BackgroundColor3="Tertiary"}, Position=UDim2.fromScale(1,1), Size=UDim2.new(0.5,0,0,20), Image="rbxassetid://8593962406", ScaleType=Enum.ScaleType.Fit, BackgroundTransparency=1, ImageTransparency=1, ZIndex=206}):round(6)
+				local pickBtn = holder:object("ImageButton", {AnchorPoint=Vector2.new(1,1), Theme={BackgroundColor3="Tertiary"}, Position=UDim2.fromScale(1,1), Size=UDim2.new(0.5,0,0,20), Image=Icons.check_plain, ImageColor3=Library.CurrentTheme.Main, ScaleType=Enum.ScaleType.Fit, BackgroundTransparency=1, ImageTransparency=1, ZIndex=206}):round(6)
 				local pl = holder:object("Frame", {AnchorPoint=Vector2.new(1,1), BackgroundColor3=selectedColor, Position=UDim2.new(1,-65,1,-25), Size=UDim2.fromOffset(40,40), BackgroundTransparency=1, ZIndex=205}):round(5)
 				local pd = holder:object("Frame", {AnchorPoint=Vector2.new(1,1), BackgroundColor3=selectedColor, Position=UDim2.new(1,-15,1,-25), Size=UDim2.fromOffset(40,40), BackgroundTransparency=1, ZIndex=205}):round(5)
 
@@ -918,6 +969,7 @@ function Library:credit(opts)
 	if opts.Description then cc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
 	if setclipboard and opts.Discord then
 		local dc = cc:object("TextButton", {AnchorPoint=Vector2.new(1,1), Size=UDim2.fromOffset(24,24), Position=UDim2.new(1,-8,1,-8), BackgroundColor3=Color3.fromRGB(88,101,242), ZIndex=10}):round(5):tooltip("copy discord")
+		dc:object("ImageLabel", {BackgroundTransparency=1, Size=UDim2.fromScale(0.65,0.65), Centered=true, Image=Icons.discord, ImageColor3=Color3.fromRGB(255,255,255), ZIndex=11})
 		dc.MouseButton1Click:connect(function() setclipboard(opts.Discord) end)
 	end
 	self._resize_tab({container=self.creditsContainer or self.container, layout=(self.creditsContainer and self.creditsContainer.AbsoluteObject.UIListLayout) or self.layout})
@@ -1018,7 +1070,7 @@ function Library:textbox(opts)
 	c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 0), Size=(opts.Description and UDim2.new(0.5,-10,0,22)) or UDim2.new(0.5,-10,1,0), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
 	if opts.Description then c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
 	local tb = c:object("TextBox", {AnchorPoint=Vector2.new(1,0), Theme={BackgroundColor3={"Secondary",-20},TextColor3="WeakText"}, Position=UDim2.new(1,-50,0,16), Size=UDim2.new(0,50,0,20), TextSize=12, PlaceholderText=opts.Placeholder, ClipsDescendants=true, ZIndex=10}):round(5):stroke("Tertiary")
-	c:object("ImageLabel", {Image="http://www.roblox.com/asset/?id=8569329416", AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-13,0.5,0), Size=UDim2.new(0,16,0,16), Theme={ImageColor3="StrongText"}, ZIndex=10})
+	c:object("ImageLabel", {Image=Icons.save, AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-13,0.5,0), Size=UDim2.new(0,16,0,16), Theme={ImageColor3="StrongText"}, ZIndex=10})
 	tb.Size = UDim2.fromOffset(tb.TextBounds.X + 20, 20)
 	do
 		local fc = false

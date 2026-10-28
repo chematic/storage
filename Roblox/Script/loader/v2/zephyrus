@@ -13,7 +13,7 @@
 █░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█░░░░░░██░░░░░░░░░░█░░░░░░░░░░░░░░█░░░░░░░░░░░░░░█░░░░░░██░░░░░░░░░░███████░░░░░░███████
 ██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 
-  AZUNO UI LIBRARY v1.1
+  AZUNO UI LIBRARY v1.2 - HACKER EDITION
   Maintained by Azuno @azunoo
   Based on Mercury by Abstract#8007 & Deity#0228
 ]]
@@ -27,7 +27,7 @@ local Mouse = LocalPlayer:GetMouse()
 local HTTPService = game:GetService("HttpService")
 
 local Library = {
-	_VERSION = "1.1",
+	_VERSION = "1.2",
 	_OWNER = "Azuno",
 	Themes = {
 		Legacy = {
@@ -57,6 +57,13 @@ local Library = {
 			Tertiary = Color3.fromRGB(120, 130, 255),
 			StrongText = Color3.fromHSV(0, 0, 1),
 			WeakText = Color3.fromHSV(0, 0, 172/255)
+		},
+		Hacker = {
+			Main = Color3.fromRGB(0, 0, 0), -- AMOLED Noir Pur
+			Secondary = Color3.fromRGB(10, 15, 10), -- Vert très sombre
+			Tertiary = Color3.fromRGB(0, 255, 100), -- Vert Matrix Néon
+			StrongText = Color3.fromRGB(200, 255, 200),
+			WeakText = Color3.fromRGB(0, 150, 0)
 		},
 		Vaporwave = {},
 		OperaGX = {},
@@ -122,6 +129,11 @@ function Library:change_theme(toTheme)
 			end
 			element:tween{[property] = modifiedColor}
 		end
+	end
+	
+	-- Active/Désactive l'effet ASCII si on est sur Hacker
+	if Library.hackerBg and Library.hackerBg.AbsoluteObject then
+		Library.hackerBg.Visible = (toTheme == Library.Themes.Hacker)
 	end
 end
 
@@ -431,6 +443,67 @@ function Library:create(options)
 		core.ClipsDescendants = false
 	end)
 
+	-- ═══════════════════════════════════════════════════════════════════════════
+	--  EFFET ASCII / HACKER BACKGROUND
+	-- ═══════════════════════════════════════════════════════════════════════════
+	local hackerBg = core:object("Frame", {
+		Size = UDim2.new(1, -20, 1, -96), -- Aligné avec la zone de contenu
+		Position = UDim2.new(0.5, 0, 0, 50), -- Sous la barre d'URL
+		AnchorPoint = Vector2.new(0.5, 0),
+		BackgroundTransparency = 1,
+		Visible = (options.Theme == Library.Themes.Hacker),
+		ZIndex = 2, -- Derrière les éléments de l'UI mais devant le fond
+		ClipsDescendants = true
+	})
+	Library.hackerBg = hackerBg
+
+	local chars = {"0", "1", "/", "-", "+", ";", ":", "*", "|", " "}
+	local asciiCols = {}
+	local cols = 25
+	local rows = 50
+	local charSize = 14
+
+	for i = 1, cols do
+		local tl = hackerBg:object("TextLabel", {
+			BackgroundTransparency = 1,
+			Text = "",
+			TextColor3 = Library.CurrentTheme.Tertiary,
+			TextTransparency = 0.7, -- Effet subtil
+			Size = UDim2.new(0, 20, 0, rows * charSize),
+			Position = UDim2.new((i-1)/cols, 0, 0, math.random(-rows*charSize, 0)),
+			TextSize = charSize,
+			Font = Enum.Font.Code,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			ZIndex = 2
+		})
+		local str = ""
+		for j = 1, rows do str = str .. chars[math.random(1, #chars)] .. "\n" end
+		tl.Text = str
+		table.insert(asciiCols, {obj = tl, speed = math.random(40, 100), y = tl.Position.Y.Offset})
+	end
+
+	task.spawn(function()
+		while Library.hackerBg and Library.hackerBg.AbsoluteObject and Library.hackerBg.AbsoluteObject.Parent do
+			if Library.hackerBg.Visible then
+				for _, col in ipairs(asciiCols) do
+					col.y = col.y + col.speed * 0.03
+					if col.y > hackerBg.AbsoluteSize.Y then
+						col.y = -rows * charSize
+						local str = ""
+						for j = 1, rows do str = str .. chars[math.random(1, #chars)] .. "\n" end
+						col.obj.Text = str
+					end
+					col.obj.Position = UDim2.new(col.obj.Position.X.Scale, 0, 0, col.y)
+				end
+				task.wait(0.03) -- 30 FPS, très fluide et léger
+			else
+				task.wait(0.5)
+			end
+		end
+	end)
+	-- ═══════════════════════════════════════════════════════════════════════════
+
 	do
 		local S, Event = pcall(function() return core.MouseEnter end)
 		if S then
@@ -571,7 +644,8 @@ function Library:create(options)
 		Theme = {BackgroundColor3 = {"Secondary", -10}},
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -20),
-		Size = UDim2.new(1, -10, 1, -86)
+		Size = UDim2.new(1, -10, 1, -86),
+		BackgroundTransparency = (options.Theme == Library.Themes.Hacker) and 0.3 or 0 -- Rend le fond un peu transparent pour voir l'effet ASCII sur le thème Hacker
 	}):round(7)
 
 	local status = core:object("TextLabel", {
@@ -668,7 +742,8 @@ function Library:create(options)
 	local profile = homePage:object("Frame", {
 		AnchorPoint = Vector2.new(0, .5),
 		Theme = {BackgroundColor3 = "Secondary"},
-		Size = UDim2.new(1, -20, 0, 100)
+		Size = UDim2.new(1, -20, 0, 100),
+		BackgroundTransparency = (options.Theme == Library.Themes.Hacker) and 0.2 or 0
 	}):round(7)
 
 	profile:object("ImageLabel", {

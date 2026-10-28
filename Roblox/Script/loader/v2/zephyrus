@@ -1,6 +1,6 @@
 --[[
 ██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-  AZUNO UI LIBRARY v1.6 — TERMINAL EDITION
+  AZUNO UI LIBRARY v1.5 — HACKER EDITION MAX (3x Enhanced)
   Maintained by Azuno @azunoo
   Based on Mercury by Abstract#8007 & Deity#0228
 ]]
@@ -13,92 +13,70 @@ local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local HTTPService = game:GetService("HttpService")
 
-local ACCENT = Color3.fromRGB(57, 255, 136)
-local CYAN = Color3.fromRGB(57, 217, 255)
-local WARN = Color3.fromRGB(255, 180, 80)
-
 local Library = {
-	_VERSION = "1.6", _OWNER = "Azuno",
+	_VERSION = "1.5", _OWNER = "Azuno",
 	Themes = {
 		Legacy = { Main = Color3.fromHSV(262/360, 60/255, 34/255), Secondary = Color3.fromHSV(240/360, 40/255, 63/255), Tertiary = Color3.fromHSV(260/360, 60/255, 148/255), StrongText = Color3.fromHSV(0, 0, 1), WeakText = Color3.fromHSV(0, 0, 172/255) },
 		Dark = { Main = Color3.fromRGB(30,30,35), Secondary = Color3.fromRGB(50,50,55), Tertiary = Color3.fromRGB(70,130,180), StrongText = Color3.fromHSV(0,0,1), WeakText = Color3.fromHSV(0,0,172/255) },
 		Aqua = { Main = Color3.fromRGB(19,21,21), Secondary = Color3.fromRGB(65,63,63), Tertiary = Color3.fromRGB(51,153,137), StrongText = Color3.fromHSV(0,0,1), WeakText = Color3.fromHSV(0,0,172/255) },
 		Midnight = { Main = Color3.fromRGB(16,18,27), Secondary = Color3.fromRGB(28,32,45), Tertiary = Color3.fromRGB(120,130,255), StrongText = Color3.fromHSV(0,0,1), WeakText = Color3.fromHSV(0,0,172/255) },
 		Hacker = {
-			Main = Color3.fromRGB(3, 5, 4),
-			Secondary = Color3.fromRGB(8, 14, 10),
-			Tertiary = ACCENT,
-			StrongText = Color3.fromRGB(220, 255, 235),
-			WeakText = Color3.fromRGB(90, 130, 105),
-			-- extra semantic tokens (not registered in ThemeObjects)
-			Accent = ACCENT, AccentAlt = CYAN, Warning = WARN,
-			Border = Color3.fromRGB(25, 55, 35), BorderDim = Color3.fromRGB(15, 30, 20),
-			Panel = Color3.fromRGB(6, 10, 7),
+			Main = Color3.fromRGB(0,0,0), Secondary = Color3.fromRGB(8,8,8),
+			Tertiary = Color3.fromRGB(255,255,255), StrongText = Color3.fromRGB(255,255,255), WeakText = Color3.fromRGB(130,130,130)
 		},
-		Vaporwave = { Main = Color3.fromRGB(24, 12, 40), Secondary = Color3.fromRGB(40, 22, 60), Tertiary = Color3.fromRGB(255, 110, 210), StrongText = Color3.fromRGB(255, 245, 255), WeakText = Color3.fromRGB(190, 160, 215) },
-		OperaGX = { Main = Color3.fromRGB(14, 14, 14), Secondary = Color3.fromRGB(26, 26, 26), Tertiary = Color3.fromRGB(255, 45, 75), StrongText = Color3.fromRGB(255, 255, 255), WeakText = Color3.fromRGB(150, 150, 150) },
-		VisualStudio = { Main = Color3.fromRGB(30, 30, 30), Secondary = Color3.fromRGB(45, 45, 48), Tertiary = Color3.fromRGB(86, 156, 214), StrongText = Color3.fromRGB(245, 245, 245), WeakText = Color3.fromRGB(160, 160, 160) },
+		Vaporwave = {}, OperaGX = {}, VisualStudio = {}
 	},
 	ColorPickerStyles = { Legacy = 0, Modern = 1 },
 	Toggled = true,
 	ThemeObjects = { Main = {}, Secondary = {}, Tertiary = {}, StrongText = {}, WeakText = {} },
 	DisplayName = nil, DragSpeed = 0.06, LockDragging = false,
-	ToggleKey = Enum.KeyCode.Home, UrlLabel = nil, Url = nil,
-	_hackerConn = nil, _hackerBg = nil, _dead = false,
+	ToggleKey = Enum.KeyCode.Home, UrlLabel = nil, Url = nil
 }
 Library.__index = Library
 local selectedTab
 Library._promptExists = false
 Library._colorPickerExists = false
 
--- ═══════════════════════════════════════════════════════════════════════════
---  UTILITIES
--- ═══════════════════════════════════════════════════════════════════════════
 function Library:set_defaults(d, o) d = d or {}; o = o or {}; for k, v in next, o do d[k] = v end; return d end
 
 function Library:change_theme(t)
-	if not t then return end
 	Library.CurrentTheme = t
 	if t.Light then Library.darken, Library.lighten = self._lighten_base, self._darken_base
 	else Library.darken, Library.lighten = self._darken_base, self._lighten_base end
 	local c = self:lighten(t.Tertiary, 20)
-	if Library.DisplayName and Library.DisplayName.AbsoluteObject and Library.DisplayName.AbsoluteObject.Parent then
-		Library.DisplayName.Text = "> user: <font color='rgb(" .. math.floor(c.R*255) .. "," .. math.floor(c.G*255) .. "," .. math.floor(c.B*255) .. ")'>" .. LocalPlayer.DisplayName .. "</font>"
+	if Library.DisplayName then
+		Library.DisplayName.Text = "Welcome, <font color='rgb(" .. math.floor(c.R*255) .. "," .. math.floor(c.G*255) .. "," .. math.floor(c.B*255) .. ")'> <b>" .. LocalPlayer.DisplayName .. "</b> </font>"
 	end
 	for color, objects in next, Library.ThemeObjects do
-		for i = #objects, 1, -1 do
-			local obj = objects[i]
+		for _, obj in next, objects do
 			local e, p, th, ca = obj[1], obj[2], obj[3], obj[4] or 0
-			if not (e and e.Parent) then table.remove(objects, i)
-			else
-				local tc = Library.CurrentTheme[th]
-				if tc then
-					local mc = tc
-					if ca < 0 then mc = Library:darken(tc, -1*ca) elseif ca > 0 then mc = Library:lighten(tc, ca) end
-					pcall(function() e:tween{[p] = mc} end)
-				end
+			local tc = Library.CurrentTheme[th]
+			if tc then
+				local mc = tc
+				if ca < 0 then mc = Library:darken(tc, -1*ca) elseif ca > 0 then mc = Library:lighten(tc, ca) end
+				e:tween{[p] = mc}
 			end
 		end
 	end
-	if Library._hackerBg and Library._hackerBg.AbsoluteObject then
-		Library._hackerBg.Visible = (t == Library.Themes.Hacker)
+	if Library.hackerBg and Library.hackerBg.AbsoluteObject then
+		Library.hackerBg.Visible = (t == Library.Themes.Hacker)
 	end
 end
 
 function Library:object(class, props)
 	local o = Instance.new(class)
-	for k, v in next, {BorderSizePixel=0, AutoButtonColor=false, Font=Enum.Font.Code, Text=""} do pcall(function() o[k]=v end) end
+	for k, v in next, {BorderSizePixel=0, AutoButtonColor=false, Font=Enum.Font.SourceSans, Text=""} do pcall(function() o[k]=v end) end
 	local m = {}; m.AbsoluteObject = o
 	function m:tween(opt, cb)
-		opt = Library:set_defaults({Length=0.15, Style=Enum.EasingStyle.Quad, Direction=Enum.EasingDirection.Out}, opt)
+		opt = Library:set_defaults({Length=0.2, Style=Enum.EasingStyle.Linear, Direction=Enum.EasingDirection.InOut}, opt)
 		cb = cb or function() end
 		local ti = TweenInfo.new(opt.Length, opt.Style, opt.Direction)
 		opt.Length=nil; opt.Style=nil; opt.Direction=nil
 		local tw = TweenService:Create(o, ti, opt); tw:Play(); tw.Completed:Connect(cb); return tw
 	end
-	function m:round(r) r = r or 3; Library:object("UICorner", {Parent=o, CornerRadius=UDim.new(0,r)}); return m end
+	function m:round(r) r = r or 6; Library:object("UICorner", {Parent=o, CornerRadius=UDim.new(0,r)}); return m end
 	function m:object(c, p) p = p or {}; p.Parent = o; return Library:object(c, p) end
-	function m:crossfade(p2, l) l = l or .15; self:tween({ImageTransparency=1}); p2:tween({ImageTransparency=0}) end
+	function m:crossfade(p2, l) l = l or .2; self:tween({ImageTransparency=1}); p2:tween({ImageTransparency=0}) end
 	function m:fade(state, co, l, inst)
 		l = l or 0.2
 		if not rawget(self, "fadeFrame") then
@@ -122,17 +100,17 @@ function Library:object(class, props)
 			if ca < 0 then mc = Library:darken(tc, -1*ca) elseif ca > 0 then mc = Library:lighten(tc, ca) end
 			s.Color = mc; table.insert(Library.ThemeObjects[th], {s, "Color", th, ca})
 		elseif type(color) == "string" then
-			s.Color = Library.CurrentTheme[color] or Color3.new(1,1,1)
-			table.insert(Library.ThemeObjects[color], {s, "Color", color, 0})
+			s.Color = Library.CurrentTheme[color]; table.insert(Library.ThemeObjects[color], {s, "Color", color, 0})
 		else s.Color = color end
 		return m
 	end
 	function m:tooltip(text)
-		local tc = m:object("TextLabel", {Theme={BackgroundColor3={"Main",10},TextColor3={"WeakText"}}, TextSize=12, Text=text, Position=UDim2.new(0.5,0,0,-8), TextXAlignment=Enum.TextXAlignment.Center, TextYAlignment=Enum.TextYAlignment.Center, AnchorPoint=Vector2.new(0.5,1), BackgroundTransparency=1, TextTransparency=1, ZIndex=150}):round(2)
-		tc.Size = UDim2.fromOffset(tc.TextBounds.X+12, tc.TextBounds.Y+6)
+		local tc = m:object("TextLabel", {Theme={BackgroundColor3={"Main",10},TextColor3={"WeakText"}}, TextSize=16, Text=text, Position=UDim2.new(0.5,0,0,-8), TextXAlignment=Enum.TextXAlignment.Center, TextYAlignment=Enum.TextYAlignment.Center, AnchorPoint=Vector2.new(0.5,1), BackgroundTransparency=1, TextTransparency=1}):round(5)
+		tc.Size = UDim2.fromOffset(tc.TextBounds.X+16, tc.TextBounds.Y+8)
+		local ta = tc:object("ImageLabel", {Image="http://www.roblox.com/asset/?id=4292970642", Theme={ImageColor3={"Main",10}}, AnchorPoint=Vector2.new(0.5,0), Rotation=180, Position=UDim2.fromScale(0.5,1), Size=UDim2.fromOffset(10,6), BackgroundTransparency=1, ImageTransparency=1})
 		local h = false
-		m.MouseEnter:connect(function() h=true; task.wait(0.15); if h and tc.AbsoluteObject.Parent then tc:tween{BackgroundTransparency=0.15,TextTransparency=0.1} end end)
-		m.MouseLeave:connect(function() h=false; if tc.AbsoluteObject.Parent then tc:tween{BackgroundTransparency=1,TextTransparency=1} end end)
+		m.MouseEnter:connect(function() h=true; wait(0.2); if h then tc:tween{BackgroundTransparency=0.2,TextTransparency=0.2}; ta:tween{ImageTransparency=0.2} end end)
+		m.MouseLeave:connect(function() h=false; tc:tween{BackgroundTransparency=1,TextTransparency=1}; ta:tween{ImageTransparency=1} end)
 		return m
 	end
 	local ch = {
@@ -141,13 +119,12 @@ function Library:object(class, props)
 			for p, obj in next, v do
 				if type(obj) == "table" then
 					local th, ca = obj[1], obj[2] or 0
-					local tc = Library.CurrentTheme[th] or Color3.new(1,1,1)
+					local tc = Library.CurrentTheme[th]
 					local mc = tc
 					if ca < 0 then mc = Library:darken(tc, -1*ca) elseif ca > 0 then mc = Library:lighten(tc, ca) end
-					o[p] = mc; table.insert(Library.ThemeObjects[th], {m, p, th, ca})
+					o[p] = mc; table.insert(self.ThemeObjects[th], {m, p, th, ca})
 				else
-					o[p] = Library.CurrentTheme[obj] or Color3.new(1,1,1)
-					table.insert(Library.ThemeObjects[obj], {m, p, obj, 0})
+					o[p] = Library.CurrentTheme[obj]; table.insert(self.ThemeObjects[obj], {m, p, obj, 0})
 				end
 			end
 		end,
@@ -156,42 +133,17 @@ function Library:object(class, props)
 	return setmetatable(m, {__index=function(_,k) return o[k] end, __newindex=function(_,k,v) o[k]=v end})
 end
 
--- Standard hover/press state for interactive widgets
-function Library:_hover_style(c, idle, hover, press)
-	c.MouseEnter:connect(function() if not rawget(c, "_pressing") then pcall(function() c:tween{BackgroundColor3=hover} end) end end)
-	c.MouseLeave:connect(function() if not rawget(c, "_pressing") then pcall(function() c:tween{BackgroundColor3=idle} end) end end)
-	c.MouseButton1Down:connect(function() c._pressing = true; pcall(function() c:tween{BackgroundColor3=press} end) end)
-	UserInputService.InputEnded:connect(function(k)
-		if k.UserInputType == Enum.UserInputType.MouseButton1 then
-			c._pressing = false
-			if c.AbsoluteObject and c.AbsoluteObject.Parent then pcall(function() c:tween{BackgroundColor3=idle} end) end
-		end
-	end)
-end
-
--- Terminal-styled widget container: label + desc + right slot
-function Library:_widget_base(name, desc)
-	local h = desc and 58 or 44
-	local c = self.container:object("Frame", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,h), ZIndex=9}):round(3)
-	c:stroke({"Tertiary", -30}, 1)
-	c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(12, (desc and 8) or 0), Size=UDim2.new(0.55,-12,0, desc and 16 or h), Text=name, TextSize=14, Font=Enum.Font.Code, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
-	if desc then
-		c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(12, 26), Size=UDim2.new(0.55,-12,0,14), Text=desc, TextSize=11, Font=Enum.Font.Code, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, TextTruncate=Enum.TextTruncate.AtEnd, ZIndex=10})
-	end
-	return c, h
-end
-
 function Library:show(s)
 	self.Toggled = s; self.mainFrame.ClipsDescendants = true
 	if s then
-		self.mainFrame:tween({Size=self.mainFrame.oldSize, Length=0.22}, function()
+		self.mainFrame:tween({Size=self.mainFrame.oldSize, Length=0.25}, function()
 			rawset(self.mainFrame, "oldSize", (s and self.mainFrame.oldSize) or self.mainFrame.Size)
 			self.mainFrame.ClipsDescendants = false
 		end)
-		task.wait(0.12); self.mainFrame:fade(not s, self.mainFrame.BackgroundColor3, 0.12)
+		wait(0.15); self.mainFrame:fade(not s, self.mainFrame.BackgroundColor3, 0.15)
 	else
-		self.mainFrame:fade(not s, self.mainFrame.BackgroundColor3, 0.12); task.wait(0.08)
-		self.mainFrame:tween{Size=UDim2.new(), Length=0.22}
+		self.mainFrame:fade(not s, self.mainFrame.BackgroundColor3, 0.15); wait(0.1)
+		self.mainFrame:tween{Size=UDim2.new(), Length=0.25}
 	end
 end
 
@@ -200,168 +152,244 @@ function Library._lighten_base(_, c, f) local h,s,v = Color3.toHSV(c); f = 1-((f
 function Library:darken(c, f) local h,s,v = Color3.toHSV(c); f = 1-((f or 15)/80); return Color3.fromHSV(h, math.clamp(s/f,0,1), math.clamp(v*f,0,1)) end
 function Library:lighten(c, f) local h,s,v = Color3.toHSV(c); f = 1-((f or 15)/80); return Color3.fromHSV(h, math.clamp(s*f,0,1), math.clamp(v/f,0,1)) end
 local updateSettings = function() end
-function Library:set_status(txt) if self.statusText and self.statusText.AbsoluteObject.Parent then self.statusText.Text = txt end end
+function Library:set_status(txt) self.statusText.Text = txt end
 
--- ═══════════════════════════════════════════════════════════════════════════
---  CREATE
--- ═══════════════════════════════════════════════════════════════════════════
 function Library:create(opts)
 	local settings = {Theme="Dark"}
 	if readfile and writefile and isfile then
 		if not isfile("AzunoSettings.json") then writefile("AzunoSettings.json", HTTPService:JSONEncode(settings)) end
-		local ok, decoded = pcall(function() return HTTPService:JSONDecode(readfile("AzunoSettings.json")) end)
-		if ok and decoded and decoded.Theme and Library.Themes[decoded.Theme] then settings = decoded end
+		settings = HTTPService:JSONDecode(readfile("AzunoSettings.json"))
 		Library.CurrentTheme = Library.Themes[settings.Theme]
-		updateSettings = function(p, v) settings[p]=v; pcall(function() writefile("AzunoSettings.json", HTTPService:JSONEncode(settings)) end) end
+		updateSettings = function(p, v) settings[p]=v; writefile("AzunoSettings.json", HTTPService:JSONEncode(settings)) end
 	end
-	opts = self:set_defaults({Name="AZUNO", Size=UDim2.fromOffset(620,420), Theme=self.Themes[settings.Theme] or self.Themes.Dark, Link="https://github.com/azunoo/azuno-lib"}, opts)
+	opts = self:set_defaults({Name="Azuno", Size=UDim2.fromOffset(600,400), Theme=self.Themes[settings.Theme], Link="https://github.com/azunoo/azuno-lib"}, opts)
 	if getgenv and getgenv().AzunoUI then pcall(getgenv().AzunoUI); getgenv().AzunoUI = nil end
 	if opts.Link:sub(-1,-1) == "/" then opts.Link = opts.Link:sub(1,-2) end
 	if opts.Theme.Light then self.darken, self.lighten = self.lighten, self.darken end
 	self.CurrentTheme = opts.Theme
-	Library._dead = false
 
-	local isHacker = (opts.Theme == Library.Themes.Hacker)
+	local gui = self:object("ScreenGui", {Parent=(RunService:IsStudio() and LocalPlayer.PlayerGui) or game:GetService("CoreGui"), ZIndexBehavior=Enum.ZIndexBehavior.Global, Name="AzunoUI"})
+	local notiHolder = gui:object("Frame", {AnchorPoint=Vector2.new(1,1), BackgroundTransparency=1, Position=UDim2.new(1,-30,1,-30), Size=UDim2.new(0,300,1,-60)})
+	notiHolder:object("UIListLayout", {Padding=UDim.new(0,20), VerticalAlignment=Enum.VerticalAlignment.Bottom})
 
-	local gui = self:object("ScreenGui", {Parent=(RunService:IsStudio() and LocalPlayer.PlayerGui) or game:GetService("CoreGui"), ZIndexBehavior=Enum.ZIndexBehavior.Global, Name="AzunoUI", IgnoreGuiInset=true})
-	local notiHolder = gui:object("Frame", {AnchorPoint=Vector2.new(1,1), BackgroundTransparency=1, Position=UDim2.new(1,-24,1,-24), Size=UDim2.new(0,320,1,-48), ZIndex=1000})
-	notiHolder:object("UIListLayout", {Padding=UDim.new(0,10), VerticalAlignment=Enum.VerticalAlignment.Bottom, SortOrder=Enum.SortOrder.LayoutOrder})
-
-	local core = gui:object("Frame", {Size=UDim2.new(), Theme={BackgroundColor3="Main"}, Centered=true, ClipsDescendants=true, ZIndex=5}):round(4)
-	core:stroke({"Tertiary", -55}, 1)
-	core:fade(true, nil, 0.2, true); core:fade(false, nil, 0.35)
-	core:tween({Size=opts.Size, Length=0.28}, function() core.ClipsDescendants = false end)
+	local core = gui:object("Frame", {Size=UDim2.new(), Theme={BackgroundColor3="Main"}, Centered=true, ClipsDescendants=true}):round(10)
+	core:fade(true, nil, 0.2, true); core:fade(false, nil, 0.4)
+	core:tween({Size=opts.Size, Length=0.3}, function() core.ClipsDescendants = false end)
 
 	-- ═══════════════════════════════════════════════════════════════════════════
-	--  HACKER BACKGROUND — SUBTLE TERMINAL MATRIX
+	--  HACKER EFFECTS — MAX MATRIX + GLITCH + CRT (3x ENHANCED)
 	-- ═══════════════════════════════════════════════════════════════════════════
-	local hackerBg = core:object("Frame", {Size=UDim2.new(1,-2,1,-2), Position=UDim2.new(0,1,0,1), BackgroundTransparency=1, Visible=isHacker, ZIndex=2, ClipsDescendants=true})
-	Library._hackerBg = hackerBg
-	local bgAnim = {visible = isHacker}
+	local hackerBg = core:object("Frame", {Size=UDim2.new(1,-2,1,-2), Position=UDim2.new(0,1,0,1), BackgroundTransparency=1, Visible=(opts.Theme == Library.Themes.Hacker), ZIndex=2, ClipsDescendants=true})
+	Library.hackerBg = hackerBg
 
-	if isHacker then
-		-- Rain characters (slightly biased toward 0/1)
-		local rainChars = {"0","1","0","1",">","<","/","\\","|","$","#","%","&","*","+","-","=",":",";","."}
-		local NUM_COLS = 24
-		local CHARS_PER_COL = 44
-		local columns = {}
-		local colWidth = 22
-
-		for i = 1, NUM_COLS do
-			local tl = hackerBg:object("TextLabel", {
-				BackgroundTransparency = 1, Text = "",
-				TextColor3 = ACCENT, TextTransparency = 0.72,
-				Size = UDim2.new(0, colWidth, 0, 26 * CHARS_PER_COL),
-				Position = UDim2.new((i - 1) / NUM_COLS, 0, 0, math.random(-1200, 0)),
-				TextSize = 14, Font = Enum.Font.Code,
-				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Top,
-				ZIndex = 3,
-			})
-			local chars = {}
-			for j = 1, CHARS_PER_COL do chars[j] = rainChars[math.random(1, #rainChars)] end
-			tl.Text = table.concat(chars, "\n")
-			table.insert(columns, {
-				obj = tl, chars = chars,
-				y = tl.Position.Y.Offset,
-				speed = math.random(28, 75),
-				changeTimer = math.random(10, 60) / 10,
-				baseTransparency = 0.68 + math.random() * 0.14,
-			})
-		end
-
-		-- Fine scanlines
-		local scanGroup = hackerBg:object("Frame", {Size=UDim2.new(1,0,1,0), BackgroundTransparency=1, ZIndex=4})
-		for i = 1, 60 do
-			scanGroup:object("Frame", {BackgroundColor3=ACCENT, BackgroundTransparency=0.965, Size=UDim2.new(1,0,0,1), Position=UDim2.new(0,0,i/60,0), BorderSizePixel=0, ZIndex=4})
-		end
-
-		-- Very soft CRT dark overlay
-		local crtOverlay = hackerBg:object("Frame", {BackgroundColor3=Color3.new(0,0,0), BackgroundTransparency=0.86, Size=UDim2.new(1,0,1,0), ZIndex=5, BorderSizePixel=0})
-
-		-- Slow moving scanline
-		local movingScanline = hackerBg:object("Frame", {BackgroundColor3=ACCENT, BackgroundTransparency=0.9, Size=UDim2.new(1,0,0,2), Position=UDim2.new(0,0,0,-10), BorderSizePixel=0, ZIndex=5})
-
-		-- Static hex telemetry (few, tucked away)
-		local hexLabels = {}
-		for i = 1, 4 do
-			local hex = hackerBg:object("TextLabel", {
-				BackgroundTransparency=1, Text="0x0000", TextColor3=ACCENT,
-				TextTransparency=0.82, Size=UDim2.new(0,60,0,12),
-				Position=UDim2.new(0.02 + i*0.24, 0, 0.94, 0),
-				TextSize=10, Font=Enum.Font.Code,
-				TextXAlignment=Enum.TextXAlignment.Left, ZIndex=6,
-			})
-			table.insert(hexLabels, {obj=hex, timer=math.random(30, 120)})
-		end
-
-		-- Layer behind content — no ZIndex above 6
-
-		-- Cleanup old connection
-		if Library._hackerConn then pcall(function() Library._hackerConn:Disconnect() end) end
-
-		-- ═══ ANIMATION — SINGLE HEARTBEAT ═══
-		Library._hackerConn = RunService.Heartbeat:Connect(function(dt)
-			if Library._dead or not Library._hackerBg or not Library._hackerBg.AbsoluteObject or not Library._hackerBg.AbsoluteObject.Parent then
-				if Library._hackerConn then pcall(function() Library._hackerConn:Disconnect() end); Library._hackerConn = nil end
-				return
-			end
-			if not Library._hackerBg.Visible then return end
-			dt = math.min(dt or 0.016, 0.05)
-
-			local absH = hackerBg.AbsoluteSize.Y
-
-			-- Matrix scroll (per column, smooth)
-			for _, col in ipairs(columns) do
-				col.y = col.y + col.speed * dt
-				if col.y > absH then
-					col.y = -26 * CHARS_PER_COL
-					for j = 1, CHARS_PER_COL do col.chars[j] = rainChars[math.random(1, #rainChars)] end
-					col.obj.Text = table.concat(col.chars, "\n")
-				end
-				col.obj.Position = UDim2.new(col.obj.Position.X.Scale, 0, 0, col.y)
-
-				-- Per-column random character mutation (per-char, staggered timers)
-				col.changeTimer = col.changeTimer - dt
-				if col.changeTimer <= 0 then
-					col.changeTimer = math.random(3, 12) / 10
-					local n = math.random(1, 3)
-					local changed = false
-					for _ = 1, n do
-						local idx = math.random(1, CHARS_PER_COL)
-						if col.chars[idx] ~= rainChars[1] then
-							col.chars[idx] = rainChars[math.random(1, #rainChars)]
-							changed = true
-						end
-					end
-					if changed then col.obj.Text = table.concat(col.chars, "\n") end
-					-- Subtle brightness shift per mutation
-					col.obj.TextTransparency = col.baseTransparency + math.random() * 0.06 - 0.03
-				end
-			end
-
-			-- Rare CRT flicker
-			if math.random() < 0.08 then
-				crtOverlay.BackgroundTransparency = 0.84 + math.random() * 0.05
-			end
-
-			-- Moving scanline
-			local sY = movingScanline.Position.Y.Offset + 160 * dt
-			if sY > absH + 5 then sY = -5 end
-			movingScanline.Position = UDim2.new(0, 0, 0, sY)
-
-			-- Hex telemetry
-			for _, h in ipairs(hexLabels) do
-				h.timer = h.timer - 1
-				if h.timer <= 0 then
-					h.timer = math.random(60, 180)
-					h.obj.Text = "0x" .. string.format("%04X", math.random(0, 65535))
-				end
-			end
-		end)
+	-- ═══ MATRIX RAIN (per-char random changes) ═══
+	local rainChars = {"0","1","!","@","#","$","%","&","*","+","-","=","/","\\","|",":",";","<",">","?","[","]","{","}","~","^","_"}
+	local numCols = 48
+	local charsPerCol = 50
+	local columns = {}
+	for i = 1, numCols do
+		local tl = hackerBg:object("TextLabel", {BackgroundTransparency=1, Text="", TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.5, Size=UDim2.new(0,18,0,900), Position=UDim2.new((i-1)/numCols,0,0,math.random(-900,0)), TextSize=14, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Center, TextYAlignment=Enum.TextYAlignment.Top, ZIndex=3})
+		local chars = {}
+		for j = 1, charsPerCol do chars[j] = rainChars[math.random(1,#rainChars)] end
+		tl.Text = table.concat(chars, "\n")
+		table.insert(columns, {obj=tl, chars=chars, y=tl.Position.Y.Offset, speed=math.random(25, 100)})
 	end
 
-	-- ═══ DRAG — PRESERVED ═══
+	-- ═══ SCANLINES ═══
+	for i = 1, 80 do
+		hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.93, Size=UDim2.new(1,0,0,1), Position=UDim2.new(0,0,i/80,0), BorderSizePixel=0, ZIndex=4})
+	end
+
+	-- ═══ CRT FLICKER OVERLAY ═══
+	local crtFlicker = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(0,0,0), BackgroundTransparency=0.8, Size=UDim2.new(1,0,1,0), ZIndex=5, BorderSizePixel=0})
+
+	-- ═══ GLITCH FLASH OVERLAY ═══
+	local glitchOverlay = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=1, Size=UDim2.new(1,0,1,0), ZIndex=5, BorderSizePixel=0})
+
+	-- ═══ MOVING SCANLINE (NEW) ═══
+	local movingScanline = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.75, Size=UDim2.new(1,0,0,3), Position=UDim2.new(0,0,0,-10), BorderSizePixel=0, ZIndex=6})
+
+	-- ═══ GLITCH BARS (NEW) ═══
+	local glitchBars = {}
+	for i = 1, 6 do
+		local bar = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=1, Size=UDim2.new(1,0,0,4), Position=UDim2.new(0,0,math.random(0,1000)/1000,0), BorderSizePixel=0, ZIndex=7})
+		table.insert(glitchBars, {obj=bar, timer=math.random(30, 200)/10})
+	end
+
+	-- ═══ HEX CODES (20) ═══
+	local hexLabels = {}
+	for i = 1, 20 do
+		local hex = hackerBg:object("TextLabel", {BackgroundTransparency=1, Text="0x0000", TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.5, Size=UDim2.new(0,80,0,16), Position=UDim2.new(math.random(0,900)/1000,0,math.random(0,900)/1000,0), TextSize=12, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=6})
+		table.insert(hexLabels, {obj=hex, timer=math.random(0, 30)})
+	end
+
+	-- ═══ ASCII DECORATIONS (30) ═══
+	local decorChars = {"[+]","[x]","[>]","[<]","===","|||","==>","<==","///","\\\\\\","//>","<//","{ }","[ ]","< >",">>>","<<<","---"}
+	for i = 1, 30 do
+		hackerBg:object("TextLabel", {BackgroundTransparency=1, Text=decorChars[math.random(1,#decorChars)], TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.6, Size=UDim2.new(0,60,0,16), Position=UDim2.new(math.random(0,900)/1000,0,math.random(0,900)/1000,0), TextSize=14, Font=Enum.Font.Code, ZIndex=6})
+	end
+
+	-- ═══ FLOATING BINARY (NEW) ═══
+	local floatBinary = {}
+	for i = 1, 10 do
+		local str = ""
+		for j = 1, math.random(4, 12) do str = str .. math.random(0,1) end
+		local fb = hackerBg:object("TextLabel", {BackgroundTransparency=1, Text=str, TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.55, Size=UDim2.new(0,100,0,16), Position=UDim2.new(math.random(0,900)/1000,0,math.random(0,900)/1000,0), TextSize=12, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=6})
+		table.insert(floatBinary, {obj=fb, timer=math.random(0, 30), speed=math.random(5, 30)/100})
+	end
+
+	-- ═══ PARTICLES (NEW) ═══
+	local particles = {}
+	for i = 1, 20 do
+		local p = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.7, Size=UDim2.fromOffset(2,2), Position=UDim2.new(math.random(0,1000)/1000,0,math.random(0,1000)/1000,0), BorderSizePixel=0, ZIndex=6})
+		table.insert(particles, {obj=p, timer=math.random(0, 60)})
+	end
+
+	-- ═══ ANIMATION LOOP ═══
+	task.spawn(function()
+		local valid = function()
+			return Library.hackerBg and Library.hackerBg.AbsoluteObject and Library.hackerBg.AbsoluteObject.Parent
+		end
+		local counter = 0
+		local titleCounter = 0
+		local scanlineY = -10
+		while valid() do
+			local isVisible = Library.hackerBg.Visible
+			local dt = task.wait(isVisible and 0.033 or 0.3)
+			if not dt or dt <= 0 then dt = 0.033 end
+			if not valid() then break end
+			if isVisible then
+				counter = counter + 1
+
+				-- 1. Matrix rain scroll
+				for _, col in ipairs(columns) do
+					col.y = col.y + col.speed * dt
+					if col.y > hackerBg.AbsoluteSize.Y then
+						col.y = -900
+						for j = 1, charsPerCol do col.chars[j] = rainChars[math.random(1,#rainChars)] end
+						col.obj.Text = table.concat(col.chars, "\n")
+					end
+					col.obj.Position = UDim2.new(col.obj.Position.X.Scale, 0, 0, col.y)
+				end
+
+				-- 2. Per-character random changes (real-time, random timing)
+				local dirty = {}
+				local dirtyCols = math.random(4, 8)
+				for _ = 1, dirtyCols do
+					local colIdx = math.random(1, #columns)
+					local col = columns[colIdx]
+					local numChanges = math.random(2, 4)
+					for _ = 1, numChanges do
+						local idx = math.random(1, charsPerCol)
+						col.chars[idx] = rainChars[math.random(1, #rainChars)]
+					end
+					dirty[colIdx] = true
+				end
+				for colIdx in pairs(dirty) do
+					columns[colIdx].obj.Text = table.concat(columns[colIdx].chars, "\n")
+				end
+
+				-- 3. CRT flicker
+				if counter % 3 == 0 then
+					crtFlicker.BackgroundTransparency = 0.65 + math.random() * 0.3
+				end
+
+				-- 4. Moving scanline
+				scanlineY = scanlineY + 200 * dt
+				if scanlineY > hackerBg.AbsoluteSize.Y + 5 then scanlineY = -5 end
+				movingScanline.Position = UDim2.new(0, 0, 0, scanlineY)
+				movingScanline.BackgroundTransparency = 0.7 + math.random() * 0.2
+
+				-- 5. Glitch bars
+				for _, bar in ipairs(glitchBars) do
+					bar.timer = bar.timer - dt
+					if bar.timer <= 0 then
+						bar.timer = math.random(15, 60) / 10
+						bar.obj.Position = UDim2.new(0, 0, math.random(0, 1000)/1000, 0)
+						bar.obj.Size = UDim2.new(1, 0, 0, math.random(2, 8))
+						bar.obj.BackgroundTransparency = 0.6 + math.random() * 0.3
+						task.delay(math.random(3, 8)/100, function()
+							if bar.obj and bar.obj.AbsoluteObject and bar.obj.AbsoluteObject.Parent then
+								bar.obj.BackgroundTransparency = 1
+							end
+						end)
+					end
+				end
+
+				-- 6. Glitch flash
+				if math.random() < 0.02 then
+					glitchOverlay.BackgroundTransparency = 0.88
+					task.delay(math.random(2, 5)/100, function()
+						if glitchOverlay and glitchOverlay.AbsoluteObject and glitchOverlay.AbsoluteObject.Parent then
+							glitchOverlay.BackgroundTransparency = 1
+						end
+					end)
+				end
+
+				-- 7. Hex codes update
+				for _, h in ipairs(hexLabels) do
+					h.timer = h.timer + 1
+					if h.timer >= 15 then
+						h.timer = 0
+						h.obj.Text = "0x" .. string.format("%04X", math.random(0, 65535))
+						h.obj.Position = UDim2.new(math.random(0, 900)/1000, 0, math.random(0, 900)/1000, 0)
+						h.obj.TextTransparency = 0.3 + math.random() * 0.5
+					end
+				end
+
+				-- 8. Floating binary
+				for _, fb in ipairs(floatBinary) do
+					fb.timer = fb.timer + 1
+					if fb.timer >= 25 then
+						fb.timer = 0
+						local str = ""
+						for j = 1, math.random(4, 12) do str = str .. math.random(0,1) end
+						fb.obj.Text = str
+					end
+					local newY = fb.obj.Position.Y.Scale + fb.speed * dt
+					if newY > 1 then newY = 0 end
+					fb.obj.Position = UDim2.new(fb.obj.Position.X.Scale, 0, newY, 0)
+				end
+
+				-- 9. Particles
+				for _, p in ipairs(particles) do
+					p.timer = p.timer + 1
+					if p.timer >= 40 then
+						p.timer = 0
+						p.obj.BackgroundTransparency = 0.5 + math.random() * 0.5
+						p.obj.Position = UDim2.new(math.random(0, 1000)/1000, 0, math.random(0, 1000)/1000, 0)
+					end
+				end
+
+				-- 10. Title glitch
+				titleCounter = titleCounter + 1
+				if titleCounter >= 15 and Library.title_obj and Library.originalTitle then
+					titleCounter = 0
+					if math.random() < 0.35 then
+						local gchars = "#@%$&*!?/\\|<>=~^_"
+						local orig = Library.originalTitle
+						local g = ""
+						for i = 1, #orig do
+							if math.random() < 0.45 then
+								g = g .. gchars:sub(math.random(1, #gchars), math.random(1, #gchars))
+							else
+								g = g .. orig:sub(i, i)
+							end
+						end
+						Library.title_obj.Text = g
+						task.delay(math.random(5, 12)/100, function()
+							if Library.title_obj and Library.originalTitle then
+								Library.title_obj.Text = Library.originalTitle
+							end
+						end)
+					end
+				end
+			end
+		end
+	end)
+	-- ═══════════════════════════════════════════════════════════════════════════
+
+	-- ═══ DRAG (UNCHANGED — old working version) ═══
 	do
 		local S, Ev = pcall(function() return core.MouseEnter end)
 		if S then
@@ -386,218 +414,196 @@ function Library:create(opts)
 	end
 	rawset(core, "oldSize", opts.Size); self.mainFrame = core
 
-	-- ═══ TITLE BAR ═══
-	local titleBar = core:object("Frame", {Size=UDim2.new(1,0,0,32), Position=UDim2.fromOffset(0,0), BackgroundTransparency=1, ZIndex=10})
-	titleBar:object("Frame", {Size=UDim2.new(1,0,0,1), Position=UDim2.new(0,0,1,0), Theme={BackgroundColor3={"Tertiary", -50}}, ZIndex=11})
-	titleBar:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(12,0), Size=UDim2.new(0,280,1,0), Text=">_ " .. opts.Name .. " // TERMINAL", TextSize=13, Font=Enum.Font.Code, Theme={TextColor3="Tertiary"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=12})
+	local tabButtons = core:object("ScrollingFrame", {Size=UDim2.new(1,-40,0,25), Position=UDim2.fromOffset(5,5), BackgroundTransparency=1, ClipsDescendants=true, ScrollBarThickness=0, ScrollingDirection=Enum.ScrollingDirection.X, AutomaticCanvasSize=Enum.AutomaticSize.X, ZIndex=3})
+	tabButtons:object("UIListLayout", {FillDirection=Enum.FillDirection.Horizontal, HorizontalAlignment=Enum.HorizontalAlignment.Left, SortOrder=Enum.SortOrder.LayoutOrder, Padding=UDim.new(0,4)})
 
-	local closeBtn = core:object("TextButton", {BackgroundTransparency=1, Size=UDim2.fromOffset(20,20), Position=UDim2.new(1,-10,0.5,0), AnchorPoint=Vector2.new(1,0.5), Theme={BackgroundColor3={"Tertiary", -40}}, ZIndex=12}):round(2)
-	closeBtn:object("TextLabel", {BackgroundTransparency=1, Size=UDim2.fromScale(1,1), Text="x", TextSize=12, Font=Enum.Font.Code, Theme={TextColor3="StrongText"}, ZIndex=13})
-	Library:_hover_style(closeBtn, Library.CurrentTheme.Main, Library:lighten(Library.CurrentTheme.Main, 30), Color3.fromRGB(120, 30, 40))
-	closeBtn.MouseEnter:connect(function() pcall(function() closeBtn:FindFirstChildOfClass("UIStroke") end) end)
-
-	-- ═══ TAB NAVIGATION ═══
-	local tabBar = core:object("Frame", {Size=UDim2.new(1,0,0,34), Position=UDim2.fromOffset(0,32), BackgroundTransparency=1, ZIndex=10})
-	tabBar:object("Frame", {Size=UDim2.new(1,0,0,1), Position=UDim2.new(0,0,1,0), Theme={BackgroundColor3={"Tertiary", -50}}, ZIndex=11})
-	local tabButtons = tabBar:object("ScrollingFrame", {Size=UDim2.new(1,-16,1,-8), Position=UDim2.fromOffset(8,4), BackgroundTransparency=1, ClipsDescendants=true, ScrollBarThickness=0, ScrollingDirection=Enum.ScrollingDirection.X, AutomaticCanvasSize=Enum.AutomaticSize.X, ZIndex=11})
-	tabButtons:object("UIListLayout", {FillDirection=Enum.FillDirection.Horizontal, HorizontalAlignment=Enum.HorizontalAlignment.Left, SortOrder=Enum.SortOrder.LayoutOrder, Padding=UDim.new(0,3)})
+	local closeBtn = core:object("ImageButton", {BackgroundTransparency=1, Size=UDim2.fromOffset(14,14), Position=UDim2.new(1,-11,0,11), Theme={ImageColor3="StrongText"}, Image="http://www.roblox.com/asset/?id=8497487650", AnchorPoint=Vector2.new(1), ZIndex=10})
+	closeBtn.MouseEnter:connect(function() closeBtn:tween{ImageColor3=Color3.fromRGB(255,124,142)} end)
+	closeBtn.MouseLeave:connect(function() closeBtn:tween{ImageColor3=Library.CurrentTheme.StrongText} end)
 
 	local closed = false
 	local function closeUI()
 		if closed then return end
-		closed = true
-		Library._dead = true
-		if Library._hackerConn then pcall(function() Library._hackerConn:Disconnect() end); Library._hackerConn = nil end
-		Library._hackerBg = nil
-		core.ClipsDescendants = true; core:fade(true); task.wait(0.08)
-		core:tween({Size=UDim2.new()}, function() if gui.AbsoluteObject and gui.AbsoluteObject.Parent then gui.AbsoluteObject:Destroy() end end)
+		closed = true; core.ClipsDescendants = true; core:fade(true); wait(0.1)
+		core:tween({Size=UDim2.new()}, function() gui.AbsoluteObject:Destroy() end)
 	end
 	if getgenv then getgenv().AzunoUI = closeUI end
 	closeBtn.MouseButton1Click:connect(closeUI)
 
-	-- ═══ URL BAR (terminal status bar) ═══
-	local urlBar = core:object("Frame", {Size=UDim2.new(1,-16,0,20), Position=UDim2.new(0,8,0,68), Theme={BackgroundColor3={"Secondary", -10}}, BackgroundTransparency=0.4, ZIndex=10}):round(2)
-	urlBar:stroke({"Tertiary", -60}, 1)
-	local link = urlBar:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(8,0), Size=UDim2.new(1,-16,1,0), Text="> " .. opts.Link .. "/home", Theme={TextColor3="WeakText"}, TextSize=11, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, TextTruncate=Enum.TextTruncate.AtEnd, ZIndex=11})
+	local urlBar = core:object("Frame", {Size=UDim2.new(1,-10,0,25), Position=UDim2.new(0,5,0,35), Theme={BackgroundColor3="Secondary"}, ZIndex=10}):round(5)
+	urlBar:object("ImageLabel", {AnchorPoint=Vector2.new(0,.5), Position=UDim2.new(0,5,0.5,0), Theme={ImageColor3="Tertiary"}, Size=UDim2.fromOffset(16,16), Image="http://www.roblox.com/asset/?id=8497489946", BackgroundTransparency=1, ZIndex=11})
+	local link = urlBar:object("TextLabel", {AnchorPoint=Vector2.new(0,0.5), Position=UDim2.new(0,26,0.5,0), BackgroundTransparency=1, Size=UDim2.new(1,-30,.6,0), Text=opts.Link .. "/home", Theme={TextColor3="WeakText"}, TextSize=14, TextScaled=false, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=11})
 	Library.UrlLabel = link; Library.Url = opts.Link
 
-	local content = core:object("Frame", {Theme={BackgroundColor3={"Secondary",-10}}, AnchorPoint=Vector2.new(0.5,1), Position=UDim2.new(0.5,0,1,-26), Size=UDim2.new(1,-16,1,-98), BackgroundTransparency=(isHacker and 0.15) or 0, ZIndex=7}):round(3)
-	content:stroke({"Tertiary", -55}, 1)
+	local shadowHolder = core:object("Frame", {BackgroundTransparency=1, Size=UDim2.fromScale(1,1), ZIndex=0})
+	shadowHolder:object("ImageLabel", {Centered=true, BackgroundTransparency=1, Size=UDim2.new(1,47,1,47), ZIndex=0, Image="rbxassetid://6015897843", ImageColor3=Color3.new(0,0,0), ImageTransparency=.6, SliceCenter=Rect.new(47,47,450,450), ScaleType=Enum.ScaleType.Slice, SliceScale=1})
 
-	local status = core:object("TextLabel", {AnchorPoint=Vector2.new(0,1), BackgroundTransparency=1, Position=UDim2.new(0,10,1,-6), Size=UDim2.new(0.7,0,0,14), Font=Enum.Font.Code, Text="> [SYS] idle | v" .. Library._VERSION, Theme={TextColor3={"Tertiary", -10}}, TextSize=11, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
-	core:object("TextLabel", {AnchorPoint=Vector2.new(1,1), BackgroundTransparency=1, Position=UDim2.new(1,-10,1,-6), Size=UDim2.new(0,120,0,14), Font=Enum.Font.Code, Text=("@"..Library._OWNER):lower() .. " / terminal", Theme={TextColor3="WeakText"}, TextSize=10, TextXAlignment=Enum.TextXAlignment.Right, ZIndex=10})
+	local content = core:object("Frame", {Theme={BackgroundColor3={"Secondary",-10}}, AnchorPoint=Vector2.new(0.5,1), Position=UDim2.new(0.5,0,1,-20), Size=UDim2.new(1,-10,1,-86), BackgroundTransparency=(opts.Theme == Library.Themes.Hacker) and 0.35 or 0, ZIndex=7}):round(7)
 
-	-- ═══ HOME TAB ═══
-	local homeBtn = tabButtons:object("TextButton", {Name="azuno_home", BackgroundTransparency=0.85, Theme={BackgroundColor3="Tertiary"}, Size=UDim2.new(0,110,0,26), ZIndex=11}):round(2)
-	local homeBtnText = homeBtn:object("TextLabel", {Theme={TextColor3="StrongText"}, AnchorPoint=Vector2.new(0,.5), BackgroundTransparency=1, TextSize=12, Text=opts.Name, Position=UDim2.new(0,10,0.5,0), TextXAlignment=Enum.TextXAlignment.Left, Size=UDim2.new(1,-20,0.5,0), Font=Enum.Font.Code, TextTruncate=Enum.TextTruncate.AtEnd, ZIndex=12})
+	local status = core:object("TextLabel", {AnchorPoint=Vector2.new(0,1), BackgroundTransparency=1, Position=UDim2.new(0,5,1,-6), Size=UDim2.new(0.3,0,0,10), Font=Enum.Font.Code, Text="> Status | Idle", Theme={TextColor3="Tertiary"}, TextSize=13, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
+
+	local homeBtn = tabButtons:object("TextButton", {Name="azuno_home", BackgroundTransparency=0, Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(0,125,0,25), ZIndex=8}):round(5)
+	local homeBtnText = homeBtn:object("TextLabel", {Theme={TextColor3="StrongText"}, AnchorPoint=Vector2.new(0,.5), BackgroundTransparency=1, TextSize=14, Text=opts.Name, Position=UDim2.new(0,25,0.5,0), TextXAlignment=Enum.TextXAlignment.Left, Size=UDim2.new(1,-45,0.5,0), Font=Enum.Font.SourceSans, TextTruncate=Enum.TextTruncate.AtEnd, ZIndex=9})
 	Library.title_obj = homeBtnText; Library.originalTitle = opts.Name
-	homeBtn:object("Frame", {AnchorPoint=Vector2.new(0,0.5), Position=UDim2.new(0,2,0.5,0), Size=UDim2.fromOffset(2,14), Theme={BackgroundColor3="Tertiary"}, ZIndex=12}):round(1)
+	homeBtn:object("ImageLabel", {AnchorPoint=Vector2.new(0,0.5), BackgroundTransparency=1, Position=UDim2.new(0,5,0.5,0), Size=UDim2.new(0,15,0,15), Image="http://www.roblox.com/asset/?id=8569322835", Theme={ImageColor3="StrongText"}, ZIndex=9})
 
 	local homePage = content:object("Frame", {Size=UDim2.fromScale(1,1), Centered=true, BackgroundTransparency=1, ZIndex=8})
 	local tabs = {}; selectedTab = homeBtn; tabs[#tabs+1] = {homePage, homeBtn}
 
 	do
 		local d, h = false, false
-		homeBtn.MouseEnter:connect(function() h=true; homeBtn:tween{BackgroundTransparency=((selectedTab==homeBtn) and 0.1) or 0.7} end)
-		homeBtn.MouseLeave:connect(function() h=false; homeBtn:tween{BackgroundTransparency=((selectedTab==homeBtn) and 0.1) or 0.85} end)
-		homeBtn.MouseButton1Down:connect(function() d=true; homeBtn:tween{BackgroundTransparency=0.05} end)
-		UserInputService.InputEnded:connect(function(k) if k.UserInputType==Enum.UserInputType.MouseButton1 then d=false; homeBtn:tween{BackgroundTransparency=((selectedTab==homeBtn) and 0.1) or (h and 0.7) or 0.85} end end)
+		homeBtn.MouseEnter:connect(function() h=true; homeBtn:tween{BackgroundTransparency=((selectedTab==homeBtn) and 0.15) or 0.3} end)
+		homeBtn.MouseLeave:connect(function() h=false; homeBtn:tween{BackgroundTransparency=((selectedTab==homeBtn) and 0.15) or 1} end)
+		homeBtn.MouseButton1Down:connect(function() d=true; homeBtn:tween{BackgroundTransparency=0} end)
+		UserInputService.InputEnded:connect(function(k) if k.UserInputType==Enum.UserInputType.MouseButton1 then d=false; homeBtn:tween{BackgroundTransparency=((selectedTab==homeBtn) and 0.15) or (h and 0.3) or 1} end end)
 		homeBtn.MouseButton1Click:Connect(function()
 			for _, ti in next, tabs do ti[1].Visible = false end
-			selectedTab:tween{BackgroundTransparency=((selectedTab==homeBtn) and 0.1) or 0.85}
-			selectedTab = homeBtn; homePage.Visible = true; homeBtn.BackgroundTransparency = 0.1
-			Library.UrlLabel.Text = "> " .. Library.Url .. "/home"
+			selectedTab:tween{BackgroundTransparency=((selectedTab==homeBtn) and 0.15) or 1}
+			selectedTab = homeBtn; homePage.Visible = true; homeBtn.BackgroundTransparency = 0
+			Library.UrlLabel.Text = Library.Url .. "/home"
 		end)
 	end
 	self.SelectedTabButton = homeBtn
 	homePage:object("UIListLayout", {Padding=UDim.new(0,10), FillDirection=Enum.FillDirection.Vertical, HorizontalAlignment=Enum.HorizontalAlignment.Center})
-	homePage:object("UIPadding", {PaddingTop=UDim.new(0,12)})
+	homePage:object("UIPadding", {PaddingTop=UDim.new(0,10)})
 
-	-- Terminal wordmark
-	local wordmark = homePage:object("Frame", {BackgroundTransparency=1, Size=UDim2.new(1,-24,0,64), ZIndex=8})
-	wordmark:object("TextLabel", {BackgroundTransparency=1, AnchorPoint=Vector2.new(0.5,0.5), Position=UDim2.fromScale(0.5,0.4), Size=UDim2.new(1,0,0,22), Text="AZUNO // TERMINAL", TextSize=20, Font=Enum.Font.Code, Theme={TextColor3="Tertiary"}, TextXAlignment=Enum.TextXAlignment.Center, ZIndex=9})
-	wordmark:object("TextLabel", {BackgroundTransparency=1, AnchorPoint=Vector2.new(0.5,0.5), Position=UDim2.fromScale(0.5,0.75), Size=UDim2.new(1,0,0,14), Text="> system ready :: v" .. Library._VERSION .. " :: user authorized", TextSize=11, Font=Enum.Font.Code, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Center, ZIndex=9})
-	wordmark:object("Frame", {AnchorPoint=Vector2.new(0,1), Position=UDim2.new(0,0,1,0), Size=UDim2.new(1,0,0,1), Theme={BackgroundColor3={"Tertiary", -30}}, ZIndex=9})
-
-	-- Profile card
-	local profile = homePage:object("Frame", {AnchorPoint=Vector2.new(0,0), Theme={BackgroundColor3="Secondary"}, BackgroundTransparency=(isHacker and 0.2) or 0, Size=UDim2.new(1,-24,0,90), ZIndex=8}):round(3)
-	profile:stroke({"Tertiary", -45}, 1)
-	profile:object("ImageLabel", {Image=Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100), Theme={BackgroundColor3={"Secondary",10}}, AnchorPoint=Vector2.new(0,0.5), Position=UDim2.new(0,10,0.5), Size=UDim2.fromOffset(70,70), ZIndex=9}):round(3)
-	profile:object("Frame", {AnchorPoint=Vector2.new(0,0.5), Position=UDim2.new(0,88,0.5,0), Size=UDim2.fromOffset(1,60), Theme={BackgroundColor3={"Tertiary", -55}}, ZIndex=9})
+	local profile = homePage:object("Frame", {AnchorPoint=Vector2.new(0,.5), Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,100), BackgroundTransparency=(opts.Theme == Library.Themes.Hacker) and 0.25 or 0, ZIndex=8}):round(7)
+	profile:object("ImageLabel", {Image=Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100), Theme={BackgroundColor3={"Secondary",10}}, AnchorPoint=Vector2.new(0,0.5), Position=UDim2.new(0,10,0.5), Size=UDim2.fromOffset(80,80), ZIndex=9}):round(100)
 
 	do
-		Library.DisplayName = profile:object("TextLabel", {RichText=true, Text="> user: <font color='rgb(" .. math.floor(CYAN.R*255) .. "," .. math.floor(CYAN.G*255) .. "," .. math.floor(CYAN.B*255) .. ")'>" .. LocalPlayer.DisplayName .. "</font>", TextSize=15, Font=Enum.Font.Code, Position=UDim2.new(0,100,0,10), Theme={TextColor3="StrongText"}, Size=UDim2.new(1,-110,0,20), BackgroundTransparency=1, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=9})
+		local c = self:lighten(opts.Theme.Tertiary, 20)
+		Library.DisplayName = profile:object("TextLabel", {RichText=true, Text="Welcome, <font color='rgb(" .. math.floor(c.R*255) .. "," .. math.floor(c.G*255) .. "," .. math.floor(c.B*255) .. ")'> <b>" .. LocalPlayer.DisplayName .. "</b> </font>", TextScaled=true, Position=UDim2.new(0,105,0,10), Theme={TextColor3={"Tertiary",10}}, Size=UDim2.new(0,400,0,40), BackgroundTransparency=1, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=9})
 	end
-	profile:object("TextLabel", {Text="@ " .. LocalPlayer.Name, TextSize=12, Font=Enum.Font.Code, Position=UDim2.new(0,100,0,34), Theme={TextColor3="WeakText"}, Size=UDim2.new(1,-110,0,16), BackgroundTransparency=1, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=9})
-	local timeDisplay = profile:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.new(0,100,0,54), Size=UDim2.new(1,-110,0,16), Theme={TextColor3={"WeakText",-20}}, TextSize=11, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, Text="> uptime :: " .. tostring(os.date("%X")):sub(1, os.date("%X"):len()-3), ZIndex=9})
+	profile:object("TextLabel", {Text="@" .. LocalPlayer.Name, TextScaled=true, Position=UDim2.new(0,105,0,47), Theme={TextColor3="Tertiary"}, Size=UDim2.new(0,400,0,20), BackgroundTransparency=1, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=9})
+	local timeDisplay = profile:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.new(0,105,1,-10), Size=UDim2.new(0,400,0,20), AnchorPoint=Vector2.new(0,1), Theme={TextColor3={"WeakText",-20}}, TextScaled=true, TextXAlignment=Enum.TextXAlignment.Left, Text=tostring(os.date("%X")):sub(1, os.date("%X"):len()-3), ZIndex=9})
 
-	task.spawn(function() while timeDisplay and timeDisplay.AbsoluteObject and timeDisplay.AbsoluteObject.Parent do task.wait(1); pcall(function() local d = tostring(os.date("%X")); timeDisplay.Text = "> uptime :: " .. d:sub(1, d:len()-3) end) end end)
+	task.spawn(function() while timeDisplay and timeDisplay.AbsoluteObject do task.wait(1); pcall(function() local d = tostring(os.date("%X")); timeDisplay.Text = d:sub(1, d:len()-3) end) end end)
 
-	local settingsTabIcon = profile:object("TextButton", {BackgroundTransparency=0.85, Theme={BackgroundColor3="Tertiary"}, Size=UDim2.fromOffset(28,28), Position=UDim2.new(1,-10,1,-10), AnchorPoint=Vector2.new(1,1), ZIndex=9}):round(2)
-	settingsTabIcon:object("TextLabel", {BackgroundTransparency=1, Size=UDim2.fromScale(1,1), Text=">_", TextSize=11, Font=Enum.Font.Code, Theme={TextColor3="StrongText"}, ZIndex=10}):tooltip("settings")
-	local creditsTabIcon = profile:object("TextButton", {BackgroundTransparency=0.85, Theme={BackgroundColor3="Tertiary"}, Size=UDim2.fromOffset(28,28), Position=UDim2.new(1,-44,1,-10), AnchorPoint=Vector2.new(1,1), ZIndex=9}):round(2)
-	creditsTabIcon:object("TextLabel", {BackgroundTransparency=1, Size=UDim2.fromScale(1,1), Text="[i]", TextSize=11, Font=Enum.Font.Code, Theme={TextColor3="StrongText"}, ZIndex=10}):tooltip("credits")
+	local settingsTabIcon = profile:object("ImageButton", {BackgroundTransparency=1, Theme={ImageColor3="WeakText"}, Size=UDim2.fromOffset(24,24), Position=UDim2.new(1,-10,1,-10), AnchorPoint=Vector2.new(1,1), Image="http://www.roblox.com/asset/?id=8559790237", ZIndex=9}):tooltip("settings")
+	local creditsTabIcon = profile:object("ImageButton", {BackgroundTransparency=1, Theme={ImageColor3="WeakText"}, Size=UDim2.fromOffset(24,24), Position=UDim2.new(1,-44,1,-10), AnchorPoint=Vector2.new(1,1), Image="http://www.roblox.com/asset/?id=8577523456", ZIndex=9}):tooltip("credits")
 
-	local quickAccess = homePage:object("Frame", {BackgroundTransparency=1, Size=UDim2.new(1,-24,0,140), ZIndex=8})
-	quickAccess:object("UIGridLayout", {CellPadding=UDim2.fromOffset(8,8), CellSize=UDim2.fromOffset(48,48), HorizontalAlignment=Enum.HorizontalAlignment.Center, VerticalAlignment=Enum.VerticalAlignment.Top})
-	quickAccess:object("UIPadding", {PaddingTop=UDim.new(0,8), PaddingBottom=UDim.new(0,4)})
+	local quickAccess = homePage:object("Frame", {BackgroundTransparency=1, Size=UDim2.new(1,-20,0,180), ZIndex=8})
+	quickAccess:object("UIGridLayout", {CellPadding=UDim2.fromOffset(10,10), CellSize=UDim2.fromOffset(55,55), HorizontalAlignment=Enum.HorizontalAlignment.Center, VerticalAlignment=Enum.VerticalAlignment.Center})
+	quickAccess:object("UIPadding", {PaddingBottom=UDim.new(0,10), PaddingLeft=UDim.new(0,70), PaddingRight=UDim.new(0,70), PaddingTop=UDim.new(0,5)})
 
-	local mt = setmetatable({gui=gui, core=core, notifs=notiHolder, statusText=status, container=content, navigation=tabButtons, Theme=opts.Theme, Tabs=tabs, quickAccess=quickAccess, homeButton=homeBtn, homePage=homePage, nilFolder=core:object("Folder"), _closeUI=closeUI}, Library)
+	local mt = setmetatable({gui=gui, core=core, notifs=notiHolder, statusText=status, container=content, navigation=tabButtons, Theme=opts.Theme, Tabs=tabs, quickAccess=quickAccess, homeButton=homeBtn, homePage=homePage, nilFolder=core:object("Folder")}, Library)
 
-	local settingsTab = Library.tab(mt, {Name="Settings", Internal=settingsTabIcon, Icon=">_"})
+	local settingsTab = Library.tab(mt, {Name="Settings", Internal=settingsTabIcon, Icon="rbxassetid://8559790237"})
 	settingsTab:_theme_selector()
-	settingsTab:keybind({Name="Toggle Key", Description="Show / hide UI.", Keybind=Enum.KeyCode.Delete, Callback=function() self.Toggled = not self.Toggled; Library:show(self.Toggled) end})
-	settingsTab:toggle({Name="Lock Dragging", Description="Keep window on screen.", StartingState=true, Callback=function(s) Library.LockDragging = s end})
-	settingsTab:slider({Name="Drag Speed", Description="Window movement.", Max=20, Default=14, Callback=function(v) Library.DragSpeed = (20-v)/100 end})
+	settingsTab:keybind({Name="Toggle Key", Description="Key to show/hide the UI.", Keybind=Enum.KeyCode.Delete, Callback=function() self.Toggled = not self.Toggled; Library:show(self.Toggled) end})
+	settingsTab:toggle({Name="Lock Dragging", Description="Prevent dragging outside screen.", StartingState=true, Callback=function(s) Library.LockDragging = s end})
+	settingsTab:slider({Name="UI Drag Speed", Description="Drag smoothness.", Max=20, Default=14, Callback=function(v) Library.DragSpeed = (20-v)/100 end})
 
-	local creditsTab = Library.tab(mt, {Name="Credits", Internal=creditsTabIcon, Icon="[i]"})
+	local creditsTab = Library.tab(mt, {Name="Credits", Internal=creditsTabIcon, Icon="http://www.roblox.com/asset/?id=8577523456"})
 	rawset(mt, "creditsContainer", creditsTab.container)
 	creditsTab:credit{Name="Azuno", Description="Owner", Discord="azunoo"}
 
 	return mt
 end
 
--- ═══════════════════════════════════════════════════════════════════════════
---  NOTIFICATION — terminal style
--- ═══════════════════════════════════════════════════════════════════════════
+-- ═══ NOTIFICATION ═══
 function Library:notification(opts)
 	opts = self:set_defaults({Title="Notification", Text="Message", Duration=3, Callback=function() end}, opts)
 	local faded = false; local fadeOut
-	local noti = self.notifs:object("Frame", {BackgroundTransparency=1, Theme={BackgroundColor3="Main"}, Size=UDim2.new(0,300,0,0), ZIndex=100}):round(3)
-	noti:stroke({"Tertiary", -30}, 1)
-	noti:object("UIPadding", {PaddingBottom=UDim.new(0,10), PaddingTop=UDim.new(0,10), PaddingLeft=UDim.new(0,10), PaddingRight=UDim.new(0,10)})
-	local durHolder = noti:object("Frame", {BackgroundTransparency=1, Theme={BackgroundColor3="Secondary"}, AnchorPoint=Vector2.new(0,1), Position=UDim2.fromScale(0,1), Size=UDim2.new(1,0,0,2), ZIndex=101}):round(100)
+	local noti = self.notifs:object("Frame", {BackgroundTransparency=1, Theme={BackgroundColor3="Main"}, Size=UDim2.new(0,300,0,0), ZIndex=100}):round(10)
+	noti:object("UIPadding", {PaddingBottom=UDim.new(0,11), PaddingTop=UDim.new(0,11), PaddingLeft=UDim.new(0,11), PaddingRight=UDim.new(0,11)})
+	local dropShadow = noti:object("Frame", {ZIndex=0, BackgroundTransparency=1, Size=UDim2.fromScale(1,1)})
+	local _shadow = dropShadow:object("ImageLabel", {Centered=true, Position=UDim2.fromScale(.5,.5), BackgroundTransparency=1, Size=UDim2.new(1,70,1,70), ZIndex=0, Image="rbxassetid://6014261993", ImageColor3=Color3.fromRGB(0,0,0), ImageTransparency=1, ScaleType=Enum.ScaleType.Slice, SliceCenter=Rect.new(49,49,450,450)})
+	local durHolder = noti:object("Frame", {BackgroundTransparency=1, Theme={BackgroundColor3="Secondary"}, AnchorPoint=Vector2.new(0,1), Position=UDim2.fromScale(0,1), Size=UDim2.new(1,0,0,4), ZIndex=101}):round(100)
 	local len = durHolder:object("Frame", {BackgroundTransparency=1, Theme={BackgroundColor3="Tertiary"}, Size=UDim2.fromScale(1,1), ZIndex=102}):round(100)
-	local text = noti:object("TextLabel", {BackgroundTransparency=1, Text=opts.Text, Position=UDim2.new(0,0,0,20), Size=UDim2.new(1,0,100,0), TextSize=12, Font=Enum.Font.Code, TextTransparency=1, TextWrapped=true, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top, ZIndex=102})
+	local icon = noti:object("ImageLabel", {BackgroundTransparency=1, ImageTransparency=1, Position=UDim2.fromOffset(1,1), Size=UDim2.fromOffset(18,18), Image="rbxassetid://8628681683", Theme={ImageColor3="Tertiary"}, ZIndex=102})
+	local exit = noti:object("ImageButton", {Image="http://www.roblox.com/asset/?id=8497487650", AnchorPoint=Vector2.new(1,0), ImageColor3=Color3.fromRGB(255,255,255), Position=UDim2.new(1,-3,0,3), Size=UDim2.fromOffset(14,14), BackgroundTransparency=1, ImageTransparency=1, ZIndex=102})
+	exit.MouseButton1Click:Connect(function() fadeOut() end)
+	local text = noti:object("TextLabel", {BackgroundTransparency=1, Text=opts.Text, Position=UDim2.new(0,0,0,23), Size=UDim2.new(1,0,100,0), TextSize=16, TextTransparency=1, TextWrapped=true, TextColor3=Color3.fromRGB(255,255,255), TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top, ZIndex=102})
 	text:tween({Size=UDim2.new(1,0,0,text.TextBounds.Y)})
-	local title = noti:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(0,0), Size=UDim2.new(1,-20,0,16), Text="> [OK] " .. opts.Title, TextSize=12, Font=Enum.Font.Code, Theme={TextColor3="Tertiary"}, TextXAlignment=Enum.TextXAlignment.Left, TextWrapped=true, TextTruncate=Enum.TextTruncate.AtEnd, TextTransparency=1, ZIndex=102})
-	local exit = noti:object("TextButton", {BackgroundTransparency=1, Position=UDim2.new(1,-18,0,0), Size=UDim2.fromOffset(16,16), Text="x", TextSize=11, Font=Enum.Font.Code, Theme={TextColor3="WeakText"}, TextTransparency=1, ZIndex=102})
+	local title = noti:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(23,0), Size=UDim2.new(1,-60,0,20), Font=Enum.Font.SourceSansBold, Text=opts.Title, Theme={TextColor3="Tertiary"}, TextSize=17, TextXAlignment=Enum.TextXAlignment.Left, TextWrapped=true, TextTruncate=Enum.TextTruncate.AtEnd, TextTransparency=1, ZIndex=102})
 
 	fadeOut = function()
 		if faded then return end; faded = true
-		task.delay(0.25, function() pcall(function() noti.AbsoluteObject:Destroy() end); opts.Callback() end)
-		durHolder:tween({BackgroundTransparency=1, Length=0.15}); len:tween({BackgroundTransparency=1, Length=0.15})
-		text:tween({TextTransparency=1, Length=0.15})
-		title:tween({TextTransparency=1, Length=0.15})
-		exit:tween({TextTransparency=1, Length=0.15})
-		noti:tween({BackgroundTransparency=1, Length=0.15, Size=UDim2.fromOffset(300,0)})
+		task.delay(0.3, function() pcall(function() noti.AbsoluteObject:Destroy() end); opts.Callback() end)
+		icon:tween({ImageTransparency=1, Length=0.2}); exit:tween({ImageTransparency=1, Length=0.2})
+		durHolder:tween({BackgroundTransparency=1, Length=0.2}); len:tween({BackgroundTransparency=1, Length=0.2})
+		text:tween({TextTransparency=1, Length=0.2})
+		title:tween({TextTransparency=1, Length=0.2}, function() _shadow:tween({ImageTransparency=1, Length=0.2}); noti:tween({BackgroundTransparency=1, Length=0.2, Size=UDim2.fromOffset(300,0)}) end)
 	end
-	exit.MouseButton1Click:Connect(fadeOut)
-	noti:tween({BackgroundTransparency=0, Length=0.15, Size=UDim2.fromOffset(300, text.TextBounds.Y + 54)}, function()
-		durHolder:tween({BackgroundTransparency=0, Length=0.15}); len:tween({BackgroundTransparency=0, Length=0.15})
-		text:tween({TextTransparency=0, Length=0.15}); title:tween({TextTransparency=0, Length=0.15}); exit:tween({TextTransparency=0, Length=0.15})
+	_shadow:tween({ImageTransparency=.6, Length=0.2})
+	noti:tween({BackgroundTransparency=0, Length=0.2, Size=UDim2.fromOffset(300, text.TextBounds.Y + 63)}, function()
+		icon:tween({ImageTransparency=0, Length=0.2}); exit:tween({ImageTransparency=0, Length=0.2})
+		durHolder:tween({BackgroundTransparency=0, Length=0.2}); len:tween({BackgroundTransparency=0, Length=0.2})
+		text:tween({TextTransparency=0, Length=0.2}); title:tween({TextTransparency=0, Length=0.2})
 	end)
 	len:tween({Size=UDim2.fromScale(0,1), Length=opts.Duration}, fadeOut)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════
---  TAB
--- ═══════════════════════════════════════════════════════════════════════════
+-- ═══ TAB ═══
 function Library:tab(opts)
-	opts = self:set_defaults({Name="New Tab", Icon=">_"}, opts)
-	local tab = self.container:object("ScrollingFrame", {AnchorPoint=Vector2.new(0,1), Visible=false, BackgroundTransparency=1, Position=UDim2.fromScale(0,1), Size=UDim2.fromScale(1,1), ScrollBarThickness=0, ScrollingDirection=Enum.ScrollingDirection.Y, CanvasSize=UDim2.new(), ZIndex=8})
-	local qaBtn
+	opts = self:set_defaults({Name="New Tab", Icon="rbxassetid://8569322835"}, opts)
+	local tab = self.container:object("ScrollingFrame", {AnchorPoint=Vector2.new(0,1), Visible=false, BackgroundTransparency=1, Position=UDim2.fromScale(0,1), Size=UDim2.fromScale(1,1), ScrollBarThickness=0, ScrollingDirection=Enum.ScrollingDirection.Y, ZIndex=8})
+	local qaBtn, qaIcon
 	if not opts.Internal then
-		qaBtn = self.quickAccess:object("TextButton", {Theme={BackgroundColor3="Secondary"}, ZIndex=9}):round(2)
-		qaBtn:stroke({"Tertiary", -30}, 1)
-		qaBtn:object("TextLabel", {BackgroundTransparency=1, Theme={TextColor3="Tertiary"}, Text=opts.Icon, Size=UDim2.fromScale(1,1), TextSize=12, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Center, ZIndex=10}):tooltip(opts.Name)
+		qaBtn = self.quickAccess:object("TextButton", {Theme={BackgroundColor3="Secondary"}, ZIndex=9}):round(5):tooltip(opts.Name)
+		qaIcon = qaBtn:object("ImageLabel", {BackgroundTransparency=1, Theme={ImageColor3="StrongText"}, Image=opts.Icon, Size=UDim2.fromScale(0.5,0.5), Centered=true, ZIndex=10})
 	else qaBtn = opts.Internal end
 
-	local layout = tab:object("UIListLayout", {Padding=UDim.new(0,8), HorizontalAlignment=Enum.HorizontalAlignment.Center})
-	tab:object("UIPadding", {PaddingTop=UDim.new(0,10), PaddingBottom=UDim.new(0,10)})
-	local tabBtn = Library:object("TextButton", {BackgroundTransparency=0.85, Parent=self.nilFolder.AbsoluteObject, Theme={BackgroundColor3="Tertiary"}, Size=UDim2.new(0,110,0,26), Visible=false, ZIndex=8}):round(2)
+	local layout = tab:object("UIListLayout", {Padding=UDim.new(0,10), HorizontalAlignment=Enum.HorizontalAlignment.Center})
+	tab:object("UIPadding", {PaddingTop=UDim.new(0,10)})
+	local tabBtn = Library:object("TextButton", {BackgroundTransparency=1, Parent=self.nilFolder.AbsoluteObject, Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(0,125,0,25), Visible=false, ZIndex=8}):round(5)
 	self.Tabs[#self.Tabs+1] = {tab, tabBtn, opts.Name}
 
 	do
 		local d, h = false, false
-		tabBtn.MouseEnter:connect(function() h=true; tabBtn:tween{BackgroundTransparency=((selectedTab==tabBtn) and 0.1) or 0.7} end)
-		tabBtn.MouseLeave:connect(function() h=false; tabBtn:tween{BackgroundTransparency=((selectedTab==tabBtn) and 0.1) or 0.85} end)
-		tabBtn.MouseButton1Down:connect(function() d=true; tabBtn:tween{BackgroundTransparency=0.05} end)
-		UserInputService.InputEnded:connect(function(k) if k.UserInputType==Enum.UserInputType.MouseButton1 then d=false; tabBtn:tween{BackgroundTransparency=((selectedTab==tabBtn) and 0.1) or (h and 0.7) or 0.85} end end)
-		local function activateTab()
-			for _, ti in next, self.Tabs do
-				if ti[2] ~= tabBtn then ti[1].Visible = false end
-			end
-			if selectedTab ~= tabBtn then selectedTab:tween{BackgroundTransparency=0.85} end
-			selectedTab = tabBtn; tab.Visible = true; tabBtn.BackgroundTransparency = 0.1
-			Library.UrlLabel.Text = "> " .. Library.Url .. "/" .. opts.Name:lower()
-		end
-		tabBtn.MouseButton1Click:Connect(activateTab)
-		qaBtn.MouseEnter:connect(function() pcall(function() qaBtn:tween{BackgroundTransparency=0.5} end) end)
-		qaBtn.MouseLeave:connect(function() pcall(function() qaBtn:tween{BackgroundTransparency=0} end) end)
+		tabBtn.MouseEnter:connect(function() h=true; tabBtn:tween{BackgroundTransparency=((selectedTab==tabBtn) and 0.15) or 0.3} end)
+		tabBtn.MouseLeave:connect(function() h=false; tabBtn:tween{BackgroundTransparency=((selectedTab==tabBtn) and 0.15) or 1} end)
+		tabBtn.MouseButton1Down:connect(function() d=true; tabBtn:tween{BackgroundTransparency=0} end)
+		UserInputService.InputEnded:connect(function(k) if k.UserInputType==Enum.UserInputType.MouseButton1 then d=false; tabBtn:tween{BackgroundTransparency=((selectedTab==tabBtn) and 0.15) or (h and 0.3) or 1} end end)
+		tabBtn.MouseButton1Click:Connect(function()
+			for _, ti in next, self.Tabs do ti[1].Visible = false end
+			selectedTab:tween{BackgroundTransparency=((selectedTab==tabBtn) and 0.15) or 1}
+			selectedTab = tabBtn; tab.Visible = true; tabBtn.BackgroundTransparency = 0
+			Library.UrlLabel.Text = Library.Url .. "/" .. opts.Name:lower()
+		end)
+		qaBtn.MouseEnter:connect(function() qaBtn:tween{BackgroundColor3=Library.CurrentTheme.Tertiary} end)
+		qaBtn.MouseLeave:connect(function() qaBtn:tween{BackgroundColor3=Library.CurrentTheme.Secondary} end)
 		qaBtn.MouseButton1Click:connect(function()
 			if not tabBtn.Visible then
 				tabBtn.Parent = self.navigation.AbsoluteObject
-				tabBtn.Size = UDim2.new(0, 30, 0, 26)
-				tabBtn.Visible = true; tabBtn:fade(false, Library.CurrentTheme.Main, 0.08)
-				tabBtn:tween({Size=UDim2.new(0,110,0,26), Length=0.1})
+				tabBtn.Size = UDim2.new(0,50, tabBtn.Size.Y.Scale, tabBtn.Size.Y.Offset)
+				tabBtn.Visible = true; tabBtn:fade(false, Library.CurrentTheme.Main, 0.1)
+				tabBtn:tween({Size=UDim2.new(0,125, tabBtn.Size.Y.Scale, tabBtn.Size.Y.Offset), Length=0.1})
 			end
-			activateTab()
+			for _, ti in next, self.Tabs do ti[1].Visible = false end
+			selectedTab:tween{BackgroundTransparency=((selectedTab==tabBtn) and 0.15) or 1}
+			selectedTab = tabBtn; tab.Visible = true; tabBtn.BackgroundTransparency = 0
+			Library.UrlLabel.Text = Library.Url .. "/" .. opts.Name:lower()
 		end)
 	end
 
-	tabBtn:object("Frame", {AnchorPoint=Vector2.new(0,0.5), Position=UDim2.new(0,2,0.5,0), Size=UDim2.fromOffset(2,14), Theme={BackgroundColor3="Tertiary"}, ZIndex=12}):round(1)
-	tabBtn:object("TextLabel", {Theme={TextColor3="StrongText"}, AnchorPoint=Vector2.new(0,.5), BackgroundTransparency=1, TextSize=12, Text=opts.Name, Position=UDim2.new(0,10,0.5,0), TextXAlignment=Enum.TextXAlignment.Left, Size=UDim2.new(1,-28,0.5,0), Font=Enum.Font.Code, TextTruncate=Enum.TextTruncate.AtEnd, ZIndex=9})
-	local tabBtnClose = tabBtn:object("TextButton", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-6,0.5,0), Size=UDim2.fromOffset(14,14), Text="x", TextSize=10, Font=Enum.Font.Code, Theme={TextColor3="StrongText"}, ZIndex=9})
+	tabBtn:object("TextLabel", {Theme={TextColor3="StrongText"}, AnchorPoint=Vector2.new(0,.5), BackgroundTransparency=1, TextSize=14, Text=opts.Name, Position=UDim2.new(0,25,0.5,0), TextXAlignment=Enum.TextXAlignment.Left, Size=UDim2.new(1,-45,0.5,0), Font=Enum.Font.SourceSans, TextTruncate=Enum.TextTruncate.AtEnd, ZIndex=9})
+	tabBtn:object("ImageLabel", {AnchorPoint=Vector2.new(0,0.5), BackgroundTransparency=1, Position=UDim2.new(0,5,0.5,0), Size=UDim2.new(0,15,0,15), Image=opts.Icon, Theme={ImageColor3="StrongText"}, ZIndex=9})
+	local tabBtnClose = tabBtn:object("ImageButton", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-5,0.5,0), Size=UDim2.fromOffset(14,14), Image="rbxassetid://8497487650", Theme={ImageColor3="StrongText"}, ZIndex=9})
 
 	tabBtnClose.MouseButton1Click:connect(function()
-		tabBtn:fade(true, Library.CurrentTheme.Main, 0.08)
-		tabBtn:tween({Size=UDim2.new(0,30,0,26), Length=0.08}, function() tabBtn.Visible=false; tab.Visible=false; tabBtn.Parent=self.nilFolder.AbsoluteObject end)
+		tabBtn:fade(true, Library.CurrentTheme.Main, 0.1)
+		tabBtn:tween({Size=UDim2.new(0,50,tabBtn.Size.Y.Scale,tabBtn.Size.Y.Offset), Length=0.1}, function() tabBtn.Visible=false; tab.Visible=false; tabBtn.Parent=self.nilFolder.AbsoluteObject; wait() end)
 		local v = {}
 		for _, t in next, self.Tabs do
-			if t[2].Visible and t[2] ~= tabBtn then v[#v+1] = t end
+			if not t[2] == selectedTab then t[1].Visible = false end
+			if t[2].Visible then v[#v+1] = t end
 		end
-		if selectedTab == self.homeButton or #v == 0 then
-			tab.Visible = false; self.homePage.Visible = true
-			self.homeButton:tween{BackgroundTransparency=0.1}; selectedTab = self.homeButton
-			Library.UrlLabel.Text = "> " .. Library.Url .. "/home"
+		local last = v[#v]
+		if selectedTab == self.homeButton then tab.Visible = false
+		elseif #v == 2 then
+			selectedTab.Visible = false; tab.Visible = false; self.homePage.Visible = true
+			self.homeButton:tween{BackgroundTransparency=0.15}; selectedTab = self.homeButton
+			Library.UrlLabel.Text = Library.Url .. "/home"
+		elseif tabBtn == last[2] then
+			last = v[#v-1]; tab.Visible = false
+			last[2]:tween{BackgroundTransparency=0.15}; last[1].Visible = true
+			selectedTab = last[2]; Library.UrlLabel.Text = Library.Url .. "/" .. last[3]:lower()
 		else
-			local last = v[#v]
-			for _, t in next, self.Tabs do
-				if t[2] ~= last[2] then t[1].Visible = false end
-			end
-			last[2]:tween{BackgroundTransparency=0.1}; last[1].Visible = true
-			selectedTab = last[2]; Library.UrlLabel.Text = "> " .. Library.Url .. "/" .. last[3]:lower()
+			tab.Visible = false; last[2]:tween{BackgroundTransparency=0.15}
+			last[1].Visible = true; selectedTab = last[2]
+			Library.UrlLabel.Text = Library.Url .. "/" .. last[3]:lower()
 		end
 	end)
 
@@ -606,290 +612,299 @@ end
 
 function Library:_resize_tab()
 	if self.container.ClassName == "ScrollingFrame" then
-		self.container.CanvasSize = UDim2.fromOffset(0, self.layout.AbsoluteContentSize.Y + 24)
+		self.container.CanvasSize = UDim2.fromOffset(0, self.layout.AbsoluteContentSize.Y + 20)
 	else
 		self.sectionContainer.Size = UDim2.new(1,-24,0, self.layout.AbsoluteContentSize.Y + 20)
 		self.parentContainer.CanvasSize = UDim2.fromOffset(0, self.parentLayout.AbsoluteContentSize.Y + 20)
 	end
 end
 
--- ═══════════════════════════════════════════════════════════════════════════
---  WIDGETS
--- ═══════════════════════════════════════════════════════════════════════════
+-- ═══ TOGGLE ═══
 function Library:toggle(opts)
 	opts = self:set_defaults({Name="Toggle", StartingState=false, Description=nil, Callback=function(s) end}, opts)
-	local c, h = self:_widget_base(opts.Name, opts.Description)
+	local c = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
+	local on, off = "http://www.roblox.com/asset/?id=8498709213", "http://www.roblox.com/asset/?id=8498691125"
 	local tog = opts.StartingState
-	local toggleFrame = c:object("Frame", {AnchorPoint=Vector2.new(1,0.5), Position=UDim2.new(1,-12,0.5,0), Size=UDim2.fromOffset(36,18), Theme={BackgroundColor3="Secondary"}, ZIndex=10}):round(2)
-	toggleFrame:stroke({"Tertiary", tog and 0 or -60}, 1)
-	local knob = toggleFrame:object("Frame", {AnchorPoint=Vector2.new(0,0.5), Position=UDim2.new(tog and 1 or 0, tog and -14 or 4, 0.5, 0), Size=UDim2.fromOffset(10,10), Theme={BackgroundColor3="Tertiary"}, BackgroundTransparency=tog and 0 or 0.6, ZIndex=11}):round(1)
-	local stateLabel = c:object("TextLabel", {AnchorPoint=Vector2.new(1,0.5), Position=UDim2.new(1,-56,0.5,0), Size=UDim2.fromOffset(50,14), BackgroundTransparency=1, Text=tog and "ON" or "OFF", TextSize=10, Font=Enum.Font.Code, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Right, ZIndex=10})
-
-	local function toggle()
-		tog = not tog
-		knob:tween({Position=UDim2.new(tog and 1 or 0, tog and -14 or 4, 0.5, 0), BackgroundTransparency=tog and 0 or 0.6, Length=0.12})
-		toggleFrame:FindFirstChildOfClass("UIStroke").Color = tog and Library.CurrentTheme.Tertiary or Library.CurrentTheme.WeakText
-		stateLabel.Text = tog and "ON" or "OFF"
-		task.spawn(function() pcall(opts.Callback, tog) end)
+	local onI = c:object("ImageLabel", {AnchorPoint=Vector2.new(1,.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.new(0,26,0,26), Image=on, Theme={ImageColor3="Tertiary"}, ImageTransparency=(tog and 0) or 1, ZIndex=10})
+	local offI = c:object("ImageLabel", {AnchorPoint=Vector2.new(1,.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.new(0,26,0,26), Image=off, Theme={ImageColor3="WeakText"}, ImageTransparency=(tog and 1) or 0, ZIndex=10})
+	c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 0), Size=(opts.Description and UDim2.new(0.5,-10,0,22)) or UDim2.new(0.5,-10,1,0), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
+	if opts.Description then c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
+	local function toggle() tog = not tog; if tog then offI:crossfade(onI, 0.1) else onI:crossfade(offI, 0.1) end; opts.Callback(tog) end
+	do
+		local h, d = false, false
+		c.MouseEnter:connect(function() h=true; c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)} end)
+		c.MouseLeave:connect(function() h=false; if not d then c:tween{BackgroundColor3=Library.CurrentTheme.Secondary} end end)
+		c.MouseButton1Down:connect(function() d=true; c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,20)} end)
+		UserInputService.InputEnded:connect(function(k) if k.UserInputType==Enum.UserInputType.MouseButton1 then d=false; c:tween{BackgroundColor3=(h and self:lighten(Library.CurrentTheme.Secondary)) or Library.CurrentTheme.Secondary} end end)
+		c.MouseButton1Click:connect(toggle)
 	end
-	c.MouseButton1Click:connect(toggle)
-	self:_hover_style(c, Library.CurrentTheme.Secondary, self:lighten(Library.CurrentTheme.Secondary, 10), self:lighten(Library.CurrentTheme.Secondary, 18))
 	self:_resize_tab()
 	local api = {}
 	function api:Toggle() toggle() end
-	function api:SetState(s) if tog ~= s then toggle() end end
+	function api:SetState(s) tog = s; if tog then offI:crossfade(onI,0.1) else onI:crossfade(offI,0.1) end; task.spawn(function() opts.Callback(tog) end) end
 	if opts.StartingState then api:SetState(true) end
 	return api
 end
 
+-- ═══ DROPDOWN ═══
 function Library:dropdown(opts)
 	opts = self:set_defaults({Name="Dropdown", StartingText="Select...", Items={}, Callback=function(i) return end}, opts)
-	local open = false
-	local c, h = self:_widget_base(opts.Name, opts.Description)
-	local ic = c:object("Frame", {BackgroundTransparency=1, Position=UDim2.fromOffset(12, h - 2), Size=UDim2.new(1,-24,0,0), ClipsDescendants=true, ZIndex=11})
-	ic:object("UIListLayout", {Padding=UDim.new(0,2), SortOrder=Enum.SortOrder.LayoutOrder})
-	local selT = c:object("TextLabel", {AnchorPoint=Vector2.new(1,0.5), Theme={BackgroundColor3={"Secondary",-20},TextColor3="Tertiary"}, Position=UDim2.new(1,-12,0.5,0), Size=UDim2.fromOffset(140,18), TextSize=11, Font=Enum.Font.Code, Text=opts.StartingText, TextXAlignment=Enum.TextXAlignment.Center, ZIndex=10}):round(2):stroke({"Tertiary", -40}, 1)
-	local marker = c:object("TextLabel", {AnchorPoint=Vector2.new(1,0.5), Position=UDim2.new(1,-6,0.5,0), Size=UDim2.fromOffset(12,12), BackgroundTransparency=1, Text="v", TextSize=10, Font=Enum.Font.Code, Theme={TextColor3="WeakText"}, ZIndex=10})
-
-	local items = {}
-	for i, v in next, opts.Items do
-		if typeof(v)=="table" then items[i] = v else items[i] = {tostring(v), v} end
-	end
-	local orderedKeys = {}
-	for i in next, items do table.insert(orderedKeys, i) end
-	table.sort(orderedKeys, function(a,b) return tostring(a) < tostring(b) end)
-	local totalH = (#orderedKeys) * 22 + 4
-
-	for _, k in ipairs(orderedKeys) do
-		local item = items[k]
+	local ns = 0; local open = false
+	local dc = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
+	dc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 15), Size=UDim2.new(0.5,-10,0,22), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
+	if opts.Description then dc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
+	local icon = dc:object("ImageLabel", {AnchorPoint=Vector2.new(1,0), BackgroundTransparency=1, Position=UDim2.new(1,-11,0,12), Size=UDim2.fromOffset(26,26), Image="rbxassetid://8498840035", Theme={ImageColor3="Tertiary"}, ZIndex=10})
+	local selT = dc:object("TextLabel", {AnchorPoint=Vector2.new(1,0), Theme={BackgroundColor3={"Secondary",-20},TextColor3="WeakText"}, Position=UDim2.new(1,-50,0,16), Size=UDim2.fromOffset(200,20), TextSize=14, Text=opts.StartingText, ZIndex=10}):round(5):stroke("Tertiary")
+	local ic = dc:object("Frame", {BackgroundTransparency=1, Position=UDim2.new(0,5,0,55), Size=UDim2.new(1,-10,0,0), ClipsDescendants=true, ZIndex=11})
+	selT.Size = UDim2.fromOffset(selT.TextBounds.X + 20, 20)
+	ic:object("UIGridLayout", {CellPadding=UDim2.fromOffset(0,5), CellSize=UDim2.new(1,0,0,20), FillDirection=Enum.FillDirection.Horizontal, HorizontalAlignment=Enum.HorizontalAlignment.Left, VerticalAlignment=Enum.VerticalAlignment.Top})
+	local items = setmetatable({}, {__newindex=function(s,i,v) rawset(s,i,v); if v~=nil then ns = (25*#s)+5; ic.Size = UDim2.new(1,-10,0,ns) end end})
+	for i, v in next, opts.Items do if typeof(v)=="table" then items[i]=v else items[i]={tostring(v),v} end end
+	local toggle
+	for i, item in next, items do
 		local label, val = item[1], item[2]
-		local ni = ic:object("TextButton", {Theme={BackgroundColor3={"Secondary",10},TextColor3="StrongText"}, Size=UDim2.new(1,0,0,20), Text="  " .. label, TextSize=11, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=12}):round(2)
-		ni.MouseButton1Click:connect(function()
-			open = false
-			ic:tween{Size=UDim2.new(1,-24,0,0)}
-			c:tween({Size=UDim2.new(1,-20,0,h)}, function() self:_resize_tab() end)
-			marker.Text = "v"
-			selT.Text = label
-			pcall(opts.Callback, val)
-		end)
-		ni.MouseEnter:connect(function() ni:tween{BackgroundColor3=Library.CurrentTheme.Tertiary, TextColor3=Library.CurrentTheme.Main} end)
-		ni.MouseLeave:connect(function() ni:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10), TextColor3=Library.CurrentTheme.StrongText} end)
-	end
-
-	c.MouseButton1Click:connect(function()
-		open = not open
-		if open then
-			ic:tween{Size=UDim2.new(1,-24,0,totalH)}
-			c:tween({Size=UDim2.new(1,-20,0,h + totalH + 4)}, function() self:_resize_tab() end)
-			marker.Text = "^"
-		else
-			ic:tween{Size=UDim2.new(1,-24,0,0)}
-			c:tween({Size=UDim2.new(1,-20,0,h)}, function() self:_resize_tab() end)
-			marker.Text = "v"
+		local ni = ic:object("TextButton", {Theme={BackgroundColor3={"Secondary",25},TextColor3={"StrongText",25}}, Text=label, TextSize=14, ZIndex=12}):round(5)
+		items[i] = {{label, val}, ni}
+		do
+			local h, d = false, false
+			ni.MouseEnter:connect(function() h=true; ni:tween{BackgroundColor3=Library.CurrentTheme.Tertiary} end)
+			ni.MouseLeave:connect(function() h=false; if not d then ni:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,25)} end end)
+			ni.MouseButton1Down:connect(function() ni:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Tertiary,10)} end)
+			UserInputService.InputEnded:connect(function(k) if k.UserInputType==Enum.UserInputType.MouseButton1 then ni:tween{BackgroundColor3=(h and self:lighten(Library.CurrentTheme.Tertiary,5)) or self:lighten(Library.CurrentTheme.Secondary,25)} end end)
+			ni.MouseButton1Click:connect(function() toggle(); selT.Text = ni.Text; selT:tween{Size=UDim2.fromOffset(selT.TextBounds.X+20,20), Length=0.05}; opts.Callback(val) end)
 		end
-	end)
+	end
+	do
+		local h, d = false, false
+		ns = (25*#items)+5
+		ic.Size = (not open and UDim2.new(1,-10,0,0)) or UDim2.new(1,-10,0,ns)
+		toggle = function()
+			ns = (25*#items)+5; open = not open
+			if open then ic:tween{Size=UDim2.new(1,-10,0,ns)}; dc:tween({Size=UDim2.new(1,-20,0,52+ns)}, function() self:_resize_tab() end); icon:tween{Rotation=180, Position=UDim2.new(1,-11,0,15)}
+			else ic:tween{Size=UDim2.new(1,-10,0,0)}; dc:tween({Size=UDim2.new(1,-20,0,52)}, function() self:_resize_tab() end); icon:tween{Rotation=0, Position=UDim2.new(1,-11,0,12)} end
+		end
+		dc.MouseEnter:connect(function() h=true; dc:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)} end)
+		dc.MouseLeave:connect(function() h=false; if not d then dc:tween{BackgroundColor3=Library.CurrentTheme.Secondary} end end)
+		dc.MouseButton1Down:connect(function() d=true; dc:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,20)} end)
+		UserInputService.InputEnded:connect(function(k) if k.UserInputType==Enum.UserInputType.MouseButton1 then d=false; dc:tween{BackgroundColor3=(h and self:lighten(Library.CurrentTheme.Secondary)) or Library.CurrentTheme.Secondary} end end)
+		dc.MouseButton1Click:connect(toggle)
+	end
 	self:_resize_tab()
 	local api = {}
-	function api:Set(t) selT.Text = t end
+	function api:Set(t) selT.Text = t; selT:tween{Size=UDim2.fromOffset(selT.TextBounds.X+20,20), Length=0.05} end
 	function api:Get() return selT.Text end
 	return api
 end
 
+-- ═══ COMBO ═══
 function Library:combo(opts)
 	opts = self:set_defaults({Name="Combo", Description=nil, Items={}, DefaultSelected=nil, Callback=function(s) end}, opts)
-	local c, h = self:_widget_base(opts.Name, opts.Description)
-	local summary = c:object("TextLabel", {AnchorPoint=Vector2.new(1,0.5), Theme={BackgroundColor3={"Secondary",-20},TextColor3="WeakText"}, Position=UDim2.new(1,-12,0.5,0), Size=UDim2.fromOffset(140,18), TextSize=11, Font=Enum.Font.Code, Text="none", TextXAlignment=Enum.TextXAlignment.Center, ZIndex=10}):round(2):stroke({"Tertiary", -40}, 1)
-	local ic = c:object("Frame", {BackgroundTransparency=1, Position=UDim2.fromOffset(12, h - 2), Size=UDim2.new(1,-24,0,0), ClipsDescendants=true, ZIndex=11})
-	ic:object("UIListLayout", {Padding=UDim.new(0,2), SortOrder=Enum.SortOrder.LayoutOrder})
-	local state, checkboxes, open = {}, {}, false
+	local cc = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
+	cc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 0), Size=(opts.Description and UDim2.new(0.5,-10,0,22)) or UDim2.new(0.5,-10,1,0), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
+	if opts.Description then cc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
+	local summ = cc:object("TextLabel", {AnchorPoint=Vector2.new(1,0), Theme={BackgroundColor3={"Secondary",-20},TextColor3="WeakText"}, Position=UDim2.new(1,-50,0,16), Size=UDim2.fromOffset(200,20), TextSize=14, Text="None", ZIndex=10}):round(5):stroke("Tertiary")
+	local icon = cc:object("ImageLabel", {AnchorPoint=Vector2.new(1,0), BackgroundTransparency=1, Position=UDim2.new(1,-11,0,12), Size=UDim2.fromOffset(26,26), Image="rbxassetid://8498840035", Theme={ImageColor3="Tertiary"}, ZIndex=10})
+	local ic = cc:object("Frame", {BackgroundTransparency=1, Position=UDim2.new(0,5,0,55), Size=UDim2.new(1,-10,0,0), ClipsDescendants=true, ZIndex=11})
+	ic:object("UIListLayout", {Padding=UDim.new(0,5), SortOrder=Enum.SortOrder.LayoutOrder})
+	local state, checkboxes, open, ns = {}, {}, false, 0
 	for i, item in next, opts.Items do
 		local label = typeof(item)=="table" and item[1] or tostring(item)
 		local val = typeof(item)=="table" and item[2] or item
 		state[val] = false
-		if opts.DefaultSelected and table.find(opts.DefaultSelected, val) then state[val] = true end
-		local row = ic:object("TextButton", {Theme={BackgroundColor3={"Secondary",10},TextColor3="StrongText"}, Text="", Size=UDim2.new(1,0,0,20), ZIndex=12}):round(2)
-		local mark = row:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(4,0), Size=UDim2.fromOffset(16,20), Text=state[val] and "[x]" or "[ ]", TextSize=11, Font=Enum.Font.Code, Theme={TextColor3="Tertiary"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=13})
-		row:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(24,0), Size=UDim2.new(1,-28,1,0), Text=label, TextSize=11, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, Theme={TextColor3="StrongText"}, ZIndex=13})
-		checkboxes[val] = {row=row, mark=mark, label=label}
-		local function upd()
-			local parts = {}
-			for v, o in next, state do if o then table.insert(parts, checkboxes[v].label) end end
-			summary.Text = #parts == 0 and "none" or (#parts <= 2 and table.concat(parts, ", ") or #parts .. " selected")
-			pcall(opts.Callback, state)
-		end
-		row.MouseButton1Click:connect(function()
-			state[val] = not state[val]
-			mark.Text = state[val] and "[x]" or "[ ]"
-			upd()
-		end)
-		row.MouseEnter:connect(function() row:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary, 15)} end)
-		row.MouseLeave:connect(function() row:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary, 10)} end)
+		if opts.DefaultSelected and table.find(opts.DefaultSelected, val) then state[val]=true end
+		local row = ic:object("TextButton", {Theme={BackgroundColor3={"Secondary",25},TextColor3="StrongText"}, Text="", Size=UDim2.new(1,0,0,22), ZIndex=12}):round(5)
+		local chk = row:object("ImageLabel", {BackgroundTransparency=1, AnchorPoint=Vector2.new(0,0.5), Position=UDim2.fromOffset(6,11), Size=UDim2.fromOffset(14,14), Image=state[val] and "http://www.roblox.com/asset/?id=8498709213" or "http://www.roblox.com/asset/?id=8498691125", Theme={ImageColor3=state[val] and "Tertiary" or "WeakText"}, ZIndex=13})
+		row:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(26,0), Size=UDim2.new(1,-30,1,0), Text=label, TextSize=14, TextXAlignment=Enum.TextXAlignment.Left, Theme={TextColor3="StrongText"}, ZIndex=13})
+		checkboxes[val] = {row=row, check=chk, label=label}
+		local function upd() local parts = {}; for v, o in next, state do if o then table.insert(parts, checkboxes[v].label) end end; summ.Text = #parts==0 and "None" or table.concat(parts, ", "); summ.Size = UDim2.fromOffset(math.min(#summ.Text*7+20, 200), 20); opts.Callback(state) end
+		row.MouseButton1Click:connect(function() state[val] = not state[val]; chk.Image = state[val] and "http://www.roblox.com/asset/?id=8498709213" or "http://www.roblox.com/asset/?id=8498691125"; chk:tween({ImageColor3=state[val] and Library.CurrentTheme.Tertiary or Library.CurrentTheme.WeakText}); upd() end)
+		row.MouseEnter:connect(function() row:tween({BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,25)}) end)
+		row.MouseLeave:connect(function() row:tween({BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,15)}) end)
 	end
-	local totalH = 22 * #opts.Items + 4
-	c.MouseButton1Click:connect(function()
-		open = not open
-		if open then
-			ic:tween{Size=UDim2.new(1,-24,0,totalH)}
-			c:tween({Size=UDim2.new(1,-20,0,h + totalH + 4)}, function() self:_resize_tab() end)
-		else
-			ic:tween{Size=UDim2.new(1,-24,0,0)}
-			c:tween({Size=UDim2.new(1,-20,0,h)}, function() self:_resize_tab() end)
-		end
-	end)
+	do
+		ns = 27*#opts.Items + 5
+		cc.MouseEnter:connect(function() cc:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)} end)
+		cc.MouseLeave:connect(function() cc:tween{BackgroundColor3=Library.CurrentTheme.Secondary} end)
+		cc.MouseButton1Click:connect(function()
+			open = not open
+			if open then ic:tween{Size=UDim2.new(1,-10,0,ns)}; cc:tween({Size=UDim2.new(1,-20,0,52+ns)}, function() self:_resize_tab() end); icon:tween{Rotation=180,Position=UDim2.new(1,-11,0,15)}
+			else ic:tween{Size=UDim2.new(1,-10,0,0)}; cc:tween({Size=UDim2.new(1,-20,0,52)}, function() self:_resize_tab() end); icon:tween{Rotation=0,Position=UDim2.new(1,-11,0,12)} end
+		end)
+	end
 	self:_resize_tab()
 	local api = {}
 	function api:Get() return state end
-	function api:Set(vs)
-		for k in next, state do state[k] = false end
-		for _, v in next, vs do if state[v] ~= nil then state[v] = true end end
-		for val, cb in next, checkboxes do cb.mark.Text = state[val] and "[x]" or "[ ]" end
-		pcall(opts.Callback, state)
-	end
+	function api:Set(vs) for k in next, state do state[k]=false end; for _, v in next, vs do if state[v]~=nil then state[v]=true end end; for val, cb in next, checkboxes do cb.check.Image = state[val] and "http://www.roblox.com/asset/?id=8498709213" or "http://www.roblox.com/asset/?id=8498691125"; cb.check.ImageColor3 = state[val] and Library.CurrentTheme.Tertiary or Library.CurrentTheme.WeakText end; opts.Callback(state) end
 	return api
 end
 
+-- ═══ SECTION ═══
 function Library:section(opts)
 	opts = self:set_defaults({Name="Section"}, opts)
-	local sc = self.container:object("Frame", {BackgroundTransparency=1, Size=UDim2.new(1,-24,0,48), ZIndex=8}):round(2)
-	sc:stroke({"Tertiary", -35}, 1)
-	local header = sc:object("Frame", {Size=UDim2.new(1,0,0,20), BackgroundTransparency=1, ZIndex=9})
-	header:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,0), Size=UDim2.new(1,-20,1,0), Text="[ + ] " .. opts.Name:upper(), TextSize=12, Font=Enum.Font.Code, Theme={TextColor3="Tertiary"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
-	header:object("Frame", {AnchorPoint=Vector2.new(0,1), Position=UDim2.new(0,0,1,0), Size=UDim2.new(1,0,0,1), Theme={BackgroundColor3={"Tertiary", -50}}, ZIndex=10})
-	local fc = sc:object("Frame", {Position=UDim2.fromOffset(0, 22), Size=UDim2.new(1,-8,0,0), BackgroundTransparency=1, ZIndex=9})
-	local layout = fc:object("UIListLayout", {Padding=UDim.new(0,8), HorizontalAlignment=Enum.HorizontalAlignment.Center})
-	fc:object("UIPadding", {PaddingTop=UDim.new(0,6), PaddingBottom=UDim.new(0,10), PaddingLeft=UDim.new(0,4), PaddingRight=UDim.new(0,4)})
+	local sc = self.container:object("TextButton", {BackgroundTransparency=1, Size=UDim2.new(1,-24,0,52), ZIndex=8}):round(7):stroke("Secondary",2)
+	local txt = sc:object("TextLabel", {Position=UDim2.new(0.5), Text=opts.Name, TextSize=18, Theme={TextColor3="StrongText",BackgroundColor3={"Secondary",-10}}, TextXAlignment=Enum.TextXAlignment.Center, AnchorPoint=Vector2.new(0.5,0.5), ZIndex=9})
+	txt.Size = UDim2.fromOffset(txt.TextBounds.X+4, txt.TextBounds.Y)
+	local fc = sc:object("Frame", {Size=UDim2.fromScale(1,1), BackgroundTransparency=1, ZIndex=9})
+	local layout = fc:object("UIListLayout", {Padding=UDim.new(0,10), HorizontalAlignment=Enum.HorizontalAlignment.Center})
+	fc:object("UIPadding", {PaddingTop=UDim.new(0,10)})
 	return setmetatable({statusText=self.statusText, container=fc, sectionContainer=sc, parentContainer=self.container, Theme=self.Theme, core=self.core, gui=self.gui, parentLayout=self.layout, layout=layout}, Library)
 end
 
 function Library:divider(opts)
 	opts = self:set_defaults({Text=""}, opts)
-	local c = self.container:object("Frame", {BackgroundTransparency=1, Size=UDim2.new(1,-20,0,18), ZIndex=9})
-	local leftSize = opts.Text ~= "" and 0.4 or 0.48
-	c:object("Frame", {AnchorPoint=Vector2.new(0,0.5), Position=UDim2.new(0,0,0.5,0), Size=UDim2.new(leftSize,0,0,1), Theme={BackgroundColor3={"Tertiary", -60}}, ZIndex=10})
-	c:object("Frame", {AnchorPoint=Vector2.new(1,0.5), Position=UDim2.new(1,0,0.5,0), Size=UDim2.new(leftSize,0,0,1), Theme={BackgroundColor3={"Tertiary", -60}}, ZIndex=10})
+	local c = self.container:object("Frame", {BackgroundTransparency=1, Size=UDim2.new(1,-20,0,24), ZIndex=9})
+	c:object("Frame", {AnchorPoint=Vector2.new(0,0.5), Position=UDim2.new(0,0,0.5,0), Size=UDim2.new(1,0,0,1), Theme={BackgroundColor3={"WeakText",-20}}, ZIndex=10})
 	if opts.Text ~= "" then
-		c:object("TextLabel", {AnchorPoint=Vector2.new(0.5,0.5), Position=UDim2.fromScale(0.5,0.5), BackgroundTransparency=1, Text="[ " .. opts.Text .. " ]", TextSize=10, Font=Enum.Font.Code, Theme={TextColor3="WeakText"}, Size=UDim2.fromOffset(#opts.Text * 8 + 30, 14), ZIndex=10})
+		local lb = c:object("TextLabel", {AnchorPoint=Vector2.new(0.5,0.5), Position=UDim2.fromScale(0.5,0.5), BackgroundTransparency=1, Text=opts.Text, TextSize=14, Theme={TextColor3="WeakText"}, Size=UDim2.fromOffset(#opts.Text*8+20, 20), ZIndex=10})
+		c:object("Frame", {AnchorPoint=Vector2.new(0,0.5), Position=UDim2.new(0,0,0.5,0), Size=UDim2.new(0.5,-(lb.Size.X.Offset/2),0,1), Theme={BackgroundColor3={"WeakText",-20}}, ZIndex=10})
+		c:object("Frame", {AnchorPoint=Vector2.new(1,0.5), Position=UDim2.new(1,0,0.5,0), Size=UDim2.new(0.5,-(lb.Size.X.Offset/2),0,1), Theme={BackgroundColor3={"WeakText",-20}}, ZIndex=10})
 	end
 	self:_resize_tab()
 end
 
 function Library:image(opts)
 	opts = self:set_defaults({Image="rbxassetid://0", Height=100, Caption=nil}, opts)
-	local c = self.container:object("Frame", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0, opts.Height + (opts.Caption and 24 or 12)), ZIndex=9}):round(3)
-	c:stroke({"Tertiary", -35}, 1)
-	local img = c:object("ImageLabel", {AnchorPoint=Vector2.new(0.5,0), Position=UDim2.new(0.5,0,0,6), Size=UDim2.new(1,-12,0,opts.Height), BackgroundTransparency=1, Image=opts.Image, ScaleType=Enum.ScaleType.Fit, ZIndex=10}):round(2)
+	local c = self.container:object("Frame", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0, opts.Height + (opts.Caption and 28 or 12)), ZIndex=9}):round(7)
+	local img = c:object("ImageLabel", {AnchorPoint=Vector2.new(0.5,0), Position=UDim2.new(0.5,0,0,6), Size=UDim2.new(1,-12,0,opts.Height), BackgroundTransparency=1, Image=opts.Image, ScaleType=Enum.ScaleType.Fit, Theme={BackgroundColor3={"Main",-10}}, ZIndex=10}):round(5)
 	local cap
-	if opts.Caption then cap = c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.new(0,8,1,-20), Size=UDim2.new(1,-16,0,14), Text=opts.Caption, TextSize=11, Font=Enum.Font.Code, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Center, TextTruncate=Enum.TextTruncate.AtEnd, ZIndex=10}) end
+	if opts.Caption then cap = c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.new(0,6,1,-24), Size=UDim2.new(1,-12,0,20), Text=opts.Caption, TextSize=14, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Center, TextTruncate=Enum.TextTruncate.AtEnd, ZIndex=10}) end
 	self:_resize_tab()
 	return {SetImage=function(id) img.Image = id end, SetCaption=function(t) if cap then cap.Text = t end end}
 end
 
 function Library:button(opts)
 	opts = self:set_defaults({Name="Button", Description=nil, Callback=function() end}, opts)
-	local c, h = self:_widget_base(opts.Name, opts.Description)
-	c:stroke({"Tertiary", -25}, 1)
-	c:object("TextLabel", {AnchorPoint=Vector2.new(1,0.5), Position=UDim2.new(1,-12,0.5,0), Size=UDim2.fromOffset(60,18), BackgroundTransparency=1, Text="> run", TextSize=11, Font=Enum.Font.Code, Theme={TextColor3="Tertiary"}, TextXAlignment=Enum.TextXAlignment.Right, ZIndex=10})
-	self:_hover_style(c, Library.CurrentTheme.Secondary, self:lighten(Library.CurrentTheme.Secondary, 10), self:lighten(Library.CurrentTheme.Secondary, 18))
-	c.MouseButton1Click:connect(function() pcall(opts.Callback) end)
+	local c = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
+	local txt = c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 0), Size=(opts.Description and UDim2.new(0.5,-10,0,22)) or UDim2.new(0.5,-10,1,0), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
+	if opts.Description then c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
+	local icon = c:object("ImageLabel", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.fromOffset(26,26), Image="rbxassetid://8498776661", Theme={ImageColor3="Tertiary"}, ZIndex=10})
+	do
+		local h, d = false, false
+		c.MouseEnter:connect(function() h=true; c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)}; icon:tween{Size=UDim2.fromOffset(28,28), Length=0.1} end)
+		c.MouseLeave:connect(function() h=false; if not d then c:tween{BackgroundColor3=Library.CurrentTheme.Secondary} end; icon:tween{Size=UDim2.fromOffset(26,26), Length=0.1} end)
+		c.MouseButton1Down:connect(function() d=true; c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,20)} end)
+		UserInputService.InputEnded:connect(function(k) if k.UserInputType==Enum.UserInputType.MouseButton1 then d=false; c:tween{BackgroundColor3=(h and self:lighten(Library.CurrentTheme.Secondary)) or Library.CurrentTheme.Secondary} end end)
+		c.MouseButton1Click:connect(function() opts.Callback() end)
+	end
 	self:_resize_tab()
 	local api = {}
-	function api:Fire() pcall(opts.Callback) end
-	function api:SetText(t) local lbl = c:FindFirstChildOfClass("TextLabel"); if lbl then lbl.Text = t end end
+	function api:Fire() opts.Callback() end
+	function api:SetText(t) txt.Text = t end
 	return api
 end
 
--- ═══ COLOR PICKER ═══
+-- ═══ COLOR PICKER COMPLET ═══
 function Library:color_picker(opts)
 	opts = self:set_defaults({Name="Color Picker", Description=nil, Style=Library.ColorPickerStyles.Legacy, Followup=false, Callback=function(c) end}, opts)
-	local c, h = self:_widget_base(opts.Name, opts.Description)
-	local preview = c:object("Frame", {AnchorPoint=Vector2.new(1,0.5), Position=UDim2.new(1,-12,0.5,0), Size=UDim2.fromOffset(40,18), BackgroundColor3=Library.CurrentTheme.Tertiary, ZIndex=10}):round(2)
-	preview:stroke({"Tertiary", -30}, 1)
-	c.MouseButton1Click:connect(function()
-		if Library._colorPickerExists then return end
-		Library._colorPickerExists = true
-		local hue, sat, val = 0, 1, 1
-		local selectedColor = Color3.fromRGB(255,0,0)
-		local fadeOut
-		local darkener = self.core:object("Frame", {BackgroundColor3=Color3.new(0,0,0), BackgroundTransparency=1, Size=UDim2.fromScale(1,1), ZIndex=200}):round(4)
-		local holder = darkener:object("Frame", {Centered=true, Theme={BackgroundColor3="Main"}, BackgroundTransparency=1, Size=UDim2.fromOffset(280,190), ZIndex=201}):round(3)
-		holder:stroke({"Tertiary", -20}, 1)
-		holder:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,6), Size=UDim2.new(1,-20,0,16), Text="> color picker :: hsv", TextSize=11, Font=Enum.Font.Code, Theme={TextColor3="Tertiary"}, TextXAlignment=Enum.TextXAlignment.Left, TextTransparency=1, ZIndex=202}).Name = "hdr"
-		holder:object("Frame", {Position=UDim2.fromOffset(0, 24), Size=UDim2.new(1,0,0,1), Theme={BackgroundColor3={"Tertiary", -40}}, ZIndex=202})
+	local bc = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
+	bc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 0), Size=(opts.Description and UDim2.new(0.5,-10,0,22)) or UDim2.new(0.5,-10,1,0), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
+	if opts.Description then bc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
+	local icon = bc:object("ImageLabel", {AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-11,0.5,0), Size=UDim2.fromOffset(26,26), Image="rbxassetid://8604555937", ImageColor3=Library.CurrentTheme.Tertiary, ZIndex=10})
+	do
+		local h, d = false, false
+		bc.MouseEnter:connect(function() h=true; bc:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)} end)
+		bc.MouseLeave:connect(function() h=false; if not d then bc:tween{BackgroundColor3=Library.CurrentTheme.Secondary} end end)
+		bc.MouseButton1Down:connect(function() bc:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,20)} end)
+		UserInputService.InputEnded:connect(function(k) if k.UserInputType==Enum.UserInputType.MouseButton1 then bc:tween{BackgroundColor3=(h and self:lighten(Library.CurrentTheme.Secondary)) or Library.CurrentTheme.Secondary} end end)
+		bc.MouseButton1Click:connect(function()
+			if Library._colorPickerExists then return end
+			Library._colorPickerExists = true
+			local hue, sat, val = 0, 1, 1
+			local selectedColor = Color3.fromRGB(255,0,0)
+			local fadeOut
+			local darkener = self.core:object("Frame", {BackgroundColor3=Color3.fromRGB(0,0,0), BackgroundTransparency=1, Size=UDim2.fromScale(1,1), ZIndex=200}):round(10)
+			do
+				local holder = darkener:object("Frame", {Centered=true, Theme={BackgroundColor3="Secondary"}, BackgroundTransparency=1, Size=UDim2.fromOffset(255,170), ZIndex=201}):round(6)
+				local _hs = holder:object("UIStroke", {Transparency=1, Theme={Color="Tertiary"}, Thickness=1.6})
+				holder:object("UIPadding", {PaddingLeft=UDim.new(0,5), PaddingRight=UDim.new(0,5), PaddingTop=UDim.new(0,5), PaddingBottom=UDim.new(0,5)})
 
-		local sv = holder:object("TextButton", {Text="", BackgroundColor3=selectedColor, BackgroundTransparency=1, Position=UDim2.fromOffset(10,32), Size=UDim2.fromOffset(200,140), ZIndex=203}):round(2)
-		sv:object("Frame", {Size=UDim2.fromScale(1,1), ZIndex=204, BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=1}):round(2).Parent.Name = "grad"
-		local grad = sv:FindFirstChild("grad")
-		grad:object("UIGradient", {Color=ColorSequence.new(Color3.fromRGB(255,255,255)), Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(1,1)})})
-		local blk = sv:object("Frame", {Size=UDim2.fromScale(1,1), BackgroundColor3=Color3.new(0,0,0), ZIndex=205}):round(2)
-		blk:object("UIGradient", {Color=ColorSequence.new(Color3.new(0,0,0)), Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(1,1)}), Rotation=-90})
-		local cpd = sv:object("Frame", {AnchorPoint=Vector2.new(0.5,0.5), Position=UDim2.fromScale(0,1), Size=UDim2.fromOffset(8,8), BackgroundTransparency=1, ZIndex=210}):round(1)
-		cpd:object("UIStroke", {Color=Color3.new(1,1,1), Thickness=2})
+				local pa = holder:object("TextButton", {Text="", BackgroundTransparency=1, Size=UDim2.new(0.5,-5,1,-25), ZIndex=202}):round(6)
+				local _pas = pa:object("UIStroke", {Transparency=1, Theme={Color="Tertiary"}, Thickness=1.6})
 
-		local hueBar = holder:object("TextButton", {Text="", BackgroundColor3=Color3.new(1,1,1), Position=UDim2.fromOffset(218,32), Size=UDim2.fromOffset(20,140), ZIndex=203}):round(2)
-		hueBar:object("UIGradient", {Rotation=90, Color=ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
-			ColorSequenceKeypoint.new(1/6, Color3.fromRGB(255,255,0)),
-			ColorSequenceKeypoint.new(2/6, Color3.fromRGB(0,255,0)),
-			ColorSequenceKeypoint.new(3/6, Color3.fromRGB(0,255,255)),
-			ColorSequenceKeypoint.new(4/6, Color3.fromRGB(0,0,255)),
-			ColorSequenceKeypoint.new(5/6, Color3.fromRGB(255,0,255)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,0)),
-		})})
-		local hd = hueBar:object("Frame", {AnchorPoint=Vector2.new(0,0.5), Position=UDim2.new(0.5,0,0,0), Size=UDim2.new(1,4,0,4), BackgroundTransparency=1, ZIndex=210}):round(1)
-		hd:object("UIStroke", {Color=Color3.new(1,1,1), Thickness=2})
+				local col = pa:object("Frame", {Size=UDim2.fromScale(1,1), BackgroundColor3=selectedColor, BackgroundTransparency=1, ZIndex=203}):round(6)
+				local bright = pa:object("Frame", {Size=UDim2.fromScale(1,1), ZIndex=204, BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=1, BorderSizePixel=0}):round(6)
+				bright:object("UIGradient", {Color=ColorSequence.new(Color3.fromRGB(255,255,255)), Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(1,1)})})
+				local black = pa:object("Frame", {Size=UDim2.fromScale(1,1), ZIndex=205, BackgroundColor3=Color3.fromRGB(255,255,255), BorderSizePixel=0, BackgroundTransparency=1}):round(6)
+				black:object("UIGradient", {Color=ColorSequence.new(Color3.fromRGB(0,0,0)), Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(1,1)}), Rotation=-90})
+				local cpd = pa:object("TextButton", {Centered=true, Text="", AnchorPoint=Vector2.new(.5,.5), BackgroundTransparency=1, Size=UDim2.fromOffset(6,6), ZIndex=210}):round(100)
+				cpd:object("UIStroke", {Transparency=1, Color=Color3.fromRGB(255,255,255), Thickness=1.6})
 
-		local rgb = holder:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, 178), Size=UDim2.new(1,-80,0,12), Text="R:255 G:0 B:0", TextSize=11, Font=Enum.Font.Code, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, TextTransparency=1, ZIndex=204})
-		local pick = holder:object("TextButton", {Position=UDim2.new(1,-10,0,175), Size=UDim2.fromOffset(60,18), Theme={BackgroundColor3="Tertiary",TextColor3="Main"}, Text="APPLY", TextSize=11, Font=Enum.Font.Code, AnchorPoint=Vector2.new(1,0), BackgroundTransparency=1, TextTransparency=1, ZIndex=205}):round(2)
+				local ha = holder:object("TextButton", {Text="", AnchorPoint=Vector2.new(0,1), Position=UDim2.fromScale(0,1), Size=UDim2.new(0.5,-5,0,20), BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=1, ZIndex=204}):round(6)
+				local _has = ha:object("UIStroke", {Transparency=1, Theme={Color="Tertiary"}, Thickness=1.6})
+				ha:object("UIGradient", {Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,0,0)),ColorSequenceKeypoint.new(0.167,Color3.fromRGB(255,255,0)),ColorSequenceKeypoint.new(0.333,Color3.fromRGB(0,255,0)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(0,255,255)),ColorSequenceKeypoint.new(0.667,Color3.fromRGB(0,0,255)),ColorSequenceKeypoint.new(0.833,Color3.fromRGB(255,0,255)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,0,0))})})
+				local hd = ha:object("TextButton", {Centered=true, Text="", BackgroundTransparency=1, Size=UDim2.new(0,3,1,0), ZIndex=210})
+				hd:object("UIStroke", {Transparency=1, Color=Color3.fromRGB(255,255,255), Thickness=1.6})
 
-		local function update()
-			local c = Color3.fromHSV(hue, sat, val)
-			rgb.Text = string.format("R:%d G:%d B:%d", math.floor(c.R*255), math.floor(c.G*255), math.floor(c.B*255))
-			preview.BackgroundColor3 = c
-			selectedColor = c
-		end
+				local lbl = holder:object("TextLabel", {Text="Color Picker", Font=Enum.Font.SourceSansBold, AnchorPoint=Vector2.new(1,0), BackgroundTransparency=1, Position=UDim2.fromScale(1,0), Size=UDim2.new(0.5,0,0,20), Theme={TextColor3={"Tertiary",15}}, TextSize=15, TextTransparency=1, ZIndex=206})
+				local infos = holder:object("Frame", {AnchorPoint=Vector2.new(1,0), BackgroundTransparency=1, Position=UDim2.new(1,0,0,25), Size=UDim2.new(0.5,0,0,60), ZIndex=203})
+				infos:object("UIListLayout", {Padding=UDim.new(0,4), HorizontalAlignment=Enum.HorizontalAlignment.Center, SortOrder=Enum.SortOrder.Name})
+				local r = infos:object("TextLabel", {AnchorPoint=Vector2.new(0.5,0), Name="1", Text=tostring(selectedColor.R*255), Theme={BackgroundColor3={"Secondary",12}}, Size=UDim2.new(1,-10,0,18), TextColor3=Color3.fromHSV(0,0.8,1), TextSize=14, BackgroundTransparency=1, TextTransparency=1, ZIndex=204}):round(4)
+				local g = infos:object("TextLabel", {AnchorPoint=Vector2.new(0.5,0), Name="2", Text=tostring(selectedColor.G*255), Theme={BackgroundColor3={"Secondary",12}}, Size=UDim2.new(1,-10,0,18), TextColor3=Color3.fromHSV(120/360,0.8,1), TextSize=14, BackgroundTransparency=1, TextTransparency=1, ZIndex=204}):round(4)
+				local b = infos:object("TextLabel", {AnchorPoint=Vector2.new(0.5,0), Text=tostring(selectedColor.B*255), Name="3", Theme={BackgroundColor3={"Secondary",12}}, Size=UDim2.new(1,-10,0,18), TextColor3=Color3.fromHSV(240/360,0.8,1), TextSize=14, BackgroundTransparency=1, TextTransparency=1, ZIndex=204}):round(4)
+				local pickBtn = holder:object("ImageButton", {AnchorPoint=Vector2.new(1,1), Theme={BackgroundColor3="Tertiary"}, Position=UDim2.fromScale(1,1), Size=UDim2.new(0.5,0,0,20), Image="rbxassetid://8593962406", ScaleType=Enum.ScaleType.Fit, BackgroundTransparency=1, ImageTransparency=1, ZIndex=206}):round(6)
+				local pl = holder:object("Frame", {AnchorPoint=Vector2.new(1,1), BackgroundColor3=selectedColor, Position=UDim2.new(1,-65,1,-25), Size=UDim2.fromOffset(40,40), BackgroundTransparency=1, ZIndex=205}):round(5)
+				local pd = holder:object("Frame", {AnchorPoint=Vector2.new(1,1), BackgroundColor3=selectedColor, Position=UDim2.new(1,-15,1,-25), Size=UDim2.fromOffset(40,40), BackgroundTransparency=1, ZIndex=205}):round(5)
 
-		local drag1, drag2 = false, false
-		sv.MouseButton1Down:connect(function() drag1 = true
-			while drag1 and sv.AbsoluteObject.Parent do
-				local x = math.clamp((Mouse.X - sv.AbsolutePosition.X) / sv.AbsoluteSize.X, 0, 1)
-				local y = math.clamp((Mouse.Y - sv.AbsolutePosition.Y) / sv.AbsoluteSize.Y, 0, 1)
-				sat, val = x, 1 - y
-				cpd.Position = UDim2.fromScale(x, y)
-				update()
-				RunService.RenderStepped:Wait()
+				for _, v in next, darkener.AbsoluteObject:GetDescendants() do pcall(function() v.ZIndex += 2 end) end
+
+				local function globalUpdate()
+					r.Text = tostring(math.floor(selectedColor.R*255)); g.Text = tostring(math.floor(selectedColor.G*255)); b.Text = tostring(math.floor(selectedColor.B*255))
+					pd.BackgroundColor3 = selectedColor; pl.BackgroundColor3 = selectedColor
+				end
+
+				local dn1, dn2 = false, false
+				ha.MouseButton1Down:Connect(function() dn1 = true; while RunService.RenderStepped:Wait() and dn1 do
+					hue = math.clamp((Mouse.X - ha.AbsolutePosition.X) / ha.AbsoluteSize.X, 0, 1)
+					local nx = math.clamp((Mouse.X - ha.AbsolutePosition.X) / ha.AbsoluteSize.X * ha.AbsoluteSize.X, 0, ha.AbsoluteSize.X)
+					selectedColor = Color3.fromHSV(hue, sat, val)
+					col.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
+					hd.Position = UDim2.new(0, math.clamp(nx, 0, ha.AbsoluteSize.X), 0.5, 0)
+					globalUpdate()
+				end end)
+				hd.MouseButton1Down:connect(function() dn1 = true; while RunService.RenderStepped:Wait() and dn1 do
+					hue = math.clamp((Mouse.X - ha.AbsolutePosition.X) / ha.AbsoluteSize.X, 0, 1)
+					local nx = math.clamp((Mouse.X - ha.AbsolutePosition.X) / ha.AbsoluteSize.X * ha.AbsoluteSize.X, 0, ha.AbsoluteSize.X)
+					selectedColor = Color3.fromHSV(hue, sat, val)
+					col.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
+					hd.Position = UDim2.new(0, math.clamp(nx, 0, ha.AbsoluteSize.X), 0.5, 0)
+					globalUpdate()
+				end end)
+				pa.MouseButton1Down:Connect(function() dn2 = true; while RunService.RenderStepped:wait() and dn2 do
+					sat = math.clamp((Mouse.X - pa.AbsolutePosition.X) / pa.AbsoluteSize.X, 0, 1)
+					val = 1 - math.clamp((Mouse.Y - pa.AbsolutePosition.Y) / pa.AbsoluteSize.Y, 0, 1)
+					local nx = math.clamp((Mouse.X - pa.AbsolutePosition.X) / pa.AbsoluteSize.X * pa.AbsoluteSize.X, 0, pa.AbsoluteSize.X)
+					local ny = math.clamp((Mouse.Y - pa.AbsolutePosition.Y) / pa.AbsoluteSize.Y * pa.AbsoluteSize.Y, 0, pa.AbsoluteSize.Y)
+					selectedColor = Color3.fromHSV(hue, sat, val)
+					globalUpdate()
+					cpd.Position = UDim2.fromOffset(nx, ny)
+				end end)
+				UserInputService.InputEnded:Connect(function(k) if k.UserInputType == Enum.UserInputType.MouseButton1 then dn1 = false; dn2 = false end end)
+				pickBtn.MouseButton1Click:connect(function() fadeOut(); icon:tween({ImageColor3=selectedColor}); opts.Callback(selectedColor); task.delay(0.35, function() Library._colorPickerExists = false end) end)
+
+				holder:tween({BackgroundTransparency=0, Length=0.1}); _hs:tween({Transparency=0, Length=0.1})
+				pa:tween({BackgroundTransparency=0, Length=0.1}); _pas:tween({Transparency=0, Length=0.1})
+				col:tween({BackgroundTransparency=0, Length=0.1}); bright:tween({BackgroundTransparency=0, Length=0.1}); black:tween({BackgroundTransparency=0, Length=0.1})
+				ha:tween({BackgroundTransparency=0, Length=0.1}); _has:tween({Transparency=0, Length=0.1})
+				lbl:tween{TextTransparency=0, Length=0.1}
+				r:tween({BackgroundTransparency=0,TextTransparency=0,Length=0.1}); g:tween({BackgroundTransparency=0,TextTransparency=0,Length=0.1}); b:tween({BackgroundTransparency=0,TextTransparency=0,Length=0.1})
+				pickBtn:tween({BackgroundTransparency=0,ImageTransparency=0,Length=0.1})
+				pl:tween({BackgroundTransparency=0,Length=0.1}); pd:tween({BackgroundTransparency=0,Length=0.1})
+				darkener:tween({BackgroundTransparency=0.5, Length=0.1})
+
+				fadeOut = function()
+					holder:tween({BackgroundTransparency=1,Length=0.1}); _hs:tween({Transparency=1,Length=0.1})
+					pa:tween({BackgroundTransparency=1,Length=0.1}); _pas:tween({Transparency=1,Length=0.1})
+					col:tween({BackgroundTransparency=1,Length=0.1}); bright:tween({BackgroundTransparency=1,Length=0.1}); black:tween({BackgroundTransparency=1,Length=0.1})
+					ha:tween({BackgroundTransparency=1,Length=0.1}); _has:tween({Transparency=1,Length=0.1})
+					lbl:tween{TextTransparency=1,Length=0.1}
+					r:tween({BackgroundTransparency=1,TextTransparency=1,Length=0.1}); g:tween({BackgroundTransparency=1,TextTransparency=1,Length=0.1}); b:tween({BackgroundTransparency=1,TextTransparency=1,Length=0.1})
+					pickBtn:tween({BackgroundTransparency=1,ImageTransparency=1,Length=0.1})
+					pl:tween({BackgroundTransparency=1,Length=0.1}); pd:tween({BackgroundTransparency=1,Length=0.1})
+					darkener:tween({BackgroundTransparency=1, Length=0.1}, function() task.delay(0.25, function() pcall(function() darkener.AbsoluteObject:Destroy() end) end) end)
+				end
 			end
 		end)
-		hueBar.MouseButton1Down:connect(function() drag2 = true
-			while drag2 and hueBar.AbsoluteObject.Parent do
-				local y = math.clamp((Mouse.Y - hueBar.AbsolutePosition.Y) / hueBar.AbsoluteSize.Y, 0, 1)
-				hue = y
-				hd.Position = UDim2.new(0.5,0, y, 0)
-				sv.BackgroundColor3 = Color3.fromHSV(y, 1, 1)
-				update()
-				RunService.RenderStepped:Wait()
-			end
-		end)
-		UserInputService.InputEnded:connect(function(k) if k.UserInputType == Enum.UserInputType.MouseButton1 then drag1 = false; drag2 = false end end)
-
-		fadeOut = function()
-			holder:tween({BackgroundTransparency=1, Length=0.1})
-			darkener:tween({BackgroundTransparency=1, Length=0.1}, function() task.delay(0.2, function() pcall(function() darkener.AbsoluteObject:Destroy() end) end) end)
-		end
-		pick.MouseButton1Click:connect(function()
-			update()
-			fadeOut()
-			pcall(opts.Callback, selectedColor)
-			task.delay(0.3, function() Library._colorPickerExists = false end)
-		end)
-
-		holder:tween({BackgroundTransparency=0, Length=0.1})
-		sv.BackgroundTransparency = 0; blk.BackgroundTransparency = 0; grad.BackgroundTransparency = 0
-		hd.BackgroundTransparency = 0; cpd.BackgroundTransparency = 0
-		rgb.TextTransparency = 0
-		pick.BackgroundTransparency = 0; pick.TextTransparency = 0
-		darkener:tween({BackgroundTransparency=0.5, Length=0.1})
-		for _, d in ipairs(holder:GetDescendants()) do pcall(function() if d.Name == "hdr" then d.TextTransparency = 0 end end) end
-	end)
+	end
 	self:_resize_tab()
 end
 function Library:cp(o) return Library.color_picker(self, o) end
@@ -897,40 +912,37 @@ function Library:colorpicker(o) return Library.color_picker(self, o) end
 
 function Library:credit(opts)
 	opts = self:set_defaults({Name="Creditor", Description=nil}, opts)
-	local container = self.creditsContainer or self.container
-	local cc = container:object("Frame", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,50), ZIndex=9}):round(3)
-	cc:stroke({"Tertiary", -35}, 1)
-	cc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(12, (opts.Description and 6) or 0), Size=(opts.Description and UDim2.new(0.5,-12,0,16)) or UDim2.new(0.5,-12,1,0), Text=opts.Name, TextSize=14, Font=Enum.Font.Code, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
-	if opts.Description then cc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(12,26), Size=UDim2.new(0.5,-12,0,14), Text=opts.Description, TextSize=11, Font=Enum.Font.Code, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
+	opts.V3rmillion = opts.V3rmillion or opts.V3rm
+	local cc = (self.creditsContainer or self.container):object("Frame", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
+	cc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 0), Size=(opts.Description and UDim2.new(0.5,-10,0,22)) or UDim2.new(0.5,-10,1,0), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
+	if opts.Description then cc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
 	if setclipboard and opts.Discord then
-		local dc = cc:object("TextButton", {AnchorPoint=Vector2.new(1,0.5), Size=UDim2.fromOffset(70,20), Position=UDim2.new(1,-10,0.5,0), BackgroundTransparency=0.85, Theme={BackgroundColor3="Tertiary"}, Text="> copy", TextSize=10, Font=Enum.Font.Code, Theme={TextColor3="StrongText"}, ZIndex=10}):round(2)
+		local dc = cc:object("TextButton", {AnchorPoint=Vector2.new(1,1), Size=UDim2.fromOffset(24,24), Position=UDim2.new(1,-8,1,-8), BackgroundColor3=Color3.fromRGB(88,101,242), ZIndex=10}):round(5):tooltip("copy discord")
 		dc.MouseButton1Click:connect(function() setclipboard(opts.Discord) end)
 	end
-	if self.creditsContainer then
-		local lyt = self.creditsContainer.AbsoluteObject:FindFirstChildOfClass("UIListLayout")
-		if lyt then pcall(function() self.creditsContainer.CanvasSize = UDim2.fromOffset(0, lyt.AbsoluteContentSize.Y + 24) end) end
-	else self:_resize_tab() end
+	self._resize_tab({container=self.creditsContainer or self.container, layout=(self.creditsContainer and self.creditsContainer.AbsoluteObject.UIListLayout) or self.layout})
 end
 
 function Library:_theme_selector()
-	local tc = self.container:object("Frame", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,127), ZIndex=9}):round(3)
-	tc:stroke({"Tertiary", -35}, 1)
-	tc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(12,6), Size=UDim2.new(1,-20,0,16), Text="[ + ] THEME", TextSize=12, Font=Enum.Font.Code, Theme={TextColor3="Tertiary"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
-	tc:object("Frame", {Position=UDim2.fromOffset(0,26), Size=UDim2.new(1,0,0,1), Theme={BackgroundColor3={"Tertiary", -50}}, ZIndex=10})
-	local ctc = tc:object("Frame", {Size=UDim2.new(1,-16,1,-36), BackgroundTransparency=1, Position=UDim2.new(0.5,0,1,-6), AnchorPoint=Vector2.new(0.5,1), ZIndex=10})
-	ctc:object("UIGridLayout", {CellPadding=UDim2.fromOffset(6,6), CellSize=UDim2.fromOffset(90,60), VerticalAlignment=Enum.VerticalAlignment.Center})
+	local tc = self.container:object("Frame", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,127), ZIndex=9}):round(7)
+	tc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,5), Size=UDim2.new(0.5,-10,0,22), Text="Theme", TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
+	local ctc = tc:object("Frame", {Size=UDim2.new(1,0,1,-32), BackgroundTransparency=1, Position=UDim2.new(0.5,0,1,-5), AnchorPoint=Vector2.new(0.5,1), ZIndex=10})
+	ctc:object("UIGridLayout", {CellPadding=UDim2.fromOffset(10,10), CellSize=UDim2.fromOffset(102,83), VerticalAlignment=Enum.VerticalAlignment.Center})
+	ctc:object("UIPadding", {PaddingLeft=UDim.new(0,10), PaddingTop=UDim.new(0,5)})
 	for tn, tcolors in next, Library.Themes do
 		local cnt = 0
-		for _, c in next, tcolors do if type(c) == "Color3" then cnt = cnt + 1 end end
+		for _, c in next, tcolors do if not (type(c)=="boolean") then cnt = cnt + 1 end end
 		if cnt >= 5 then
 			local th = ctc:object("TextButton", {BackgroundTransparency=1, ZIndex=10})
-			local tcc = th:object("Frame", {Size=UDim2.new(1,0,1,-14), BackgroundColor3=tcolors.Main, ZIndex=11}):round(2)
-			tcc:stroke({"Tertiary", -40}, 1)
-			th:object("TextLabel", {BackgroundTransparency=1, Text=tn, TextSize=10, Font=Enum.Font.Code, Theme={TextColor3="WeakText"}, Size=UDim2.new(1,0,0,12), Position=UDim2.fromScale(0,1), AnchorPoint=Vector2.new(0,1), ZIndex=11})
-			local strip = tcc:object("Frame", {Position=UDim2.fromOffset(4,4), Size=UDim2.new(1,-8,0,8), BackgroundColor3=tcolors.Secondary, ZIndex=12}):round(1)
-			strip:object("Frame", {Position=UDim2.fromOffset(4,4), Size=UDim2.new(1,-8,0,8), BackgroundColor3=tcolors.Tertiary, ZIndex=13}):round(1)
-			strip:object("Frame", {Position=UDim2.fromOffset(4,16), Size=UDim2.new(1,-8,0,8), BackgroundColor3=tcolors.StrongText, ZIndex=13}):round(1)
-			strip:object("Frame", {Position=UDim2.fromOffset(4,28), Size=UDim2.new(1,-8,0,8), BackgroundColor3=tcolors.WeakText, ZIndex=13}):round(1)
+			local tcc = th:object("Frame", {Size=UDim2.new(1,0,1,-20), BackgroundTransparency=1, ZIndex=11}):round(5):stroke("WeakText",1)
+			th:object("TextLabel", {BackgroundTransparency=1, Text=tn, TextSize=16, Theme={TextColor3="StrongText"}, Size=UDim2.new(1,0,0,20), Position=UDim2.fromScale(0,1), AnchorPoint=Vector2.new(0,1), ZIndex=11})
+			local cm = tcc:object("Frame", {Centered=true, Size=UDim2.fromScale(1,1), BackgroundColor3=tcolors.Main, ZIndex=11}):round(4)
+			local cs = cm:object("Frame", {Centered=true, Size=UDim2.new(1,-16,1,-16), BackgroundColor3=tcolors.Secondary, ZIndex=12}):round(4)
+			cs:object("UIListLayout", {Padding=UDim.new(0,5)})
+			cs:object("UIPadding", {PaddingTop=UDim.new(0,5), PaddingLeft=UDim.new(0,5)})
+			cs:object("Frame", {Size=UDim2.new(1,-20,0,9), BackgroundColor3=tcolors.Tertiary, ZIndex=13}):round(100)
+			cs:object("Frame", {Size=UDim2.new(1,-30,0,9), BackgroundColor3=tcolors.StrongText, ZIndex=13}):round(100)
+			cs:object("Frame", {Size=UDim2.new(1,-40,0,9), BackgroundColor3=tcolors.WeakText, ZIndex=13}):round(100)
 			th.MouseButton1Click:connect(function() Library:change_theme(Library.Themes[tn]); updateSettings("Theme", tn) end)
 		end
 	end
@@ -939,79 +951,82 @@ end
 
 function Library:keybind(opts)
 	opts = self:set_defaults({Name="Keybind", Keybind=nil, Description=nil, Callback=function() end}, opts)
-	local c, h = self:_widget_base(opts.Name, opts.Description)
-	local kd = c:object("TextLabel", {AnchorPoint=Vector2.new(1,0.5), Theme={BackgroundColor3={"Secondary",-20},TextColor3="Tertiary"}, Position=UDim2.new(1,-12,0.5,0), Size=UDim2.fromOffset(80,18), TextSize=11, Font=Enum.Font.Code, Text=(opts.Keybind and tostring(opts.Keybind.Name):upper()) or "[ -- ]", TextXAlignment=Enum.TextXAlignment.Center, ZIndex=10}):round(2):stroke({"Tertiary", -40}, 1)
-	local h_, d_, listen = false, false, false
-	c.MouseEnter:connect(function() h_=true; c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)} end)
-	c.MouseLeave:connect(function() h_=false; if not d_ and not listen then c:tween{BackgroundColor3=Library.CurrentTheme.Secondary} end end)
-	c.MouseButton1Down:connect(function() d_=true; c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,18)} end)
-	UserInputService.InputEnded:connect(function(k) if k.UserInputType==Enum.UserInputType.MouseButton1 then d_=false; if not listen then c:tween{BackgroundColor3=(h_ and self:lighten(Library.CurrentTheme.Secondary,10)) or Library.CurrentTheme.Secondary} end end end)
-	UserInputService.InputBegan:Connect(function(k, gpe)
-		if listen and not UserInputService:GetFocusedTextBox() then
-			if k.UserInputType == Enum.UserInputType.Keyboard then
-				if k.KeyCode ~= Enum.KeyCode.Escape then opts.Keybind = k.KeyCode end
-				kd.Text = (opts.Keybind and tostring(opts.Keybind.Name):upper()) or "[ -- ]"
-				listen = false
-				c:tween{BackgroundColor3=(h_ and self:lighten(Library.CurrentTheme.Secondary,10)) or Library.CurrentTheme.Secondary}
-				kd:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary, -20)}
-			end
-		elseif opts.Keybind and k.KeyCode == opts.Keybind and not gpe then
-			pcall(opts.Callback)
-		end
-	end)
-	c.MouseButton1Click:connect(function()
-		if not listen then
-			listen = true; kd.Text = "[ ... ]"
-			kd:tween{BackgroundColor3=Library.CurrentTheme.Tertiary}
-		end
-	end)
+	local c = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
+	c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 0), Size=(opts.Description and UDim2.new(0.5,-10,0,22)) or UDim2.new(0.5,-10,1,0), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
+	if opts.Description then c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
+	local kd = c:object("TextLabel", {AnchorPoint=Vector2.new(1,0), Theme={BackgroundColor3={"Secondary",-20},TextColor3="WeakText"}, Position=UDim2.new(1,-20,0,16), Size=UDim2.new(0,50,0,20), TextSize=12, Text=(opts.Keybind and tostring(opts.Keybind.Name):upper()) or "?", ZIndex=10}):round(5):stroke("Tertiary")
+	kd.Size = UDim2.fromOffset(kd.TextBounds.X + 20, 20)
+	do
+		local h, d, listen = false, false, false
+		c.MouseEnter:connect(function() h=true; c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)} end)
+		c.MouseLeave:connect(function() h=false; if not d then c:tween{BackgroundColor3=Library.CurrentTheme.Secondary} end end)
+		c.MouseButton1Down:connect(function() c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,20)} end)
+		UserInputService.InputEnded:connect(function(k) if k.UserInputType==Enum.UserInputType.MouseButton1 then c:tween{BackgroundColor3=(h and self:lighten(Library.CurrentTheme.Secondary)) or Library.CurrentTheme.Secondary} end end)
+		UserInputService.InputBegan:Connect(function(k, gpe)
+			if listen and not UserInputService:GetFocusedTextBox() then
+				if k.UserInputType == Enum.UserInputType.Keyboard then
+					if k.KeyCode ~= Enum.KeyCode.Escape then opts.Keybind = k.KeyCode end
+					kd.Text = (opts.Keybind and tostring(opts.Keybind.Name):upper()) or "?"
+					kd:tween{Size=UDim2.fromOffset(kd.TextBounds.X+20,20), Length=0.05}; listen = false
+				end
+			else if k.KeyCode == opts.Keybind then opts.Callback() end end
+		end)
+		c.MouseButton1Click:connect(function() if not listen then listen = true; kd.Text = "..." end end)
+	end
 	self:_resize_tab()
 	local api = {}
-	function api:Set(k) opts.Keybind = k; kd.Text = (opts.Keybind and tostring(opts.Keybind.Name):upper()) or "[ -- ]" end
+	function api:Set(k) opts.Keybind = k; kd.Text = (opts.Keybind and tostring(opts.Keybind.Name):upper()) or "?"; kd:tween{Size=UDim2.fromOffset(kd.TextBounds.X+20,20), Length=0.05} end
 	return api
 end
 
 function Library:slider(opts)
-	opts = self:set_defaults({Name="Slider", Default=50, Min=0, Max=100, Description=nil, Callback=function() end}, opts)
-	local c, h = self:_widget_base(opts.Name, opts.Description)
-	local valText = c:object("TextLabel", {AnchorPoint=Vector2.new(1,0.5), Theme={BackgroundColor3={"Secondary",-20},TextColor3="Tertiary"}, Position=UDim2.new(1,-12,0.5,0), Size=UDim2.fromOffset(50,18), TextSize=11, Font=Enum.Font.Code, Text=tostring(opts.Default), TextXAlignment=Enum.TextXAlignment.Center, ZIndex=10}):round(2):stroke({"Tertiary", -40}, 1)
-	local track = c:object("Frame", {AnchorPoint=Vector2.new(0,1), Theme={BackgroundColor3={"Tertiary", -50}}, Position=UDim2.new(0,12,1,-8), Size=UDim2.new(1,-24,0,3), ZIndex=10}):round(100)
-	local fill = track:object("Frame", {Size=UDim2.fromScale(((opts.Default-opts.Min)/(opts.Max-opts.Min)), 1), Theme={BackgroundColor3="Tertiary"}, ZIndex=11}):round(100)
-	local thumb = fill:object("Frame", {AnchorPoint=Vector2.new(0.5,0.5), Position=UDim2.fromScale(1,0.5), Size=UDim2.fromOffset(10,10), Theme={BackgroundColor3="Tertiary"}, ZIndex=12}):round(1)
-	thumb:stroke({"Tertiary", 10}, 1)
-
-	local dragging = false
-	c.MouseButton1Down:connect(function()
-		dragging = true
-		while dragging and c.AbsoluteObject.Parent do
-			local pct = math.clamp((Mouse.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
-			local v = math.floor((opts.Max - opts.Min) * pct + opts.Min + 0.5)
-			valText.Text = tostring(v)
-			fill.Size = UDim2.fromScale(pct, 1)
-			pcall(opts.Callback, v)
-			RunService.RenderStepped:Wait()
-		end
-	end)
-	UserInputService.InputEnded:connect(function(k) if k.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
-	self:_hover_style(c, Library.CurrentTheme.Secondary, self:lighten(Library.CurrentTheme.Secondary, 10), self:lighten(Library.CurrentTheme.Secondary, 10))
+	opts = self:set_defaults({Name="Slider", Default=50, Min=0, Max=100, Callback=function() end}, opts)
+	local c = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,56), ZIndex=9}):round(7)
+	c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,5), Size=UDim2.new(0.5,-10,0,22), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
+	if opts.Description then c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}); c.Size = UDim2.new(1,-20,0,76) end
+	local vt = c:object("TextLabel", {AnchorPoint=Vector2.new(1,0), Theme={BackgroundColor3={"Secondary",-20},TextColor3="WeakText"}, Position=UDim2.new(1,-10,0,10), Size=UDim2.new(0,50,0,20), TextSize=12, Text=opts.Default, ZIndex=10}):round(5):stroke("Tertiary")
+	vt.Size = UDim2.fromOffset(vt.TextBounds.X + 20, 20)
+	local sb = c:object("Frame", {Theme={BackgroundColor3={"Secondary",-20}}, AnchorPoint=Vector2.new(0.5,1), Size=UDim2.new(1,-20,0,5), Position=UDim2.new(0.5,0,1,-12), ZIndex=10}):round(100)
+	local sl = sb:object("Frame", {Size=UDim2.fromScale(((opts.Default-opts.Min)/(opts.Max-opts.Min)),1), Theme={BackgroundColor3="Tertiary"}, ZIndex=11}):round(100)
+	sl:object("Frame", {AnchorPoint=Vector2.new(0.5,0.5), Position=UDim2.fromScale(1,0.5), Size=UDim2.fromOffset(14,14), Theme={BackgroundColor3={"Tertiary",20}}, ZIndex=12}):round(100)
+	do
+		local h, d = false, false
+		c.MouseEnter:connect(function() h=true; c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)} end)
+		c.MouseLeave:connect(function() h=false; if not d then c:tween{BackgroundColor3=Library.CurrentTheme.Secondary} end end)
+		UserInputService.InputEnded:connect(function(k) if k.UserInputType==Enum.UserInputType.MouseButton1 then d=false; c:tween{BackgroundColor3=(h and self:lighten(Library.CurrentTheme.Secondary)) or Library.CurrentTheme.Secondary} end end)
+		c.MouseButton1Down:connect(function()
+			c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,20)}; d = true
+			local tw = vt:tween{Size=UDim2.fromOffset(vt.TextBounds.X+20,20)}
+			while RunService.RenderStepped:wait() and d do
+				local pct = math.clamp((Mouse.X - sb.AbsolutePosition.X) / (sb.AbsoluteSize.X), 0, 1)
+				local v = math.floor(((opts.Max-opts.Min)*pct)+opts.Min)
+				vt.Text = v
+				if tw.PlaybackState == Enum.PlaybackState.Completed then tw = vt:tween{Size=UDim2.fromOffset(vt.TextBounds.X+20,20)} end
+				sl.Size = UDim2.fromScale(pct,1); opts.Callback(v)
+			end
+		end)
+	end
 	self:_resize_tab()
 	local api = {}
-	function api:Set(v)
-		v = math.clamp(v, opts.Min, opts.Max)
-		local pct = (v - opts.Min) / (opts.Max - opts.Min)
-		fill.Size = UDim2.fromScale(pct, 1)
-		valText.Text = tostring(math.floor(v))
-	end
+	function api:Set(v) sl:tween{Size=UDim2.fromScale(((v-opts.Min)/(opts.Max-opts.Min)),1)}; vt.Text = v end
 	return api
 end
 
 function Library:textbox(opts)
-	opts = self:set_defaults({Name="Text Box", Placeholder="> type...", Description=nil, Callback=function(t) end}, opts)
-	local c, h = self:_widget_base(opts.Name, opts.Description)
-	local tb = c:object("TextBox", {AnchorPoint=Vector2.new(1,0.5), Theme={BackgroundColor3={"Secondary",-20},TextColor3="Tertiary"}, Position=UDim2.new(1,-12,0.5,0), Size=UDim2.fromOffset(140,22), TextSize=11, Font=Enum.Font.Code, PlaceholderText=opts.Placeholder, PlaceholderColor3=Library.CurrentTheme.WeakText, Text="", ClipsDescendants=true, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}):round(2):stroke({"Tertiary", -40}, 1)
-	tb:object("UIPadding", {PaddingLeft=UDim.new(0, 6), PaddingRight=UDim.new(0, 6)})
-	tb.Focused:connect(function() pcall(function() tb:FindFirstChildOfClass("UIStroke").Color = Library.CurrentTheme.Tertiary end) end)
-	tb.FocusLost:connect(function() pcall(function() tb:FindFirstChildOfClass("UIStroke").Color = Library:darken(Library.CurrentTheme.Tertiary, 60) end); pcall(opts.Callback, tb.Text) end)
+	opts = self:set_defaults({Name="Text Box", Placeholder="Type...", Description=nil, Callback=function(t) end}, opts)
+	local c = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
+	c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10, (opts.Description and 5) or 0), Size=(opts.Description and UDim2.new(0.5,-10,0,22)) or UDim2.new(0.5,-10,1,0), Text=opts.Name, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
+	if opts.Description then c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,27), Size=UDim2.new(0.5,-10,0,20), Text=opts.Description, TextSize=18, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10}) end
+	local tb = c:object("TextBox", {AnchorPoint=Vector2.new(1,0), Theme={BackgroundColor3={"Secondary",-20},TextColor3="WeakText"}, Position=UDim2.new(1,-50,0,16), Size=UDim2.new(0,50,0,20), TextSize=12, PlaceholderText=opts.Placeholder, ClipsDescendants=true, ZIndex=10}):round(5):stroke("Tertiary")
+	c:object("ImageLabel", {Image="http://www.roblox.com/asset/?id=8569329416", AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, Position=UDim2.new(1,-13,0.5,0), Size=UDim2.new(0,16,0,16), Theme={ImageColor3="StrongText"}, ZIndex=10})
+	tb.Size = UDim2.fromOffset(tb.TextBounds.X + 20, 20)
+	do
+		local fc = false
+		c.MouseEnter:connect(function() c:tween{BackgroundColor3=self:lighten(Library.CurrentTheme.Secondary,10)} end)
+		c.MouseLeave:connect(function() c:tween{BackgroundColor3=Library.CurrentTheme.Secondary} end)
+		tb.Focused:connect(function() fc = true; while fc and RunService.RenderStepped:wait() do tb.AbsoluteObject:TweenSize(UDim2.fromOffset(math.clamp(tb.TextBounds.X+20,0,0.5*c.AbsoluteSize.X), 20), Enum.EasingDirection.InOut, Enum.EasingStyle.Linear, 0.1, true) end end)
+		tb.FocusLost:connect(function() fc = false; tb.AbsoluteObject:TweenSize(UDim2.fromOffset(math.clamp(tb.TextBounds.X+20,0,0.5*c.AbsoluteSize.X), 20), Enum.EasingDirection.InOut, Enum.EasingStyle.Linear, 0.1, true); opts.Callback(tb.Text) end)
+	end
 	self:_resize_tab()
 	local api = {}
 	function api:Set(t) tb.Text = t end
@@ -1021,13 +1036,12 @@ end
 
 function Library:label(opts)
 	opts = self:set_defaults({Text="Label title", Description="Label text"}, opts)
-	local c = self.container:object("Frame", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,50), BackgroundTransparency=0.6, ZIndex=9}):round(3)
-	c:stroke({"Tertiary", -45}, 1)
-	local t = c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(12,6), Size=UDim2.new(1,-24,0,16), Text="[ " .. opts.Text .. " ]", TextSize=12, Font=Enum.Font.Code, Theme={TextColor3="Tertiary"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
-	local d = c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(12,26), Size=UDim2.new(1,-24,0,14), Text=opts.Description, TextSize=11, Font=Enum.Font.Code, Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, TextTruncate=Enum.TextTruncate.AtEnd, ZIndex=10})
+	local c = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), BackgroundTransparency=1, ZIndex=9}):round(7):stroke("Secondary",2)
+	local t = c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,5), Size=UDim2.new(0.5,-10,0,22), Text=opts.Text, TextSize=22, Theme={TextColor3="StrongText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
+	local d = c:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.new(0,10,1,-5), Size=UDim2.new(0.5,-10,1,-22), Text=opts.Description, TextSize=18, AnchorPoint=Vector2.new(0,1), Theme={TextColor3="WeakText"}, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=10})
 	self:_resize_tab()
 	local api = {}
-	function api:SetText(tx) t.Text = "[ " .. tx .. " ]" end
+	function api:SetText(tx) t.Text = tx end
 	function api:SetDescription(tx) d.Text = tx end
 	return api
 end
@@ -1037,90 +1051,50 @@ function Library:prompt(opts)
 	if Library._promptExists and not opts.Followup then return end
 	Library._promptExists = true
 	local cnt = 0; for _ in next, opts.Buttons do cnt = cnt + 1 end
-	local dk = self.core:object("Frame", {BackgroundColor3=Color3.new(0,0,0), BackgroundTransparency=1, Size=UDim2.fromScale(1,1), ZIndex=300}):round(4)
-	local pc = dk:object("Frame", {Theme={BackgroundColor3="Main"}, BackgroundTransparency=1, Centered=true, Size=UDim2.fromOffset(280,140), ZIndex=301}):round(3)
-	pc:stroke({"Tertiary", -20}, 1)
-	pc:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(12,8), Size=UDim2.new(1,-24,0,16), Text="> [ CONFIRM ] " .. opts.Title, TextSize=12, Font=Enum.Font.Code, Theme={TextColor3="Tertiary"}, TextXAlignment=Enum.TextXAlignment.Left, TextTransparency=1, ZIndex=302}).Name = "ptitle"
-	pc:object("Frame", {Position=UDim2.fromOffset(0,28), Size=UDim2.new(1,0,0,1), Theme={BackgroundColor3={"Tertiary", -50}}, ZIndex=302})
-	local px = pc:object("TextLabel", {AnchorPoint=Vector2.new(0.5,0), BackgroundTransparency=1, Position=UDim2.new(0.5,0,0,38), Size=UDim2.new(1,-24,1,-74), TextSize=12, Font=Enum.Font.Code, Theme={TextColor3="StrongText"}, Text=opts.Text, TextTransparency=1, TextYAlignment=Enum.TextYAlignment.Top, TextXAlignment=Enum.TextXAlignment.Center, TextWrapped=true, ZIndex=302})
-	local bh = pc:object("Frame", {BackgroundTransparency=1, AnchorPoint=Vector2.new(0,1), Position=UDim2.new(0,0,1,-10), Size=UDim2.new(1,-20,0,22), ZIndex=302})
-	bh:object("UIGridLayout", {CellPadding=UDim2.new(0,8,0,0), CellSize=UDim2.new(1/cnt,-8,1,0), FillDirection=Enum.FillDirection.Horizontal, HorizontalAlignment=Enum.HorizontalAlignment.Center})
+	local dk = self.core:object("Frame", {BackgroundColor3=Color3.new(0,0,0), BackgroundTransparency=1, Size=UDim2.fromScale(1,1), ZIndex=300}):round(10)
+	local pc = dk:object("Frame", {Theme={BackgroundColor3="Main"}, BackgroundTransparency=1, Centered=true, Size=UDim2.fromOffset(200,120), ZIndex=301}):round(6)
+	pc:object("UIStroke", {Theme={Color="Tertiary"}, ApplyStrokeMode=Enum.ApplyStrokeMode.Border, Transparency=1})
+	pc:object("UIPadding", {PaddingTop=UDim.new(0,5), PaddingLeft=UDim.new(0,5), PaddingBottom=UDim.new(0,5), PaddingRight=UDim.new(0,5)})
+	local pt = pc:object("TextLabel", {BackgroundTransparency=1, Size=UDim2.new(1,0,0,20), TextXAlignment=Enum.TextXAlignment.Center, Font=Enum.Font.SourceSansBold, Text=opts.Title, Theme={TextColor3={"Tertiary",15}}, TextSize=16, TextTransparency=1, ZIndex=302})
+	local px = pc:object("TextLabel", {AnchorPoint=Vector2.new(0.5,0), BackgroundTransparency=1, Position=UDim2.new(0.5,0,0,26), Size=UDim2.new(1,-20,1,-60), TextSize=14, Theme={TextColor3="StrongText"}, Text=opts.Text, TextTransparency=1, TextYAlignment=Enum.TextYAlignment.Top, TextXAlignment=Enum.TextXAlignment.Center, TextWrapped=true, TextTruncate=Enum.TextTruncate.AtEnd, ZIndex=302})
+	local bh = pc:object("Frame", {BackgroundTransparency=1, AnchorPoint=Vector2.new(0,1), Position=UDim2.new(0,0,1,-5), Size=UDim2.new(1,0,0,20), ZIndex=302})
+	bh:object("UIGridLayout", {CellPadding=UDim2.new(0,10,0,5), CellSize=UDim2.new(1/cnt,-10,1,0), FillDirection=Enum.FillDirection.Horizontal, HorizontalAlignment=Enum.HorizontalAlignment.Center})
 	dk:tween({BackgroundTransparency=0.4, Length=0.1}); pc:tween({BackgroundTransparency=0, Length=0.1})
-	px:tween({TextTransparency=0, Length=0.1})
-	pc:FindFirstChild("ptitle").TextTransparency = 0
+	pt:tween({TextTransparency=0, Length=0.1}); px:tween({TextTransparency=0, Length=0.1})
 	local tmp = {}
 	for text, cb in next, opts.Buttons do
-		local b = bh:object("TextButton", {AnchorPoint=Vector2.new(1,1), Theme={BackgroundColor3="Tertiary"}, Text=tostring(text):upper(), TextSize=11, Font=Enum.Font.Code, BackgroundTransparency=1, TextTransparency=1, ZIndex=303}):round(2)
-		b:stroke({"Tertiary", -20}, 1)
+		local b = bh:object("TextButton", {AnchorPoint=Vector2.new(1,1), Theme={BackgroundColor3="Tertiary"}, Text=tostring(text):upper(), TextSize=13, Font=Enum.Font.SourceSansBold, BackgroundTransparency=1, TextTransparency=1, ZIndex=303}):round(4)
 		table.insert(tmp, b); b:tween({TextTransparency=0, BackgroundTransparency=0})
 		b.MouseButton1Click:connect(function()
-			pc:tween({BackgroundTransparency=1, Length=0.1}); px:tween({TextTransparency=1, Length=0.1})
+			pc:tween({BackgroundTransparency=1, Length=0.1}); pt:tween({TextTransparency=1, Length=0.1}); px:tween({TextTransparency=1, Length=0.1})
 			for _, bb in next, tmp do bb:tween({TextTransparency=1, BackgroundTransparency=1, Length=0.1}) end
-			dk:tween({BackgroundTransparency=1, Length=0.1}, function()
-				pcall(function() dk.AbsoluteObject:Destroy() end)
-				task.delay(0.2, function() Library._promptExists = false end)
-				pcall(cb)
-			end)
+			dk:tween({BackgroundTransparency=1, Length=0.1}, function() dk.AbsoluteObject:Destroy(); task.delay(0.25, function() Library._promptExists = false end); cb() end)
 		end)
 	end
 end
 
 function Library:watermark(text)
-	local wm = self.gui:object("Frame", {AnchorPoint=Vector2.new(0,0), Position=UDim2.fromOffset(16,16), Size=UDim2.fromOffset(240,22), Theme={BackgroundColor3="Main"}, ZIndex=1000}):round(2):stroke("Tertiary",1)
-	wm:object("Frame", {AnchorPoint=Vector2.new(0,0.5), Position=UDim2.fromOffset(4,11), Size=UDim2.fromOffset(2,12), Theme={BackgroundColor3="Tertiary"}, ZIndex=1001}):round(1)
-	local t = wm:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(12,0), Size=UDim2.new(1,-16,1,0), Text="> " .. text, TextSize=11, Font=Enum.Font.Code, Theme={TextColor3="Tertiary"}, RichText=true, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=1001})
+	local wm = self.gui:object("Frame", {AnchorPoint=Vector2.new(0,0), Position=UDim2.fromOffset(20,20), Size=UDim2.fromOffset(260,26), Theme={BackgroundColor3="Main"}, ZIndex=1000}):round(6):stroke("Tertiary",1)
+	wm:object("Frame", {AnchorPoint=Vector2.new(0,0.5), Position=UDim2.fromOffset(0,13), Size=UDim2.fromOffset(3,20), Theme={BackgroundColor3="Tertiary"}, ZIndex=1001}):round(2)
+	local t = wm:object("TextLabel", {BackgroundTransparency=1, Position=UDim2.fromOffset(10,0), Size=UDim2.new(1,-10,1,0), Text=text, TextSize=14, Font=Enum.Font.SourceSansBold, Theme={TextColor3="Tertiary"}, RichText=true, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=1001})
 	local api = {}
-	function api:SetText(tx) t.Text = "> " .. tx end
+	function api:SetText(tx) t.Text = tx end
 	function api:SetVisible(v) wm.Visible = v end
-	function api:Remove() pcall(function() wm.AbsoluteObject:Destroy() end) end
+	function api:Remove() wm.AbsoluteObject:Destroy() end
 	return api
 end
 
 function Library:config_manager(tab, opts)
 	opts = self:set_defaults({Folder="AzunoConfigs", Extension=".json", Serialize=function() return {} end, Deserialize=function(t) end}, opts)
-	if isfolder and not isfolder(opts.Folder) then pcall(function() makefolder(opts.Folder) end) end
-	local function getC()
-		local l = {}
-		pcall(function()
-			for _, f in next, listfiles(opts.Folder) do
-				if f:sub(-#opts.Extension) == opts.Extension then
-					local name = f:sub(#opts.Folder + 2, -#opts.Extension - 1)
-					table.insert(l, name)
-				end
-			end
-		end)
-		return l
-	end
+	if not isfolder(opts.Folder) then makefolder(opts.Folder) end
+	local function getC() local l = {}; pcall(function() for _, f in next, listfiles(opts.Folder) do if f:sub(-#opts.Extension) == opts.Extension then table.insert(l, f:sub(#opts.Folder+2, -#opts.Extension-1)) end end end); return l end
 	local cn, cs, cfg = "default", 1, getC()
-	tab:divider({Text="CONFIG"})
-	tab:textbox({Name="Config Name", Placeholder="> name...", Callback=function(t) cn = t end})
-	tab:dropdown({Name="Load Config", StartingText=cfg[1] or "empty", Items=cfg, Callback=function(i) cs = i end})
-	tab:button({Name="Save Config", Callback=function()
-		if cn == "" then Library:notification({Title="Error", Text="config name empty", Duration=3}); return end
-		pcall(function()
-			local d = opts.Serialize()
-			writefile(opts.Folder.."/"..cn..opts.Extension, HTTPService:JSONEncode(d))
-			cfg = getC()
-			Library:notification({Title="Saved", Text=cn, Duration=3})
-		end)
-	end})
-	tab:button({Name="Load Config", Callback=function()
-		local p = opts.Folder.."/"..cs..opts.Extension
-		if not (isfile and isfile(p)) then Library:notification({Title="Error", Text="not found", Duration=3}); return end
-		pcall(function()
-			local d = HTTPService:JSONDecode(readfile(p))
-			opts.Deserialize(d)
-			Library:notification({Title="Loaded", Text=cs, Duration=3})
-		end)
-	end})
-	tab:button({Name="Delete Config", Callback=function()
-		local p = opts.Folder.."/"..cs..opts.Extension
-		if isfile and isfile(p) then
-			pcall(function() delfile(p) end)
-			cfg = getC()
-			Library:notification({Title="Deleted", Text=cs, Duration=3})
-		end
-	end})
+	tab:divider({Text="Configuration"})
+	tab:textbox({Name="Config Name", Placeholder="Enter name...", Callback=function(t) cn = t end})
+	tab:dropdown({Name="Load Config", StartingText=cfg[1] or "Empty", Items=cfg, Callback=function(i) cs = i end})
+	tab:button({Name="Save Current Config", Callback=function() if cn == "" then Library:notification({Title="Error", Text="Config name is empty!", Duration=3}); return end; pcall(function() local d = opts.Serialize(); writefile(opts.Folder.."/"..cn..opts.Extension, HTTPService:JSONEncode(d)); cfg = getC(); Library:notification({Title="Success", Text="Saved "..cn, Duration=3}) end) end})
+	tab:button({Name="Load Config", Callback=function() local p = opts.Folder.."/"..cs..opts.Extension; if not isfile(p) then Library:notification({Title="Error", Text="Config not found!", Duration=3}); return end; pcall(function() local d = HTTPService:JSONDecode(readfile(p)); opts.Deserialize(d); Library:notification({Title="Success", Text="Loaded "..cs, Duration=3}) end) end})
+	tab:button({Name="Delete Selected Config", Callback=function() local p = opts.Folder.."/"..cs..opts.Extension; if isfile(p) then delfile(p); cfg = getC(); Library:notification({Title="Success", Text="Deleted "..cs, Duration=3}) end end})
 end
 
 return setmetatable(Library, {__index=function(_, i) return rawget(Library, i:lower()) or rawget(Library, i) end})

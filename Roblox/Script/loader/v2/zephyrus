@@ -1,6 +1,6 @@
 --[[
 ██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-  AZUNO UI LIBRARY v1.4 — HACKER EDITION (Monochrome Complete)
+  AZUNO UI LIBRARY v1.5 — HACKER EDITION MAX (3x Enhanced)
   Maintained by Azuno @azunoo
   Based on Mercury by Abstract#8007 & Deity#0228
 ]]
@@ -14,7 +14,7 @@ local Mouse = LocalPlayer:GetMouse()
 local HTTPService = game:GetService("HttpService")
 
 local Library = {
-	_VERSION = "1.4", _OWNER = "Azuno",
+	_VERSION = "1.5", _OWNER = "Azuno",
 	Themes = {
 		Legacy = { Main = Color3.fromHSV(262/360, 60/255, 34/255), Secondary = Color3.fromHSV(240/360, 40/255, 63/255), Tertiary = Color3.fromHSV(260/360, 60/255, 148/255), StrongText = Color3.fromHSV(0, 0, 1), WeakText = Color3.fromHSV(0, 0, 172/255) },
 		Dark = { Main = Color3.fromRGB(30,30,35), Secondary = Color3.fromRGB(50,50,55), Tertiary = Color3.fromRGB(70,130,180), StrongText = Color3.fromHSV(0,0,1), WeakText = Color3.fromHSV(0,0,172/255) },
@@ -177,108 +177,219 @@ function Library:create(opts)
 	core:tween({Size=opts.Size, Length=0.3}, function() core.ClipsDescendants = false end)
 
 	-- ═══════════════════════════════════════════════════════════════════════════
-	--  HACKER EFFECTS — MONOCHROME MATRIX + GLITCH
+	--  HACKER EFFECTS — MAX MATRIX + GLITCH + CRT (3x ENHANCED)
 	-- ═══════════════════════════════════════════════════════════════════════════
 	local hackerBg = core:object("Frame", {Size=UDim2.new(1,-2,1,-2), Position=UDim2.new(0,1,0,1), BackgroundTransparency=1, Visible=(opts.Theme == Library.Themes.Hacker), ZIndex=2, ClipsDescendants=true})
 	Library.hackerBg = hackerBg
 
-	-- Pluie binaire
-	local binChars = {"0","1","/","\\","|","-","_",":",";"}
-	local asciiCols = {}
-	for i = 1, 32 do
-		local tl = hackerBg:object("TextLabel", {BackgroundTransparency=1, Text="", TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.5, Size=UDim2.new(0,20,0,900), Position=UDim2.new((i-1)/32,0,0,math.random(-900,0)), TextSize=14, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Center, TextYAlignment=Enum.TextYAlignment.Top, ZIndex=3})
-		local str = ""
-		for j = 1, 60 do str = str .. binChars[math.random(1,#binChars)] .. "\n" end
-		tl.Text = str
-		table.insert(asciiCols, {obj=tl, speed=math.random(30,120), y=tl.Position.Y.Offset})
+	-- ═══ MATRIX RAIN (per-char random changes) ═══
+	local rainChars = {"0","1","!","@","#","$","%","&","*","+","-","=","/","\\","|",":",";","<",">","?","[","]","{","}","~","^","_"}
+	local numCols = 48
+	local charsPerCol = 50
+	local columns = {}
+	for i = 1, numCols do
+		local tl = hackerBg:object("TextLabel", {BackgroundTransparency=1, Text="", TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.5, Size=UDim2.new(0,18,0,900), Position=UDim2.new((i-1)/numCols,0,0,math.random(-900,0)), TextSize=14, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Center, TextYAlignment=Enum.TextYAlignment.Top, ZIndex=3})
+		local chars = {}
+		for j = 1, charsPerCol do chars[j] = rainChars[math.random(1,#rainChars)] end
+		tl.Text = table.concat(chars, "\n")
+		table.insert(columns, {obj=tl, chars=chars, y=tl.Position.Y.Offset, speed=math.random(25, 100)})
 	end
 
-	-- Scanlines
+	-- ═══ SCANLINES ═══
 	for i = 1, 80 do
-		hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.94, Size=UDim2.new(1,0,0,1), Position=UDim2.new(0,0,i/80,0), BorderSizePixel=0, ZIndex=4})
+		hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.93, Size=UDim2.new(1,0,0,1), Position=UDim2.new(0,0,i/80,0), BorderSizePixel=0, ZIndex=4})
 	end
 
-	-- CRT Flicker overlay
+	-- ═══ CRT FLICKER OVERLAY ═══
 	local crtFlicker = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(0,0,0), BackgroundTransparency=0.8, Size=UDim2.new(1,0,1,0), ZIndex=5, BorderSizePixel=0})
 
-	-- Glitch flash overlay
+	-- ═══ GLITCH FLASH OVERLAY ═══
 	local glitchOverlay = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=1, Size=UDim2.new(1,0,1,0), ZIndex=5, BorderSizePixel=0})
 
-	-- Hex codes flottants
+	-- ═══ MOVING SCANLINE (NEW) ═══
+	local movingScanline = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.75, Size=UDim2.new(1,0,0,3), Position=UDim2.new(0,0,0,-10), BorderSizePixel=0, ZIndex=6})
+
+	-- ═══ GLITCH BARS (NEW) ═══
+	local glitchBars = {}
+	for i = 1, 6 do
+		local bar = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=1, Size=UDim2.new(1,0,0,4), Position=UDim2.new(0,0,math.random(0,1000)/1000,0), BorderSizePixel=0, ZIndex=7})
+		table.insert(glitchBars, {obj=bar, timer=math.random(30, 200)/10})
+	end
+
+	-- ═══ HEX CODES (20) ═══
 	local hexLabels = {}
-	for i = 1, 8 do
-		local hex = hackerBg:object("TextLabel", {BackgroundTransparency=1, Text="0x0000", TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.4, Size=UDim2.new(0,80,0,16), Position=UDim2.new(math.random(0,900)/1000, 0, math.random(0,900)/1000, 0), TextSize=12, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=6})
-		table.insert(hexLabels, {obj=hex, timer=math.random(0,30), x=hex.Position.X.Scale, y=hex.Position.Y.Scale})
+	for i = 1, 20 do
+		local hex = hackerBg:object("TextLabel", {BackgroundTransparency=1, Text="0x0000", TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.5, Size=UDim2.new(0,80,0,16), Position=UDim2.new(math.random(0,900)/1000,0,math.random(0,900)/1000,0), TextSize=12, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=6})
+		table.insert(hexLabels, {obj=hex, timer=math.random(0, 30)})
 	end
 
-	-- ASCII décor coins
-	local decorChars = {"[+]","[x]","[>]","[<]","===","|||","==>","<==","///","\\\\\\"}
-	for i = 1, 12 do
-		local deco = hackerBg:object("TextLabel", {BackgroundTransparency=1, Text=decorChars[math.random(1,#decorChars)], TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.5, Size=UDim2.new(0,60,0,16), Position=UDim2.new(math.random(0,900)/1000,0,math.random(0,900)/1000,0), TextSize=14, Font=Enum.Font.Code, ZIndex=6})
+	-- ═══ ASCII DECORATIONS (30) ═══
+	local decorChars = {"[+]","[x]","[>]","[<]","===","|||","==>","<==","///","\\\\\\","//>","<//","{ }","[ ]","< >",">>>","<<<","---"}
+	for i = 1, 30 do
+		hackerBg:object("TextLabel", {BackgroundTransparency=1, Text=decorChars[math.random(1,#decorChars)], TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.6, Size=UDim2.new(0,60,0,16), Position=UDim2.new(math.random(0,900)/1000,0,math.random(0,900)/1000,0), TextSize=14, Font=Enum.Font.Code, ZIndex=6})
 	end
 
-	-- Boucle d'animation
+	-- ═══ FLOATING BINARY (NEW) ═══
+	local floatBinary = {}
+	for i = 1, 10 do
+		local str = ""
+		for j = 1, math.random(4, 12) do str = str .. math.random(0,1) end
+		local fb = hackerBg:object("TextLabel", {BackgroundTransparency=1, Text=str, TextColor3=Color3.fromRGB(255,255,255), TextTransparency=0.55, Size=UDim2.new(0,100,0,16), Position=UDim2.new(math.random(0,900)/1000,0,math.random(0,900)/1000,0), TextSize=12, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=6})
+		table.insert(floatBinary, {obj=fb, timer=math.random(0, 30), speed=math.random(5, 30)/100})
+	end
+
+	-- ═══ PARTICLES (NEW) ═══
+	local particles = {}
+	for i = 1, 20 do
+		local p = hackerBg:object("Frame", {BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.7, Size=UDim2.fromOffset(2,2), Position=UDim2.new(math.random(0,1000)/1000,0,math.random(0,1000)/1000,0), BorderSizePixel=0, ZIndex=6})
+		table.insert(particles, {obj=p, timer=math.random(0, 60)})
+	end
+
+	-- ═══ ANIMATION LOOP ═══
 	task.spawn(function()
-		local counter = 0; local titleCounter = 0; local statusCounter = 0
-		while Library.hackerBg and Library.hackerBg.AbsoluteObject and Library.hackerBg.AbsoluteObject.Parent do
-			if Library.hackerBg.Visible then
+		local valid = function()
+			return Library.hackerBg and Library.hackerBg.AbsoluteObject and Library.hackerBg.AbsoluteObject.Parent
+		end
+		local counter = 0
+		local titleCounter = 0
+		local scanlineY = -10
+		while valid() do
+			local isVisible = Library.hackerBg.Visible
+			local dt = task.wait(isVisible and 0.033 or 0.3)
+			if not dt or dt <= 0 then dt = 0.033 end
+			if not valid() then break end
+			if isVisible then
 				counter = counter + 1
-				-- Matrix rain
-				for _, col in ipairs(asciiCols) do
-					col.y = col.y + col.speed * 0.05
+
+				-- 1. Matrix rain scroll
+				for _, col in ipairs(columns) do
+					col.y = col.y + col.speed * dt
 					if col.y > hackerBg.AbsoluteSize.Y then
 						col.y = -900
-						local str = ""
-						for j = 1, 60 do str = str .. binChars[math.random(1,#binChars)] .. "\n" end
-						col.obj.Text = str
+						for j = 1, charsPerCol do col.chars[j] = rainChars[math.random(1,#rainChars)] end
+						col.obj.Text = table.concat(col.chars, "\n")
 					end
 					col.obj.Position = UDim2.new(col.obj.Position.X.Scale, 0, 0, col.y)
 				end
-				-- CRT flicker toutes ~12 frames
-				if counter % 12 == 0 then
-					crtFlicker.BackgroundTransparency = 0.6 + math.random() * 0.25
-				end
-				-- Glitch flash aléatoire
-				if math.random() < 0.02 then
-					glitchOverlay.BackgroundTransparency = 0.85
-					task.delay(math.random(3,8)/100, function()
-						if glitchOverlay and glitchOverlay.AbsoluteObject then glitchOverlay.BackgroundTransparency = 1 end
-					end)
-				end
-				-- Hex codes flottants
-				for _, h in ipairs(hexLabels) do
-					h.timer = h.timer + 1
-					if h.timer >= 20 then
-						h.timer = 0
-						h.obj.Text = "0x" .. string.format("%04X", math.random(0, 65535))
-						h.x = math.random(0, 900) / 1000
-						h.y = math.random(0, 900) / 1000
-						h.obj.Position = UDim2.new(h.x, 0, h.y, 0)
+
+				-- 2. Per-character random changes (real-time, random timing)
+				local dirty = {}
+				local dirtyCols = math.random(4, 8)
+				for _ = 1, dirtyCols do
+					local colIdx = math.random(1, #columns)
+					local col = columns[colIdx]
+					local numChanges = math.random(2, 4)
+					for _ = 1, numChanges do
+						local idx = math.random(1, charsPerCol)
+						col.chars[idx] = rainChars[math.random(1, #rainChars)]
 					end
+					dirty[colIdx] = true
 				end
-				-- Title glitch
-				titleCounter = titleCounter + 1
-				if titleCounter >= 20 and Library.title_obj and Library.originalTitle then
-					titleCounter = 0
-					if math.random() < 0.35 then
-						local gchars = "#@%$&*!?/\\|<>=~"
-						local g = ""
-						for i = 1, #Library.originalTitle do
-							if math.random() < 0.4 then g = g .. gchars:sub(math.random(1,#gchars), math.random(1,#gchars))
-							else g = g .. Library.originalTitle:sub(i,i) end
-						end
-						Library.title_obj.Text = g
-						task.delay(0.08, function()
-							if Library.title_obj and Library.originalTitle then Library.title_obj.Text = Library.originalTitle end
+				for colIdx in pairs(dirty) do
+					columns[colIdx].obj.Text = table.concat(columns[colIdx].chars, "\n")
+				end
+
+				-- 3. CRT flicker
+				if counter % 3 == 0 then
+					crtFlicker.BackgroundTransparency = 0.65 + math.random() * 0.3
+				end
+
+				-- 4. Moving scanline
+				scanlineY = scanlineY + 200 * dt
+				if scanlineY > hackerBg.AbsoluteSize.Y + 5 then scanlineY = -5 end
+				movingScanline.Position = UDim2.new(0, 0, 0, scanlineY)
+				movingScanline.BackgroundTransparency = 0.7 + math.random() * 0.2
+
+				-- 5. Glitch bars
+				for _, bar in ipairs(glitchBars) do
+					bar.timer = bar.timer - dt
+					if bar.timer <= 0 then
+						bar.timer = math.random(15, 60) / 10
+						bar.obj.Position = UDim2.new(0, 0, math.random(0, 1000)/1000, 0)
+						bar.obj.Size = UDim2.new(1, 0, 0, math.random(2, 8))
+						bar.obj.BackgroundTransparency = 0.6 + math.random() * 0.3
+						task.delay(math.random(3, 8)/100, function()
+							if bar.obj and bar.obj.AbsoluteObject and bar.obj.AbsoluteObject.Parent then
+								bar.obj.BackgroundTransparency = 1
+							end
 						end)
 					end
 				end
-				task.wait(0.05)
-			else task.wait(0.5) end
+
+				-- 6. Glitch flash
+				if math.random() < 0.02 then
+					glitchOverlay.BackgroundTransparency = 0.88
+					task.delay(math.random(2, 5)/100, function()
+						if glitchOverlay and glitchOverlay.AbsoluteObject and glitchOverlay.AbsoluteObject.Parent then
+							glitchOverlay.BackgroundTransparency = 1
+						end
+					end)
+				end
+
+				-- 7. Hex codes update
+				for _, h in ipairs(hexLabels) do
+					h.timer = h.timer + 1
+					if h.timer >= 15 then
+						h.timer = 0
+						h.obj.Text = "0x" .. string.format("%04X", math.random(0, 65535))
+						h.obj.Position = UDim2.new(math.random(0, 900)/1000, 0, math.random(0, 900)/1000, 0)
+						h.obj.TextTransparency = 0.3 + math.random() * 0.5
+					end
+				end
+
+				-- 8. Floating binary
+				for _, fb in ipairs(floatBinary) do
+					fb.timer = fb.timer + 1
+					if fb.timer >= 25 then
+						fb.timer = 0
+						local str = ""
+						for j = 1, math.random(4, 12) do str = str .. math.random(0,1) end
+						fb.obj.Text = str
+					end
+					local newY = fb.obj.Position.Y.Scale + fb.speed * dt
+					if newY > 1 then newY = 0 end
+					fb.obj.Position = UDim2.new(fb.obj.Position.X.Scale, 0, newY, 0)
+				end
+
+				-- 9. Particles
+				for _, p in ipairs(particles) do
+					p.timer = p.timer + 1
+					if p.timer >= 40 then
+						p.timer = 0
+						p.obj.BackgroundTransparency = 0.5 + math.random() * 0.5
+						p.obj.Position = UDim2.new(math.random(0, 1000)/1000, 0, math.random(0, 1000)/1000, 0)
+					end
+				end
+
+				-- 10. Title glitch
+				titleCounter = titleCounter + 1
+				if titleCounter >= 15 and Library.title_obj and Library.originalTitle then
+					titleCounter = 0
+					if math.random() < 0.35 then
+						local gchars = "#@%$&*!?/\\|<>=~^_"
+						local orig = Library.originalTitle
+						local g = ""
+						for i = 1, #orig do
+							if math.random() < 0.45 then
+								g = g .. gchars:sub(math.random(1, #gchars), math.random(1, #gchars))
+							else
+								g = g .. orig:sub(i, i)
+							end
+						end
+						Library.title_obj.Text = g
+						task.delay(math.random(5, 12)/100, function()
+							if Library.title_obj and Library.originalTitle then
+								Library.title_obj.Text = Library.originalTitle
+							end
+						end)
+					end
+				end
+			end
 		end
 	end)
 	-- ═══════════════════════════════════════════════════════════════════════════
 
+	-- ═══ DRAG (UNCHANGED — old working version) ═══
 	do
 		local S, Ev = pcall(function() return core.MouseEnter end)
 		if S then
@@ -682,7 +793,7 @@ function Library:button(opts)
 	return api
 end
 
--- ═══ COLOR PICKER COMPLET (Hue + SV Grid + Preview) ═══
+-- ═══ COLOR PICKER COMPLET ═══
 function Library:color_picker(opts)
 	opts = self:set_defaults({Name="Color Picker", Description=nil, Style=Library.ColorPickerStyles.Legacy, Followup=false, Callback=function(c) end}, opts)
 	local bc = self.container:object("TextButton", {Theme={BackgroundColor3="Secondary"}, Size=UDim2.new(1,-20,0,52), ZIndex=9}):round(7)
@@ -702,8 +813,6 @@ function Library:color_picker(opts)
 			local selectedColor = Color3.fromRGB(255,0,0)
 			local fadeOut
 			local darkener = self.core:object("Frame", {BackgroundColor3=Color3.fromRGB(0,0,0), BackgroundTransparency=1, Size=UDim2.fromScale(1,1), ZIndex=200}):round(10)
-
-			-- LEGACY STYLE (default) : Hue horizontal + SV grid
 			do
 				local holder = darkener:object("Frame", {Centered=true, Theme={BackgroundColor3="Secondary"}, BackgroundTransparency=1, Size=UDim2.fromOffset(255,170), ZIndex=201}):round(6)
 				local _hs = holder:object("UIStroke", {Transparency=1, Theme={Color="Tertiary"}, Thickness=1.6})

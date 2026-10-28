@@ -963,7 +963,6 @@ function Library:notification(options)
 
 	length:tween({Size = UDim2.fromScale(0, 1), Length = options.Duration}, fadeOut)
 end
-
 function Library:tab(options)
 	options = self:set_defaults({
 		Name = "New Tab",
@@ -1016,34 +1015,6 @@ function Library:tab(options)
 
 	self.Tabs[#self.Tabs+1] = {tab, tabButton, options.Name}
 
-	-- Attachement IMMÉDIAT dans la navbar (pas de task.defer → pas de race)
-	if not options.Internal then
-		tabButton.Parent = self.navigation.AbsoluteObject
-		tabButton.Visible = true
-		tabButton.Size = UDim2.new(0, 125, 0, 25)
-		tabButton.BackgroundTransparency = 1
-	end
-
-	-- Fonction commune : sélectionne CETTE tab
-	local function selectThisTab()
-		tabButton.Parent = self.navigation.AbsoluteObject
-		tabButton.Visible = true
-		tabButton.Size = UDim2.new(0, 125, 0, 25)
-
-		for _, tabInfo in next, self.Tabs do
-			tabInfo[1].Visible = false
-		end
-
-		if selectedTab and selectedTab ~= tabButton then
-			selectedTab:tween{BackgroundTransparency = 1}
-		end
-
-		selectedTab = tabButton
-		tab.Visible = true
-		tabButton.BackgroundTransparency = 0
-		Library.UrlLabel.Text = Library.Url .. "/" .. options.Name:lower()
-	end
-
 	do
 		local down = false
 		local hovered = false
@@ -1065,7 +1036,18 @@ function Library:tab(options)
 				tabButton:tween{BackgroundTransparency = ((selectedTab == tabButton) and 0.15) or (hovered and 0.3) or 1}
 			end
 		end)
-		tabButton.MouseButton1Click:Connect(selectThisTab)
+		
+		-- Clic sur le bouton déjà ouvert dans la navbar
+		tabButton.MouseButton1Click:Connect(function()
+			for _, tabInfo in next, self.Tabs do
+				tabInfo[1].Visible = false
+			end
+			selectedTab:tween{BackgroundTransparency = ((selectedTab == tabButton) and 0.15) or 1}
+			selectedTab = tabButton
+			tab.Visible = true
+			tabButton.BackgroundTransparency = 0
+			Library.UrlLabel.Text = Library.Url .. "/" .. options.Name:lower()
+		end)
 
 		quickAccessButton.MouseEnter:connect(function()
 			quickAccessButton:tween{BackgroundColor3 = Library.CurrentTheme.Tertiary}
@@ -1073,7 +1055,28 @@ function Library:tab(options)
 		quickAccessButton.MouseLeave:connect(function()
 			quickAccessButton:tween{BackgroundColor3 = Library.CurrentTheme.Secondary}
 		end)
-		quickAccessButton.MouseButton1Click:connect(selectThisTab)
+		
+		-- Clic sur l'icône dans la page Home
+		quickAccessButton.MouseButton1Click:connect(function()
+			-- Si le bouton n'est pas encore ouvert dans la navbar, on l'ouvre !
+			if not tabButton.Visible then
+				tabButton.Parent = self.navigation.AbsoluteObject
+				tabButton.Size = UDim2.new(0, 50, tabButton.Size.Y.Scale, tabButton.Size.Y.Offset)
+				tabButton.Visible = true
+				tabButton:fade(false, Library.CurrentTheme.Main, 0.1)			
+				tabButton:tween({Size = UDim2.new(0, 125, tabButton.Size.Y.Scale, tabButton.Size.Y.Offset), Length = 0.1})
+			end
+			
+			-- Puis on le sélectionne
+			for _, tabInfo in next, self.Tabs do
+				tabInfo[1].Visible = false
+			end
+			selectedTab:tween{BackgroundTransparency = ((selectedTab == tabButton) and 0.15) or 1}
+			selectedTab = tabButton
+			tab.Visible = true
+			tabButton.BackgroundTransparency = 0
+			Library.UrlLabel.Text = Library.Url .. "/" .. options.Name:lower()
+		end)
 	end
 
 	tabButton:object("TextLabel", {
@@ -1107,6 +1110,7 @@ function Library:tab(options)
 		Theme = {ImageColor3 = "StrongText"}
 	})
 
+	-- Clic sur le 'X' pour fermer l'onglet
 	tabButtonClose.MouseButton1Click:connect(function()
 		tabButton:fade(true, Library.CurrentTheme.Main, 0.1)
 		tabButton:tween({Size = UDim2.new(0, 50, tabButton.Size.Y.Scale, tabButton.Size.Y.Offset), Length = 0.1}, function()

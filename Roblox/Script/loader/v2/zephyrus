@@ -15,8 +15,7 @@
 
   AZUNO UI LIBRARY v1.1
   Maintained by Azuno @azunoo
-  Originally based on Mercury by Abstract#8007 & Deity#0228
-  edited: 1/26
+  Based on Mercury by Abstract#8007 & Deity#0228
 ]]
 
 local TweenService = game:GetService("TweenService")
@@ -99,7 +98,6 @@ function Library:set_defaults(defaults, options)
 	return defaults
 end
 
--- FIX: guard DisplayName nil + handle light theme properly
 function Library:change_theme(toTheme)
 	Library.CurrentTheme = toTheme
 	if toTheme.Light then
@@ -337,7 +335,6 @@ function Library:show(state)
 	end
 end
 
--- Base darken/lighten (originals kept intact)
 function Library._darken_base(self, color, f)
 	local h, s, v = Color3.toHSV(color)
 	f = 1 - ((f or 15) / 80)
@@ -388,7 +385,6 @@ function Library:create(options)
 		Link = "https://github.com/azunoo/azuno-lib"
 	}, options)
 
-	-- FIX: getgenv().AzunoUI (was getgenv().MercuryUI with typo getgenv():MercuryUI())
 	if getgenv and getgenv().AzunoUI then
 		pcall(getgenv().AzunoUI)
 		getgenv().AzunoUI = nil
@@ -504,7 +500,6 @@ function Library:create(options)
 		closeButton:tween{ImageColor3 = Library.CurrentTheme.StrongText}
 	end)
 
-	-- FIX: prevent double-close
 	local closed = false
 	local function closeUI()
 		if closed then return end
@@ -831,7 +826,6 @@ function Library:create(options)
 	return mt
 end
 
--- ═══ NOTIFICATIONS (fix: prevent double fadeOut) ═══
 function Library:notification(options)
 	options = self:set_defaults({
 		Title = "Notification",
@@ -970,7 +964,7 @@ function Library:notification(options)
 	length:tween({Size = UDim2.fromScale(0, 1), Length = options.Duration}, fadeOut)
 end
 
--- ═══ TABS ═══
+-- ═══ TABS (avec auto-attach dans la navbar) ═══
 function Library:tab(options)
 	options = self:set_defaults({
 		Name = "New Tab",
@@ -994,6 +988,7 @@ function Library:tab(options)
 		quickAccessButton = self.quickAccess:object("TextButton", {
 			Theme = {BackgroundColor3 = "Secondary"}
 		}):round(5):tooltip(options.Name)
+
 		quickAccessIcon = quickAccessButton:object("ImageLabel", {
 			BackgroundTransparency = 1,
 			Theme = {ImageColor3 = "StrongText"},
@@ -1052,6 +1047,7 @@ function Library:tab(options)
 			Library.UrlLabel.Text = Library.Url .. "/" .. options.Name:lower()
 		end)
 
+		-- Quick access click = selects the tab directly
 		quickAccessButton.MouseEnter:connect(function()
 			quickAccessButton:tween{BackgroundColor3 = Library.CurrentTheme.Tertiary}
 		end)
@@ -1059,19 +1055,12 @@ function Library:tab(options)
 			quickAccessButton:tween{BackgroundColor3 = Library.CurrentTheme.Secondary}
 		end)
 		quickAccessButton.MouseButton1Click:connect(function()
-			if not tabButton.Visible then
-				tabButton.Parent = self.navigation.AbsoluteObject
-				tabButton.Size = UDim2.new(0, 50, tabButton.Size.Y.Scale, tabButton.Size.Y.Offset)
-				tabButton.Visible = true
-				tabButton:fade(false, Library.CurrentTheme.Main, 0.1)
-				tabButton:tween({Size = UDim2.new(0, 125, tabButton.Size.Y.Scale, tabButton.Size.Y.Offset), Length = 0.1})
-				for _, tabInfo in next, self.Tabs do tabInfo[1].Visible = false end
-				selectedTab:tween{BackgroundTransparency = ((selectedTab == tabButton) and 0.15) or 1}
-				selectedTab = tabButton
-				tab.Visible = true
-				tabButton.BackgroundTransparency = 0
-				Library.UrlLabel.Text = Library.Url .. "/" .. options.Name:lower()
-			end
+			for _, tabInfo in next, self.Tabs do tabInfo[1].Visible = false end
+			selectedTab:tween{BackgroundTransparency = ((selectedTab == tabButton) and 0.15) or 1}
+			selectedTab = tabButton
+			tab.Visible = true
+			tabButton.BackgroundTransparency = 0
+			Library.UrlLabel.Text = Library.Url .. "/" .. options.Name:lower()
 		end)
 	end
 
@@ -1148,6 +1137,19 @@ function Library:tab(options)
 		end
 	end)
 
+	-- ═══════════════════════════════════════════════════════════════════════
+	--  AUTO-ATTACH : place le tab dans la navbar immédiatement
+	--  (les tabs "Internal" comme Settings/Credits restent dans le profile card)
+	-- ═══════════════════════════════════════════════════════════════════════
+	if not options.Internal then
+		task.defer(function()
+			tabButton.Parent = self.navigation.AbsoluteObject
+			tabButton.Visible = true
+			tabButton.Size = UDim2.new(0, 125, 0, 25)
+			tabButton.BackgroundTransparency = 1
+		end)
+	end
+
 	return setmetatable({
 		statusText = self.statusText,
 		container = tab,
@@ -1167,7 +1169,6 @@ function Library:_resize_tab()
 	end
 end
 
--- ═══ COMPONENTS ═══
 function Library:toggle(options)
 	options = self:set_defaults({
 		Name = "Toggle",
@@ -1217,7 +1218,7 @@ function Library:toggle(options)
 	})
 
 	if options.Description then
-		local description = toggleContainer:object("TextLabel", {
+		toggleContainer:object("TextLabel", {
 			BackgroundTransparency = 1,
 			Position = UDim2.fromOffset(10, 27),
 			Size = UDim2.new(0.5, -10, 0, 20),
@@ -1306,7 +1307,7 @@ function Library:dropdown(options)
 	})
 
 	if options.Description then
-		local description = dropdownContainer:object("TextLabel", {
+		dropdownContainer:object("TextLabel", {
 			BackgroundTransparency = 1,
 			Position = UDim2.fromOffset(10, 27),
 			Size = UDim2.new(0.5, -10, 0, 20),
@@ -1571,7 +1572,6 @@ function Library:dropdown(options)
 	return methods
 end
 
--- ═══ NEW: COMBO (multi-checkbox) ═══
 function Library:combo(options)
 	options = self:set_defaults({
 		Name = "Combo",
@@ -1792,7 +1792,6 @@ function Library:section(options)
 	}, Library)
 end
 
--- ═══ NEW: DIVIDER ═══
 function Library:divider(options)
 	options = self:set_defaults({ Text = "" }, options)
 	local container = self.container:object("Frame", {
@@ -1831,7 +1830,6 @@ function Library:divider(options)
 	self:_resize_tab()
 end
 
--- ═══ NEW: IMAGE ═══
 function Library:image(options)
 	options = self:set_defaults({
 		Image = "rbxassetid://0",
@@ -2038,7 +2036,6 @@ function Library:color_picker(options)
 			}):round(10)
 
 			if options.Style == 1 then
-				-- ═══ MODERN STYLE (vertical hue + sv grid) ═══
 				do
 					local arrow = darkener:object("ImageLabel", {
 						BackgroundTransparency = 1,
@@ -2240,7 +2237,6 @@ function Library:color_picker(options)
 						Transparency = 1
 					})
 
-					-- HUE
 					do
 						updateHue = function()
 							hue = math.clamp((Mouse.Y - hueBar.AbsolutePosition.Y) / hueBar.AbsoluteSize.Y, 0, 1)
@@ -2266,7 +2262,6 @@ function Library:color_picker(options)
 						end)
 					end
 
-					-- SAT & VALUE
 					do
 						local dn = false
 						updatePicker = function()
@@ -2288,7 +2283,6 @@ function Library:color_picker(options)
 						end)
 					end
 
-					-- fade in
 					darkener:tween({BackgroundTransparency = .4, Length = 0.1})
 					arrow:tween({ImageTransparency = 0, Length = 0.1})
 					textImg:tween({ImageTransparency = 0, Length = 0.1})
@@ -2319,7 +2313,6 @@ function Library:color_picker(options)
 					end
 				end
 			else
-				-- ═══ LEGACY STYLE (horizontal hue + sv grid) ═══
 				do
 					local holder = darkener:object("Frame", {
 						Centered = true,
@@ -2604,7 +2597,6 @@ function Library:color_picker(options)
 						end)
 					end
 
-					-- fade in
 					holder:tween({BackgroundTransparency = 0, Length = 0.1})
 					_holderStroke:tween({Transparency = 0, Length = 0.1})
 					pickerArea:tween({BackgroundTransparency = 0, Length = 0.1})
@@ -2852,17 +2844,17 @@ function Library:_theme_selector()
 			colorSecondary:object("UIListLayout", { Padding = UDim.new(0, 5) })
 			colorSecondary:object("UIPadding", { PaddingTop = UDim.new(0, 5), PaddingLeft = UDim.new(0, 5) })
 
-			local colorTertiary = colorSecondary:object("Frame", {
+			colorSecondary:object("Frame", {
 				Size = UDim2.new(1, -20, 0, 9),
 				BackgroundColor3 = themeColors.Tertiary
 			}):round(100)
 
-			local colorStrong = colorSecondary:object("Frame", {
+			colorSecondary:object("Frame", {
 				Size = UDim2.new(1, -30, 0, 9),
 				BackgroundColor3 = themeColors.StrongText
 			}):round(100)
 
-			local colorWeak = colorSecondary:object("Frame", {
+			colorSecondary:object("Frame", {
 				Size = UDim2.new(1, -40, 0, 9),
 				BackgroundColor3 = themeColors.WeakText
 			}):round(100)
@@ -3356,7 +3348,6 @@ function Library:prompt(options)
 	end
 end
 
--- ═══ NEW: WATERMARK ═══
 function Library:watermark(text)
 	local wm = self.gui:object("Frame", {
 		AnchorPoint = Vector2.new(0, 0),
@@ -3394,7 +3385,6 @@ function Library:watermark(text)
 	return methods
 end
 
--- ═══ NEW: CONFIG MANAGER ═══
 function Library:config_manager(tab, options)
 	options = self:set_defaults({
 		Folder = "AzunoConfigs",
@@ -3481,9 +3471,6 @@ function Library:config_manager(tab, options)
 	})
 end
 
--- ═══════════════════════════════════════════════════════════════════════════
---  FINAL RETURN
--- ═══════════════════════════════════════════════════════════════════════════
 return setmetatable(Library, {
 	__index = function(_, i)
 		return rawget(Library, i:lower()) or rawget(Library, i)

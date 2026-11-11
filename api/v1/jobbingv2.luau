@@ -1,6 +1,20 @@
 -- @name: autojobModule
 local jobModule = {}
 
+--[=[
+    Separated module for autofarming with GC Instant Patch. 
+    Handles automatic tasks in The Palm Coffee & Tea: tool fetching,
+    replication-safe equipment, prompt interactions, and NPC deliveries.
+
+    Authors:
+        @vhb7 ........... Discord
+        @ammoleking ..... Telegram
+        @ammoleking.26 .. Signal
+
+    Last Update: 
+        2026-09-02
+--]=]
+
 local workspace = game:GetService("Workspace")
 local players = game:GetService("Players")
 local runService = game:GetService("RunService")
@@ -9,10 +23,14 @@ local lighting = game:GetService("Lighting")
 
 local localPlayer = players.LocalPlayer
 
+-- Active le Noclip Caméra
 pcall(function()
     localPlayer.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
 end)
 
+-- ========================================================
+-- 1. ULTIMATE INSTANT PATCH (GC MEMORY HOOKS)
+-- ========================================================
 local debug = debug
 local getgc = getgc or filtergc
 local PeetsModule, NPCHandlerModule
@@ -21,17 +39,8 @@ if getgc then
     pcall(function()
         for _, v in pairs(getgc(true)) do
             if type(v) == "table" then
-                if not NPCHandlerModule
-                   and rawget(v, "StartPatience") and rawget(v, "MoveTo") and rawget(v, "Speak") then
+                if rawget(v, "StartPatience") and rawget(v, "MoveTo") and rawget(v, "Speak") then
                     NPCHandlerModule = v
-                end
-                if not PeetsModule then
-                    local ok1, ca = pcall(function() return v.CustomerAdded end)
-                    local ok2, cl = pcall(function() return v.CreateLine end)
-                    local ok3, rl = pcall(function() return v.ReshuffleLine end)
-                    if ok1 and ok2 and ok3 and ca and cl and rl then
-                        PeetsModule = v
-                    end
                 end
             end
         end
@@ -55,6 +64,7 @@ if NPCHandlerModule then
         if not NPCHeader then return end
         local label = NPCHeader:FindFirstChildWhichIsA("TextLabel")
         if not label then return end
+
         label.RichText = true
         label.Text = text
     end
@@ -63,11 +73,14 @@ end
 local function EquipItemForOrder(orderName)
     local character = localPlayer.Character
     local backpack = localPlayer:FindFirstChildOfClass("Backpack") or localPlayer:FindFirstChild("Backpack")
+    
     if not character or not backpack then return nil end
+
     local currentTool = character:FindFirstChildOfClass("Tool")
     if currentTool and (currentTool.Name == orderName or string.find(currentTool.Name:lower(), orderName:lower())) then
         return currentTool
     end
+
     local targetTool = backpack:FindFirstChild(orderName)
     if not targetTool then
         for _, item in ipairs(backpack:GetChildren()) do
@@ -77,48 +90,40 @@ local function EquipItemForOrder(orderName)
             end
         end
     end
+
     if targetTool then
         targetTool.Parent = character
+        
         local start = tick()
         repeat
             task.wait(0.05)
         until character:FindFirstChild(targetTool.Name) or (tick() - start) > 1
+        
         task.wait(0.05)
         return targetTool
     end
+
     return nil
 end
 
-local function resolveInteractive()
-    local m = workspace:FindFirstChild("Mojave")
-    local ij = m and m:FindFirstChild("InteractiveJobs")
-    local pt = ij and ij:FindFirstChild("The Palm Coffee & Tea")
-    local it = pt and pt:FindFirstChild("Interior")
-    return it and it:FindFirstChild("Interactive")
-end
-
 if PeetsModule then
-    pcall(function()
+    local success, err = pcall(function()
         local oldCustomerAdded = PeetsModule.CustomerAdded
         local upvs = debug.getupvalues(oldCustomerAdded)
 
         local Interactive = upvs[1]
-        if type(Interactive) ~= "Instance" or Interactive.Name ~= "Interactive" then
-            Interactive = resolveInteractive()
-        end
-
         local t2 = upvs[2]
         local InteractiveJobFunc = upvs[4]
         local t3 = upvs[5]
         local InteractiveJob = upvs[6]
 
         PeetsModule.CustomerAdded = function(self, orderName)
-            if not Interactive then
-                Interactive = resolveInteractive()
-                if not Interactive then return end
-            end
             if not Interactive:FindFirstChild("spawnLocation") then return end
-            if t2 and #t2 == 0 then self:CreateLine() end
+
+            if t2 and #t2 == 0 then
+                self:CreateLine()
+            end
+
             if not (t2 and t2[1]) then return end
 
             local npc = t2[1]
@@ -138,6 +143,7 @@ if PeetsModule then
 
                 HandPrompt.TriggerEnded:Connect(function()
                     EquipItemForOrder(orderName)
+
                     local ok, errRes = InteractiveJobFunc:InvokeServer("The Palm Coffee & Tea", "GaveOrder")
                     if ok then
                         HandPrompt.Enabled = false
@@ -166,6 +172,7 @@ if PeetsModule then
             if not npc.Model:FindFirstChild("PatienceHooked") then
                 local tag = Instance.new("BoolValue", npc.Model)
                 tag.Name = "PatienceHooked"
+
                 local conn
                 conn = npc.OutOfPatience.Event:Connect(function()
                     if HandPrompt then HandPrompt.Enabled = false end
@@ -183,17 +190,26 @@ if PeetsModule then
         end
 
         _G.AutoDeliverPeetsOrder = function()
-            if not Interactive then Interactive = resolveInteractive() end
-            if not Interactive then return false, "Interactive introuvable" end
-            if not t2 or not t2[1] then return false, "Aucun client" end
+            if not t2 or not t2[1] then
+                return false, "Aucun client à la caisse"
+            end
+
             local currentNPC = t2[1]
             local hrp = currentNPC.Model and currentNPC.Model:FindFirstChild("HumanoidRootPart")
             local prompt = hrp and hrp:FindFirstChild("HandPrompt")
-            if not prompt then return false, "HandPrompt non disponible" end
+
+            if not prompt then
+                return false, "HandPrompt non disponible"
+            end
+
             local orderName = prompt.ObjectText
             local tool = EquipItemForOrder(orderName)
-            if not tool then return false, "Outil manquant : " .. tostring(orderName) end
+            if not tool then
+                return false, "Outil manquant dans le Backpack : " .. tostring(orderName)
+            end
+
             local ok, errRes = InteractiveJobFunc:InvokeServer("The Palm Coffee & Tea", "GaveOrder")
+
             if ok then
                 prompt.Enabled = false
                 currentNPC:Speak("Thanks!")
@@ -203,34 +219,50 @@ if PeetsModule then
                 end
                 currentNPC:Destroy()
                 PeetsModule:ReshuffleLine()
-                return true, "Commande livrée"
+                return true, "Commande livrée avec succès"
             else
-                return false, "Erreur : " .. tostring(errRes)
+                return false, "Erreur Serveur : " .. tostring(errRes)
             end
         end
     end)
 end
 
+-- ========================================================
+-- 2. AUTOJOB MODULE ENGINE
+-- ========================================================
+
 jobModule.jobState = {
-    enabled = false, destroyed = false, lastProcessedPrompt = nil,
-    floatPart = nil, boostConnection = nil, floatConnection = nil,
-    originalPartStates = {}, sessionStartTime = 0, initialBalance = nil,
-    totalEarned = 0, history = {}, connections = {}
+    enabled = false,
+    destroyed = false,
+    lastProcessedPrompt = nil,
+    floatPart = nil,
+    boostConnection = nil,
+    floatConnection = nil,
+    originalPartStates = {},
+    sessionStartTime = 0,
+    initialBalance = nil,
+    totalEarned = 0,
+    history = {},
+    connections = {}
 }
 
 jobModule.appSettings = {
-    autoEquipTools = true, promptOverride = true, boostFpsAndFloat = false
+    autoEquipTools = true,
+    promptOverride = true,
+    boostFpsAndFloat = false
 }
 
 local function disableSeatsFolder()
     pcall(function()
         local mojave = workspace:FindFirstChild("Mojave")
         local seats = mojave and mojave:FindFirstChild("Seats")
+
         if seats then
             for _, obj in ipairs(seats:GetDescendants()) do
                 pcall(function()
                     if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-                        obj.Disabled = true; obj.CanTouch = false
+                        obj.Disabled = true
+                        obj.CanTouch = false
                     elseif obj:IsA("BasePart") then
                         obj.CanTouch = false
                     end
@@ -258,6 +290,7 @@ local function instantTeleport(targetCFrame)
     if not character then return end
     local rootPart = character:FindFirstChild("HumanoidRootPart")
     if not rootPart then return end
+
     rootPart.CFrame = targetCFrame * CFrame.new(0, 3, 0)
 end
 
@@ -276,18 +309,26 @@ end
 
 local function triggerPrompt(prompt)
     if not prompt or not prompt.Parent or not prompt.Enabled then return end
+
     setupPrompt(prompt)
+
     local character = localPlayer.Character
     local root = character and character:FindFirstChild("HumanoidRootPart")
     local parentPart = prompt.Parent:IsA("BasePart") and prompt.Parent or prompt.Parent:FindFirstChildWhichIsA("BasePart")
+
     if root and parentPart then
         root.CFrame = parentPart.CFrame * CFrame.new(0, 3, 0)
         task.wait(0.05)
     end
+
     local fired = false
     pcall(function()
-        prompt:InputHoldBegin(); task.wait(0.02); prompt:InputHoldEnd(); fired = true
+        prompt:InputHoldBegin()
+        task.wait(0.02)
+        prompt:InputHoldEnd()
+        fired = true
     end)
+
     if not fired then
         pcall(function()
             local keyCode = (prompt.KeyboardKeyCode ~= Enum.KeyCode.Unknown) and prompt.KeyboardKeyCode or Enum.KeyCode.E
@@ -302,66 +343,83 @@ local function isWhitelistedPart(part)
     local mojave = workspace:FindFirstChild("Mojave")
     local interactiveJobs = mojave and mojave:FindFirstChild("InteractiveJobs")
     local peets = interactiveJobs and interactiveJobs:FindFirstChild("The Palm Coffee & Tea")
-    if not peets then return false end
-    local interior = peets:FindFirstChild("Interior")
-    local building = peets:FindFirstChild("Building") or (interior and interior:FindFirstChild("Building"))
+    local building = peets and peets:FindFirstChild("Building")
     return building and (part:IsDescendantOf(building) or part == building) or false
 end
 
 function jobModule.toggleBoostAndFloat(enabled)
     jobModule.appSettings.boostFpsAndFloat = enabled
     local state = jobModule.jobState
+
     if enabled then
         lighting.GlobalShadows = false
+
         for _, part in ipairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") and not part:IsDescendantOf(localPlayer.Character) and part ~= state.floatPart then
                 if not state.originalPartStates[part] then
                     state.originalPartStates[part] = {
-                        CanCollide = part.CanCollide, Material = part.Material, CastShadow = part.CastShadow
+                        CanCollide = part.CanCollide,
+                        Material = part.Material,
+                        CastShadow = part.CastShadow
                     }
                 end
-                local w = isWhitelistedPart(part)
+
+                local whitelisted = isWhitelistedPart(part)
                 pcall(function()
                     part.Material = Enum.Material.SmoothPlastic
                     part.CastShadow = false
-                    if not w then part.CanCollide = false end
+                    if not whitelisted then
+                        part.CanCollide = false
+                    end
                 end)
             end
         end
+
         if state.boostConnection then state.boostConnection:Disconnect() end
         state.boostConnection = workspace.DescendantAdded:Connect(function(part)
             if part:IsA("BasePart") and not part:IsDescendantOf(localPlayer.Character) and part ~= state.floatPart then
                 task.wait()
                 if not state.originalPartStates[part] then
                     state.originalPartStates[part] = {
-                        CanCollide = part.CanCollide, Material = part.Material, CastShadow = part.CastShadow
+                        CanCollide = part.CanCollide,
+                        Material = part.Material,
+                        CastShadow = part.CastShadow
                     }
                 end
-                local w = isWhitelistedPart(part)
+
+                local whitelisted = isWhitelistedPart(part)
                 pcall(function()
                     part.Material = Enum.Material.SmoothPlastic
                     part.CastShadow = false
-                    if not w then part.CanCollide = false end
+                    if not whitelisted then
+                        part.CanCollide = false
+                    end
                 end)
             end
         end)
         trackConnection(state.boostConnection)
+
         if not state.floatPart then
             local float = Instance.new("Part")
-            float.Name = "FLOATING"; float.Size = Vector3.new(3, 1, 3)
-            float.Transparency = 1; float.Anchored = true; float.CanCollide = true
+            float.Name = "FLOATING"
+            float.Size = Vector3.new(3, 1, 3)
+            float.Transparency = 1
+            float.Anchored = true
+            float.CanCollide = true
             float.Parent = workspace
             state.floatPart = float
         end
+
         if state.floatConnection then state.floatConnection:Disconnect() end
         state.floatConnection = runService.Heartbeat:Connect(function()
             if state.floatPart and localPlayer.Character then
                 local root = localPlayer.Character:FindFirstChild("HumanoidRootPart")
                 if root then
-                    local rp = RaycastParams.new()
-                    rp.FilterType = Enum.RaycastFilterType.Exclude
-                    rp.FilterDescendantsInstances = {localPlayer.Character, state.floatPart}
-                    local result = workspace:Raycast(root.Position, Vector3.new(0, -40, 0), rp)
+                    local rayParams = RaycastParams.new()
+                    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+                    rayParams.FilterDescendantsInstances = {localPlayer.Character, state.floatPart}
+
+                    local result = workspace:Raycast(root.Position, Vector3.new(0, -40, 0), rayParams)
                     if result then
                         state.floatPart.Position = Vector3.new(root.Position.X, result.Position.Y, root.Position.Z)
                     else
@@ -373,13 +431,17 @@ function jobModule.toggleBoostAndFloat(enabled)
         trackConnection(state.floatConnection)
     else
         lighting.GlobalShadows = true
+
         if state.boostConnection then state.boostConnection:Disconnect(); state.boostConnection = nil end
         if state.floatConnection then state.floatConnection:Disconnect(); state.floatConnection = nil end
         if state.floatPart then state.floatPart:Destroy(); state.floatPart = nil end
+
         for part, data in pairs(state.originalPartStates) do
             if part and part.Parent then
                 pcall(function()
-                    part.CanCollide = data.CanCollide; part.Material = data.Material; part.CastShadow = data.CastShadow
+                    part.CanCollide = data.CanCollide
+                    part.Material = data.Material
+                    part.CastShadow = data.CastShadow
                 end)
             end
         end
@@ -388,11 +450,12 @@ function jobModule.toggleBoostAndFloat(enabled)
 end
 
 function jobModule.getNumericBalance()
-    local ok, gui = pcall(function()
+    local success, balanceGui = pcall(function()
         return localPlayer.PlayerGui.MojavePlayerUI.JobBar.Money.Icon.balance
     end)
-    if ok and gui and gui:IsA("TextLabel") then
-        return tonumber(gui.Text:gsub("[^%d]", ""))
+    if success and balanceGui and balanceGui:IsA("TextLabel") then
+        local cleaned = balanceGui.Text:gsub("[^%d]", "")
+        return tonumber(cleaned)
     end
     return nil
 end
@@ -414,9 +477,13 @@ function jobModule.start()
             pcall(function()
                 localPlayer.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
             end)
+
             if localPlayer.Character then
                 local hum = localPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if hum and hum.Sit then hum.Sit = false; hum.Jump = true end
+                if hum and hum.Sit then
+                    hum.Sit = false
+                    hum.Jump = true
+                end
             end
         end
     end))
@@ -427,7 +494,7 @@ function jobModule.start()
         local peetsFolder = interactiveJobsFolder and interactiveJobsFolder:WaitForChild("The Palm Coffee & Tea", 5)
         local interiorFolder = peetsFolder and peetsFolder:WaitForChild("Interior", 5)
         local interactiveFolder = interiorFolder and interiorFolder:WaitForChild("Interactive", 5)
-        local jobResources = interactiveFolder and interactiveFolder:FindFirstChild("JobResources")
+        local jobResourcesFolder = interactiveFolder and interactiveFolder:FindFirstChild("JobResources")
         local npcsFolder = workspace:WaitForChild("NPCs", 5)
 
         if interactiveFolder then
@@ -446,30 +513,30 @@ function jobModule.start()
 
         if npcsFolder then
             for _, desc in ipairs(npcsFolder:GetDescendants()) do
-                setupPrompt(desc); applyNpcSpeed(desc)
+                setupPrompt(desc)
+                applyNpcSpeed(desc)
             end
             trackConnection(npcsFolder.DescendantAdded:Connect(function(d)
-                setupPrompt(d); applyNpcSpeed(d)
+                setupPrompt(d)
+                applyNpcSpeed(d)
             end))
         end
 
-        local lastWorkHere = 0
         local function doWorkHere()
             if not interactiveFolder then return end
-            if tick() - lastWorkHere < 0.5 then return end
-            lastWorkHere = tick()
             local workHere = interactiveFolder:FindFirstChild("WorkHere")
             if not workHere then return end
-            local workPrompt = workHere:FindFirstChildWhichIsA("ProximityPrompt", true)
-                or workHere:FindFirstChild("ProximityPrompt", true)
-            if not workPrompt or not workPrompt.Enabled then return end
-            setupPrompt(workPrompt)
-            local targetPart = getBasePart(workHere) or getBasePart(workPrompt.Parent)
-            if targetPart then
-                instantTeleport(targetPart.CFrame)
-                task.wait(0.05)
-                triggerPrompt(workPrompt)
-                task.wait(0.1)
+
+            local workPrompt = workHere:FindFirstChildWhichIsA("ProximityPrompt", true) or workHere:FindFirstChild("ProximityPrompt", true)
+            if workPrompt then
+                setupPrompt(workPrompt)
+                local targetPart = getBasePart(workHere) or getBasePart(workPrompt.Parent)
+                if targetPart then
+                    instantTeleport(targetPart.CFrame)
+                    task.wait(0.05)
+                    triggerPrompt(workPrompt)
+                    task.wait(0.1)
+                end
             end
         end
 
@@ -478,29 +545,39 @@ function jobModule.start()
                 task.wait(0.2)
                 continue
             end
+
             pcall(function()
                 if not npcsFolder or not interactiveFolder then return end
                 local character = localPlayer.Character
                 local rootPart = character and character:FindFirstChild("HumanoidRootPart")
                 if not rootPart then return end
 
+                local anyDisabled = false
+                for _, desc in ipairs(interactiveFolder:GetDescendants()) do
+                    if desc:IsA("ProximityPrompt") and not desc.Enabled then
+                        anyDisabled = true
+                        break
+                    end
+                end
+                if anyDisabled then doWorkHere() end
+
                 if rawget(_G, "AutoDeliverPeetsOrder") then
                     local delivered = _G.AutoDeliverPeetsOrder()
-                    if delivered then task.wait(0.1); return end
+                    if delivered then
+                        task.wait(0.1)
+                        return
+                    end
                 end
 
                 local handPrompt = nil
                 for _, desc in ipairs(npcsFolder:GetDescendants()) do
-                    if desc:IsA("ProximityPrompt") and desc.Name == "HandPrompt"
-                       and desc ~= jobModule.jobState.lastProcessedPrompt then
+                    if desc:IsA("ProximityPrompt") and desc.Name == "HandPrompt" and desc ~= jobModule.jobState.lastProcessedPrompt then
                         handPrompt = desc
                         break
                     end
                 end
 
-                if jobModule.jobState.lastProcessedPrompt
-                   and (not jobModule.jobState.lastProcessedPrompt.Parent
-                        or not npcsFolder:IsAncestorOf(jobModule.jobState.lastProcessedPrompt)) then
+                if jobModule.jobState.lastProcessedPrompt and (not jobModule.jobState.lastProcessedPrompt.Parent or not npcsFolder:IsAncestorOf(jobModule.jobState.lastProcessedPrompt)) then
                     jobModule.jobState.lastProcessedPrompt = nil
                 end
 
@@ -508,41 +585,50 @@ function jobModule.start()
                     setupPrompt(handPrompt)
                     local rawText = (handPrompt.ObjectText ~= "") and handPrompt.ObjectText or handPrompt.ActionText
                     local objText = string.gsub(rawText or "", "%s+", "")
-                    local targetName, toolName = nil, nil
-                    if string.find(objText, "Coffee") then targetName, toolName = "Coffee", "Coffee"
-                    elseif string.find(objText, "Croissant") then targetName, toolName = "Croissant", "Croissant"
-                    elseif string.find(objText, "EggSandwich") or string.find(objText, "Egg") then targetName, toolName = "EggSandwich", "EggSandwich"
-                    elseif string.find(objText, "Milkshake") then targetName, toolName = "Milkshake", "Milkshake"
+                    local targetPromptName, toolName = nil, nil
+
+                    if string.find(objText, "Coffee") then
+                        targetPromptName, toolName = "Coffee", "Coffee"
+                    elseif string.find(objText, "Croissant") then
+                        targetPromptName, toolName = "Croissant", "Croissant"
+                    elseif string.find(objText, "EggSandwich") or string.find(objText, "Egg") then
+                        targetPromptName, toolName = "EggSandwich", "EggSandwich"
+                    elseif string.find(objText, "Milkshake") then
+                        targetPromptName, toolName = "Milkshake", "Milkshake"
                     end
 
-                    if targetName then
-                        local itemPart = jobResources and jobResources:FindFirstChild(targetName)
+                    if targetPromptName then
+                        local itemPart = jobResourcesFolder and jobResourcesFolder:FindFirstChild(targetPromptName)
                         if itemPart then
-                            local itemPrompt = itemPart:FindFirstChildWhichIsA("ProximityPrompt", true)
-                                or itemPart:FindFirstChild("ProximityPrompt", true)
+                            local itemPrompt = itemPart:FindFirstChildWhichIsA("ProximityPrompt", true) or itemPart:FindFirstChild("ProximityPrompt", true)
                             if itemPrompt then
                                 setupPrompt(itemPrompt)
-                                if not itemPrompt.Enabled then doWorkHere(); task.wait(0.1) end
+                                if not itemPrompt.Enabled then
+                                    doWorkHere()
+                                    task.wait(0.1)
+                                end
+
                                 local targetPart = getBasePart(itemPart) or getBasePart(itemPrompt.Parent)
                                 if targetPart then
                                     instantTeleport(targetPart.CFrame)
                                     task.wait(0.05)
                                 end
+
                                 local startTime = tick()
                                 local tool = EquipItemForOrder(toolName)
-                                while not tool and (tick() - startTime < 3)
-                                      and not jobModule.jobState.destroyed
-                                      and jobModule.jobState.enabled do
+                                while not tool and (tick() - startTime < 3) and not jobModule.jobState.destroyed and jobModule.jobState.enabled do
                                     triggerPrompt(itemPrompt)
                                     task.wait(0.1)
                                     tool = EquipItemForOrder(toolName)
                                 end
+
                                 if handPrompt and handPrompt.Parent then
                                     local npcPart = getBasePart(handPrompt.Parent)
                                     if npcPart then
                                         instantTeleport(npcPart.CFrame)
                                         task.wait(0.05)
                                     end
+
                                     if rawget(_G, "AutoDeliverPeetsOrder") then
                                         local delivered = _G.AutoDeliverPeetsOrder()
                                         if delivered then
@@ -551,6 +637,7 @@ function jobModule.start()
                                             return
                                         end
                                     end
+
                                     if handPrompt and handPrompt.Parent then
                                         triggerPrompt(handPrompt)
                                         jobModule.jobState.lastProcessedPrompt = handPrompt
@@ -570,18 +657,28 @@ end
 function jobModule.cleanup()
     jobModule.jobState.destroyed = true
     jobModule.jobState.enabled = false
+
     pcall(function()
         localPlayer.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Zoom
     end)
+
     for _, conn in ipairs(jobModule.jobState.connections) do
-        if conn and conn.Connected then conn:Disconnect() end
+        if conn and conn.Connected then
+            conn:Disconnect()
+        end
     end
     table.clear(jobModule.jobState.connections)
-    if jobModule.jobState.floatPart then jobModule.jobState.floatPart:Destroy() end
+
+    if jobModule.jobState.floatPart then
+        jobModule.jobState.floatPart:Destroy()
+    end
+
     for part, data in pairs(jobModule.jobState.originalPartStates) do
         if part and part.Parent then
             pcall(function()
-                part.CanCollide = data.CanCollide; part.Material = data.Material; part.CastShadow = data.CastShadow
+                part.CanCollide = data.CanCollide
+                part.Material = data.Material
+                part.CastShadow = data.CastShadow
             end)
         end
     end

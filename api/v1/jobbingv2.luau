@@ -522,21 +522,19 @@ function jobModule.start()
             end))
         end
 
-        local function doWorkHere()
-            if not interactiveFolder then return end
-            local workHere = interactiveFolder:FindFirstChild("WorkHere")
-            if not workHere then return end
+        local workHere = interactiveFolder and interactiveFolder:FindFirstChild("WorkHere")
+        local workPrompt = workHere and (workHere:FindFirstChildWhichIsA("ProximityPrompt", true) or workHere:FindFirstChild("ProximityPrompt", true))
 
-            local workPrompt = workHere:FindFirstChildWhichIsA("ProximityPrompt", true) or workHere:FindFirstChild("ProximityPrompt", true)
-            if workPrompt then
-                setupPrompt(workPrompt)
-                local targetPart = getBasePart(workHere) or getBasePart(workPrompt.Parent)
-                if targetPart then
-                    instantTeleport(targetPart.CFrame)
-                    task.wait(0.05)
-                    triggerPrompt(workPrompt)
-                    task.wait(0.1)
-                end
+        local function doWorkHere()
+            if not workHere or not workPrompt then return end
+            if not workPrompt.Enabled then return end
+            setupPrompt(workPrompt)
+            local targetPart = getBasePart(workHere) or getBasePart(workPrompt.Parent)
+            if targetPart then
+                instantTeleport(targetPart.CFrame)
+                task.wait(0.05)
+                triggerPrompt(workPrompt)
+                task.wait(0.1)
             end
         end
 
@@ -554,7 +552,7 @@ function jobModule.start()
 
                 local anyDisabled = false
                 for _, desc in ipairs(interactiveFolder:GetDescendants()) do
-                    if desc:IsA("ProximityPrompt") and not desc.Enabled then
+                    if desc:IsA("ProximityPrompt") and desc ~= workPrompt and not desc.Enabled then
                         anyDisabled = true
                         break
                     end

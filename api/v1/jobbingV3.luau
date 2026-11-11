@@ -1,4 +1,14 @@
 -- @name: autojobModule
--- sincere question: Why would you deobfusc ppl's script, is it for flexing? if that a yes, thats very cringe, flex your own deobfusc if he's good, but don't flex bc you deobfusc a script plz
--- is it for skidding it? actually, why, there AI's, and many tools so that you can make your own scripts, don't be lazy
--- is it for trolling? then, i state you as a kid, as an immature kid, thats it 🤷‍♂️, just enjoy your life, be nice
+-- A sincere question: Why would you deobfuscate someone else's script? Is it just to show off?
+-- If so, that's honestly pretty cringe. Show off your own work instead. If your scripts are actually good, let them speak for themselves. There's no reason to flex just because you managed to deobfuscate someone else's script.
+--
+-- Is it to skid someone else's work?
+-- Seriously, why? We have AI and plenty of tools available to help you create your own scripts. There's no need to steal someone else's work. Don't be lazy.
+--
+-- Is it just for trolling?
+-- Then honestly, that's just childish and immature. That's all 🤷‍♂️.
+-- Just enjoy your life, be respectful, and be nice to others.
+--
+-- Is it to develop an anti-cheat for your own game?
+-- This is the one reason I can genuinely understand and agree with. You're absolutely justified in wanting to protect your own work, and I apologize for judging your intentions.
+-- However, I still believe players should have the freedom to experiment and enjoy certain games without unnecessary restrictions.
